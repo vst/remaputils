@@ -57,7 +57,7 @@ securityTypeCurrency <- function() {
 ##' @param figiApi The api key of the openFigi account.
 ##' @return Returns the original data-frame with figi information appended.
 ##' @export
-figiWrapper <- function(data, idType="ID_ISIN", fld="isin", ccy="ccymain") {
+figiWrapper <- function(data, idType="ID_ISIN", fld="isin", ccy="ccymain", figiApi) {
 
     ## Get the NA resources:
     naResources <- is.na(safeColumn(data, "resmain"))

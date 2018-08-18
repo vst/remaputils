@@ -5,7 +5,7 @@
 \title{A wrapper function call figi for instruments without resmains in data frame:}
 \usage{
 figiWrapper(data, idType = "ID_ISIN", fld = "isin", ccy = "ccymain",
-  figiApi = NULL)
+  figiApi)
 }
 \arguments{
 \item{data}{The data-frame}

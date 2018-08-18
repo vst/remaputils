@@ -638,3 +638,99 @@ bondMaturityFromTicker <- function(ticker){
     ## hebele
     do.call(c, lapply(maturities, function(x) ifelse(length(x) == 0, NA, as.character(as.Date(x, format="%m/%d/%y")))))
 }
+
+
+##' A function to retrieve the resources by stock for a rdecaf session:
+##'
+##' This is a description.
+##'
+##' @param stocks The stocks data-frame
+##' @param session The rdecaf session
+##' @return Returns the inferred maturity
+##' @import rdecaf
+##' @export
+getResourcesByStock <- function(stocks, session){
+
+    ## Construct the resource params:
+    params <- list("page_size"=-1,
+                   "id__in"=paste(unique(stocks[,"artifact"]), collapse=","))
+
+    ## Get vision resource. NOTE: We are binding them safely ourselfs.
+    resources <- getResource("resources", params=params, session=session)
+
+    ## Excluding tag information, safely combine and return:
+    safeRbind(lapply(resources, function(res) do.call(cbind, res[!names(res) == "tags"])))
+}
+
+
+##' A function to retrieve the stocks for set of accounts:
+##'
+##' This is a description.
+##'
+##' @param accounts The accounts data-frame from rdecaf
+##' @param session The rdecaf session
+##' @param zero Either 1 or 0 to indicate whether closed positions should be included.
+##' @return Returns a data-frame with the stocks for the accounts.
+##' @import rdecaf
+##' @export
+getStocks <- function(accounts, session, zero=1){
+
+    ## Constrct the stocks params:
+    params <- list("page_size"=-1,
+                   "c"="account",
+                   "format"="csv",
+                   "zero"=zero)
+
+    ## Iterate over accounts and append account id to params:
+    for (row in 1:NROW(accounts)) {
+        params <- c(params, accounts[row,"id"])
+    }
+
+    ## Append the names to stocks params:
+    names(params) <- c("page_size", "c", "format", "zero", rep("i", NROW(accounts)))
+
+    ## Return stocks:
+    as.data.frame(getResource("stocks", params=params, session=session))
+
+}
+
+
+##' A function to enrich the stocks data-frame
+##'
+##' This is a description.
+##'
+##' @param stocks The stocks data-frame.
+##' @param accounts The accounts data-frame.
+##' @param resources The resources data-frame.
+##' @return Returns a enriched stocks data-frame.
+##' @export
+getEnrichedStocks <- function(stocks, accounts, resources){
+
+    ## Append account name:
+    stocks[,"account_name"] <- accounts[match(stocks[,"account"], accounts[,"id"]), "name"]
+
+    ## Append the sub type:
+    stocks[,"name"] <- resources[match(stocks[,"artifact"], resources[,"id"]), "name"]
+
+    ## Append symbol:
+    stocks[,"symbol"] <- resources[match(stocks[,"artifact"], resources[,"id"]), "symbol"]
+
+    ## Append the sub type:
+    stocks[,"currency"] <- resources[match(stocks[,"artifact"], resources[,"id"]), "ccymain"]
+
+    ## Append ctype:
+    stocks[,"type"] <- resources[match(stocks[,"artifact"], resources[,"id"]), "ctype"]
+
+    ## Append the sub type:
+    stocks[,"subtype"] <- resources[match(stocks[,"artifact"], resources[,"id"]), "stype"]
+
+    ## Append the sub type:
+    stocks[,"expiry"] <- resources[match(stocks[,"artifact"], resources[,"id"]), "expiry"]
+
+    ## Append the sub type:
+    stocks[,"country"] <- resources[match(stocks[,"artifact"], resources[,"id"]), "country"]
+
+    ## Return:
+    stocks
+
+}

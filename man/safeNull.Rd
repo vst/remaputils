@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{safeNull}
 \alias{safeNull}
-\title{A function to replace null and length 0 value with NA:}
+\title{A function to replace null and length 0 value with NA}
 \usage{
 safeNull(x)
 }
@@ -13,5 +13,5 @@ safeNull(x)
 Returns x or NA.
 }
 \description{
-A function to replace null and length 0 value with NA:
+This is the description
 }

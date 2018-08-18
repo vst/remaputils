@@ -8,13 +8,13 @@ extendFileName(str, customExt = NULL, randomStrN = NULL,
   addTime = TRUE)
 }
 \arguments{
+\item{str}{A string.}
+
 \item{customExt}{A custom extention of the string. Default is NULL.}
 
 \item{randomStrN}{The random string character size. Default is NULL.}
 
 \item{addTime}{Boolean to indicate whether time should be added. Default is TRUE.}
-
-\item{string}{A string.}
 }
 \value{
 The extended file name.

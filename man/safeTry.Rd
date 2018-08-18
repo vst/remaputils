@@ -8,6 +8,8 @@ safeTry(x, nullToNa = TRUE)
 }
 \arguments{
 \item{x}{A object of try.}
+
+\item{nullToNa}{Boolean to indicate whether null should be replaced to NA. Default is TRUE.}
 }
 \value{
 NA or valid value.

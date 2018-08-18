@@ -10,6 +10,8 @@ ellipsify(str, charLimit = 30, capitalise = TRUE)
 \item{str}{A string.}
 
 \item{charLimit}{The maximum number of characters.}
+
+\item{capitalise}{Boolean to indicate if string should be capitalised. Default is TRUE.}
 }
 \value{
 Ellipsified string.

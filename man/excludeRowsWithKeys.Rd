@@ -10,9 +10,9 @@ excludeRowsWithKeys(data, field, keys)
 \arguments{
 \item{data}{The data-frame.}
 
-\item{keys}{The keys to look for.}
+\item{field}{The field names to be excluded.}
 
-\item{column}{The column name.}
+\item{keys}{The keys to look for.}
 }
 \value{
 The data-frame with the excluded rows.

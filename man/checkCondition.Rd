@@ -10,6 +10,8 @@ checkCondition(vector, val, condition = "equal")
 \item{vector}{The numeric value to check condition for.}
 
 \item{val}{The numeric value to check condition against>}
+
+\item{condition}{Either of 'equal', 'greater', 'smaller'.}
 }
 \value{
 Returns either NA, TRUE or FALSE.

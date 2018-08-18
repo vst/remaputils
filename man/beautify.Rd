@@ -9,7 +9,7 @@ beautify(number, nsmall = 0)
 \arguments{
 \item{number}{An array of numeric values.}
 
-\item{nsmalll}{The number of digits.}
+\item{nsmall}{The number of digits.}
 }
 \value{
 Formated number(s):

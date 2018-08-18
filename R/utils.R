@@ -86,6 +86,7 @@ trimConcatenate <- function(str){
 ##'
 ##' @param vector The numeric value to check condition for.
 ##' @param val The numeric value to check condition against>
+##' @param condition Either of 'equal', 'greater', 'smaller'.
 ##' @return Returns either NA, TRUE or FALSE.
 ##' @export
 checkCondition <- function(vector, val, condition="equal"){
@@ -106,7 +107,7 @@ checkCondition <- function(vector, val, condition="equal"){
 
 ##' A function to extend file name by random/date string.
 ##'
-##' @param string A string.
+##' @param str A string.
 ##' @param customExt A custom extention of the string. Default is NULL.
 ##' @param randomStrN The random string character size. Default is NULL.
 ##' @param addTime Boolean to indicate whether time should be added. Default is TRUE.
@@ -127,8 +128,8 @@ extendFileName <- function(str, customExt=NULL, randomStrN=NULL, addTime=TRUE){
     }
 
     ## Add random string:
-    if (!is.null(randomStr)){
-        prefix <- paste0(prefix, "_", getRandString(randomStr))
+    if (!is.null(randomStrN)){
+        prefix <- paste0(prefix, "_", getRandString(randomStrN))
     }
 
     ## Add time:
@@ -178,6 +179,7 @@ argsParser <- function(commandArgs){
 ##' If try-error, return NA:
 ##'
 ##' @param x A object of try.
+##' @param nullToNa Boolean to indicate whether null should be replaced to NA. Default is TRUE.
 ##' @return NA or valid value.
 ##' @export
 safeTry <- function(x, nullToNa=TRUE){
@@ -301,7 +303,7 @@ safeRbind <- function(x){
 ##' A Wrapper function for formatting numbers:
 ##'
 ##' @param number An array of numeric values.
-##' @param nsmalll The number of digits.
+##' @param nsmall The number of digits.
 ##' @return Formated number(s):
 ##' @export
 beautify <- function(number, nsmall=0){
@@ -373,7 +375,7 @@ safeColumn <- function(df, col) {
 ##' has a key.
 ##'
 ##' @param data The data-frame.
-##' @param column The column name.
+##' @param field The field names to be excluded.
 ##' @param keys The keys to look for.
 ##' @return The data-frame with the excluded rows.
 ##' @export
@@ -383,7 +385,7 @@ excludeRowsWithKeys <- function(data, field, keys){
     for (key in keys){
 
         ## Try to grep the key in column:
-        greppedKeys <- grep(toupper(key), toupper(data[,field]))
+        greppedKeys <- grep(toupper(key), toupper(data[, field]))
 
         ## If key was grepped, exclude row:
         if (length(greppedKeys) > 0){
@@ -553,6 +555,7 @@ getRandString <- function(n=1, len=12) {
 ##'
 ##' @param str A string.
 ##' @param charLimit The maximum number of characters.
+##' @param capitalise Boolean to indicate if string should be capitalised. Default is TRUE.
 ##' @return Ellipsified string.
 ##' @export
 ellipsify <- function(str, charLimit=30, capitalise=TRUE){

@@ -57,10 +57,7 @@ securityTypeCurrency <- function() {
 ##' @param figiApi The api key of the openFigi account.
 ##' @return Returns the original data-frame with figi information appended.
 ##' @export
-figiWrapper <- function(data, idType="ID_ISIN", fld="isin", ccy="ccymain", figiApi=NULL) {
-
-    ## TODO: Delete the figi API:
-    figiApi <- "d49bdbc7-7b61-4791-bf67-7a543af1b5ab"
+figiWrapper <- function(data, idType="ID_ISIN", fld="isin", ccy="ccymain") {
 
     ## Get the NA resources:
     naResources <- is.na(safeColumn(data, "resmain"))

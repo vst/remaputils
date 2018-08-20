@@ -6,7 +6,7 @@
 ##' @return A vector with matching target indices:
 ##' @import stringdist
 ##' @export
-stringMatch <- function(sourceStr, targetStr, jaccard=0.10){
+stringMatch <- function(sourceStr, targetStr, jaccard=0.15){
 
     ## Try exact match:
     matchingIndices <- match(sourceStr, targetStr)

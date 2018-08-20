@@ -51,10 +51,10 @@ registerLog <- function(){
     file <- paste0(tolower(logger), ".log")
 
     ## Register the handler for writing to log file:
-    logging::addHandler(writeToFile, logger=logger, file=file)
+    logging::addHandler(logging::writeToFile, logger=logger, file=file)
 
     ## Register the handler for writing to console:
-    logging::addHandler(writeToConsole)
+    logging::addHandler(logging::writeToConsole)
     logging::loginfo(paste0("Starting new run:", Sys.time()), logger)
 
     ## Message:

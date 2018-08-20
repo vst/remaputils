@@ -24,7 +24,7 @@ messageHandler <- function(x=1, val=0, condition="equal", errortext=NULL, infote
         logging::logerror(paste0("ERROR IN ", sys.call(-1)[[1]], errortext), logger=logger)
     } else {
         ## Log success:
-        logging:loginfo(paste0("SUCCESS IN ", sys.call(-1)[[1]], infotext), logger=logger)
+        logging::loginfo(paste0("SUCCESS IN ", sys.call(-1)[[1]], infotext), logger=logger)
     }
 }
 

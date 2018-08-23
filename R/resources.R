@@ -648,7 +648,7 @@ bondMaturityFromTicker <- function(ticker){
 ##' @param session The rdecaf session
 ##' @return Returns the inferred maturity
 ##' @import rdecaf
-##' @export
+##' @xexport
 getResourcesByStock <- function(stocks, session){
 
     ## Construct the resource params:
@@ -659,7 +659,38 @@ getResourcesByStock <- function(stocks, session){
     resources <- getResource("resources", params=params, session=session)
 
     ## Excluding tag information, safely combine and return:
-    safeRbind(lapply(resources, function(res) do.call(cbind, res[!names(res) == "tags"])))
+    resources <- safeRbind(lapply(resources, function(res) do.call(cbind, res[!names(res) == "tags"])))
+
+    ## Indicate if it is a underlying:
+    resources[, "is_underlying"] <- FALSE
+
+    ## Get the underlying resources:
+    resources[, "underlying"] <- safeColumn(resources, "underlying")
+
+    ## Retrieve the underlying resources, if any:
+    if (any(!is.na(resources[, "underlying"]))) {
+
+        ## Which resources have underlyings:
+        undrl <- !is.na(resources[, "underlying"])
+
+        ## Construct the underlying resource params:
+        params <- list("page_size"=-1,
+                       "id__in"=paste(resources[undrl, "underlying"], collapse=","))
+
+        ## Get and bind the undelrying resources:
+        undrlResources <- safeRbind(lapply(getResource("resources", params=params, session=session), function(res) do.call(cbind, res[!names(res) == "tages"])))
+
+        ## These are underlying resources:
+        undrlResources[, "is_underlying"] <- TRUE
+
+        ## Bind to the main resources:
+        resources <- safeRbind(list(resources, undrlResources))
+
+    }
+
+    ## Done, return:
+    resources
+
 }
 
 

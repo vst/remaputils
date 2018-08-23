@@ -6,19 +6,28 @@
 ##' @param endpoint The endpoint to be pushed to.
 ##' @param session The rdecaf session.
 ##' @param import Boolean to indicate whether to use the import extension. Default is TRUE.
+##' @param inbulk Boolean to indicate whether to use the inbulk extension. Default is FALSE.
+##' @param params Additional parameters.
 ##' @return A list with the httr response and a message.
 ##' @import rdecaf
 ##' @export
-pushPayload <- function(payload, endpoint, session, import=TRUE){
+pushPayload <- function(payload, endpoint, session, import=TRUE, inbulk=FALSE, params=NULL) {
 
     ## If import, then extend the url with "imports" and push payload:
-    if (import) {
+    if (import & !inbulk) {
+
         response <- try(postResource(endpoint, "imports", payload=payload, session=session), silent=TRUE)
         response <- response[[1]]
     }
 
+    ## If inbulk, extend the url and push payload:
+    if (inbulk) {
+        response <- try(postResource("imports/inbulk", payload=payload, params=params, session=session), silent=TRUE)
+        response <- list("id"=response)
+    }
+
     ## If not import, use the endpoint itself and push payload:
-    if (!import) {
+    if (!import & !inbulk) {
         response <- try(postResource(endpoint, payload=payload, session=session), silent=TRUE)
     }
 

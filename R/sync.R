@@ -51,6 +51,9 @@ syncShareclass <- function(sourceSession, targetSession, sourcePortfolios){
     ## Get the system portfolios:
     sourceShreclasses <- as.data.frame(getResource("shareclasses", params=params, session=sourceSession))
 
+    ## Append the source id's:
+    sourceShreclasses[, "source_id"] <- sourceShreclasses[, "id"]
+
     ## Get the system portfolios:
     targetShreclasses <- as.data.frame(getResource("shareclasses", params=params, session=targetSession))
 
@@ -82,7 +85,7 @@ syncShareclass <- function(sourceSession, targetSession, sourcePortfolios){
         sourcePortfolioGUID   <-   sourcePortfolios[match(shrcls[, "portfolio"], sourcePortfolios[, "id"]), "guid"]
         shrcls[, "portfolio"] <- targetPortfolios[match(sourcePortfolioGUID, targetPortfolios[, "guid"]), "id"]
         shrcls[, "id"] <- NULL
-        shrcls[, "guid"] <- NULL
+        ## shrcls[, "guid"] <- NULL
 
         payload <- toJSON(as.list(shrcls),  auto_unbox=TRUE)
 
@@ -94,7 +97,7 @@ syncShareclass <- function(sourceSession, targetSession, sourcePortfolios){
     }
 
     ## Done, return:
-    list("shareclasses"=sourceShreclasses)
+    sourceShreclasses
 
 }
 
@@ -144,6 +147,8 @@ syncAtypes <- function(sourceSession, targetSession, sourceAccounts) {
     ## Filter the atypes:
     sourceAtypes <- sourceAtypes[na.omit(match(sourceAccounts[, "atype"], sourceAtypes[, "id"])), ]
 
+    sourceAtypes[, "source_id"] <- sourceAtypes[, "id"]
+
     ## Overwrite resource fields:
     for (fld in c("id", "created", "creator", "updated", "updater")) {
         sourceAtypes[, fld] <- NULL
@@ -161,13 +166,24 @@ syncAtypes <- function(sourceSession, targetSession, sourceAccounts) {
 }
 
 
-syncInstitutions <- function(sourceSession, targetSession, sourceAccounts) {
+syncInstitutions <- function(sourceSession, targetSession, sourceAccounts, trades=NULL) {
 
     ## Get the source atypes:
     sourceInstitutions <- as.data.frame(getResource("institutions", params=list("format"="csv", "page_size"=-1), session=sourceSession))
 
+    ## Append the fee agent institutions:
+    if (!is.null(trades)) {
+        ## Map the fee agent institutions:
+        feeagtInstitutions <- sourceInstitutions[match(unique(trades[, "feeagt"]), sourceInstitutions[, "id"]), ]
+    } else {
+        feeagtInstitutions <- NULL
+    }
+
     ## Filter the atypes:
-    sourceInstitutions <- sourceInstitutions[na.omit(match(sourceAccounts[, "custodian"], sourceInstitutions[, "id"])), ]
+    sourceInstitutions <- rbind(sourceInstitutions[na.omit(match(sourceAccounts[, "custodian"], sourceInstitutions[, "id"])), ], feeagtInstitutions)
+
+    ## Remove duplicate institutions and NA's:
+    sourceInstitutions <- cleanNARowsCols(sourceInstitutions[!duplicated(sourceInstitutions[, "id"]), ])
 
     ## Overwrite resource fields:
     for (fld in c("id", "created", "creator", "updated", "updater")) {

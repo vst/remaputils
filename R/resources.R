@@ -678,7 +678,7 @@ getResourcesByStock <- function(stocks, session){
                        "id__in"=paste(resources[undrl, "underlying"], collapse=","))
 
         ## Get and bind the undelrying resources:
-        undrlResources <- safeRbind(lapply(getResource("resources", params=params, session=session), function(res) do.call(cbind, res[!names(res) == "tages"])))
+        undrlResources <- safeRbind(lapply(getResource("resources", params=params, session=session), function(res) do.call(cbind, res[!names(res) == "tags"])))
 
         ## These are underlying resources:
         undrlResources[, "is_underlying"] <- TRUE

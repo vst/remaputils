@@ -1,5 +1,15 @@
+##' A function to get account-wise trades from a DECAF instance.
+##'
+##' This is the description
+##'
+##' @param accounts A vector with account id's.
+##' @param session The DECAF session info.
+##' @return A data-frame with DECAF trades.
+##' @import rdecaf
+##' @export
 getAccountWiseTrades <- function(accounts, session) {
 
+    ## Initialise the trade list:
     trades <- list()
 
     ## Retrieve account-wise trades

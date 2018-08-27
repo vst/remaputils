@@ -4,7 +4,8 @@
 \alias{pushPayload}
 \title{A function to push a payload to a decaf instance.}
 \usage{
-pushPayload(payload, endpoint, session, import = TRUE)
+pushPayload(payload, endpoint, session, import = TRUE, inbulk = FALSE,
+  params = NULL)
 }
 \arguments{
 \item{payload}{The payload in json.}
@@ -14,6 +15,10 @@ pushPayload(payload, endpoint, session, import = TRUE)
 \item{session}{The rdecaf session.}
 
 \item{import}{Boolean to indicate whether to use the import extension. Default is TRUE.}
+
+\item{inbulk}{Boolean to indicate whether to use the inbulk extension. Default is FALSE.}
+
+\item{params}{Additional parameters.}
 }
 \value{
 A list with the httr response and a message.

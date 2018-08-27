@@ -4,7 +4,7 @@
 \alias{stringMatch}
 \title{A function to match a string with candidates:}
 \usage{
-stringMatch(sourceStr, targetStr, jaccard = 0.1)
+stringMatch(sourceStr, targetStr, jaccard = 0.15)
 }
 \arguments{
 \item{sourceStr}{A vector with strings to match from.}

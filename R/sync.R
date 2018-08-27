@@ -455,7 +455,7 @@ syncTrades <- function(targetSession, trades, atypes, shrclss, institutions, age
     payload <- toJSON(list("actions"=trades), auto_unbox=TRUE, na="null", digits=10)
 
     ## Push the payload:
-    response <- pushPayload(payload=payload, endpoint=NULL, session=session, import=FALSE, inbulk=TRUE, params=list(sync="True"))
+    response <- pushPayload(payload=payload, endpoint=NULL, session=targetSession, import=FALSE, inbulk=TRUE, params=list(sync="True"))
 
     ## Done, return:
     trades

@@ -10,12 +10,14 @@ getAccountWiseTrades <- function(accounts, session) {
         trds  <- as.data.frame(getResource("trades", params=params, session=session))
 
         ## If no trades, next:
-        if (NROW(trds) == 0){
+        if (NROW(trds) == 0) {
             next
         }
 
-        ## Get the trades:
-        trds[,c("commitment", "settlement")] <- as.character(trds[, c("commitment", "settlement")])
+        for (fld in c("commitment", "settlement", "created", "updated")) {
+            ## Get the trades:
+            trds[, fld] <- as.character(trds[, fld])
+        }
 
         ## Append the system trades:
         trades <- c(trades, list(trds))

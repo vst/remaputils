@@ -68,7 +68,7 @@ figiWrapper <- function(data, idType="ID_ISIN", fld="isin", ccy="ccymain", figiA
         figiResult <- figi(data[naResources, ], idType, fld, ccy, figiApi)
 
         ## Matcht the figi isin to our data isins:
-        figiIdx <- match(paste0(data[, fld], data[, "ccymain"]), paste0(figiResult[,"idValue"], figiResult[,"currency"]))
+        figiIdx <- match(paste0(data[, fld], data[, ccy]), paste0(figiResult[,"idValue"], figiResult[,"currency"]))
         dataIdx <- !is.na(figiIdx)
         figiIdx <- figiIdx[!is.na(figiIdx)]
 

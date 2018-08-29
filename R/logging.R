@@ -9,22 +9,23 @@
 ##' @param infotext The info text to be included in the success case. Default is NULL.
 ##' @param warntext The warning text to be included in the dubious success case. Default is NULL.
 ##' @param logger The logger parameter for logwarn, logerror, loginfo. Default is "".
+##' @param addlocation TODO:
 ##' @return A vector of numerical values.
 ##' @export
-messageHandler <- function(x=1, val=0, condition="equal", errortext=NULL, infotext=NULL, warntext=NULL, logger=""){
+messageHandler <- function(x=1, val=0, condition="equal", errortext=NULL, infotext=NULL, warntext=NULL, logger="", addlocation=NULL){
 
     ## If there is a warning text, log and return:
     if (!is.null(warntext)) {
-        logging::logwarn(paste0("WARNING IN ", sys.call(-1)[[1]], warntext), logger=logger)
+        logging::logwarn(paste0("WARNING", ":", sys.call(-1)[[1]], ":", addlocation, warntext), logger=logger)
         return(NULL)
     }
 
     ## Log error:
     if (checkCondition(x, val, condition)) {
-        logging::logerror(paste0("ERROR IN ", sys.call(-1)[[1]], errortext), logger=logger)
+        logging::logerror(trimDws(paste0("ERROR", ":", sys.call(-1)[[1]], ":", addlocation, errortext)), logger=logger)
     } else {
         ## Log success:
-        logging::loginfo(paste0("SUCCESS IN ", sys.call(-1)[[1]], infotext), logger=logger)
+        logging::loginfo(trimDws(paste0("SUCCESS", ":", sys.call(-1)[[1]], ":", addlocation, infotext)), logger=logger)
     }
 }
 

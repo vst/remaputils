@@ -24,6 +24,10 @@ getAccountWiseTrades <- function(accounts, session) {
             next
         }
 
+        ## Do the nested ordering:
+        trds <- nestedOrdering(trds, c("commitment", "executedat", "pseudorder", "created"))
+
+        ## Change date formats to character:
         for (fld in c("commitment", "settlement", "created", "updated")) {
             ## Get the trades:
             trds[, fld] <- as.character(trds[, fld])

@@ -5,7 +5,7 @@
 \title{A function to sync portfolios between 2 DECAF instances.}
 \usage{
 syncPortfolios(sourceSession, targetSession, accounts, teamGUID,
-  exclude = NULL)
+  exclude = NULL, search = NULL)
 }
 \arguments{
 \item{sourceSession}{The session info for the DECAF instance to sync from.}
@@ -17,6 +17,8 @@ syncPortfolios(sourceSession, targetSession, accounts, teamGUID,
 \item{teamGUID}{The team GUID of the target instance.}
 
 \item{exclude}{A vector with key words to exclude unwanted columns in source portfolios.}
+
+\item{search}{A key word to search for. Default is NULL.}
 }
 \value{
 The function creates the portfolios in the target instance and return the source portfolio data-frame.

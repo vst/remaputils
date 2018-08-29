@@ -5,7 +5,8 @@
 \title{This function handles the log messages}
 \usage{
 messageHandler(x = 1, val = 0, condition = "equal",
-  errortext = NULL, infotext = NULL, warntext = NULL, logger = "")
+  errortext = NULL, infotext = NULL, warntext = NULL, logger = "",
+  addlocation = NULL)
 }
 \arguments{
 \item{x}{The result value of a condition. Default 1.}
@@ -21,6 +22,8 @@ messageHandler(x = 1, val = 0, condition = "equal",
 \item{warntext}{The warning text to be included in the dubious success case. Default is NULL.}
 
 \item{logger}{The logger parameter for logwarn, logerror, loginfo. Default is "".}
+
+\item{addlocation}{TODO:}
 }
 \value{
 A vector of numerical values.

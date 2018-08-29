@@ -7,17 +7,19 @@
 ##' @param accounts The account/portfolio mapper between the 2 instances.
 ##' @param teamGUID The team GUID of the target instance.
 ##' @param exclude A vector with key words to exclude unwanted columns in source portfolios.
+##' @param search A key word to search for. Default is NULL.
 ##' @return The function creates the portfolios in the target instance and return the source portfolio data-frame.
 ##' @import rdecaf
 ##' @export
-syncPortfolios <- function(sourceSession, targetSession, accounts, teamGUID, exclude=NULL) {
+syncPortfolios <- function(sourceSession, targetSession, accounts, teamGUID, exclude=NULL, search=NULL) {
 
     ## Construct the vision account params:
     params <- list("page_size"=-1,
-                   "format"="csv")
+                   "format"="csv",
+                   "search"=as.character(search))
 
     ## Get the entire ucapbh accounts:
-    sourcePortfolios <- as.data.frame(getResource("portfolios", params=params, session=sourceSession))
+    sourcePortfolios <- try(as.data.frame(getResource("portfolios", params=params, session=sourceSession)), silent=TRUE)
 
     ## Match, filter target portfolios:
     sourcePortfolios <- sourcePortfolios[!is.na(stringMatch(trimConcatenate(sourcePortfolios[,"name"]), trimConcatenate(accounts))), ]
@@ -460,4 +462,93 @@ syncTrades <- function(targetSession, trades, atypes, shrclss, institutions, age
     ## Done, return:
     trades
 
+}
+
+
+##' A function to sync ohlc observations between 2 DECAF instances.
+##'
+##' This is the description
+##'
+##' @param sourceSession The session info for the DECAF instance to sync from.
+##' @param targetSession The session info for the DECAF instance to sync to.
+##' @param resources The resource data frame.
+##' @param lte TODO:
+##' @param lookBack TODO:
+##' @return TODO:
+##' @import rdecaf
+##' @export
+syncOHLC <- function(sourceSession, targetSession, resources, lte=NULL, lookBack=NULL) {
+
+    ## Get the unique symbols including ohlccodes:
+    uSymbols <- unique(c(resources[, "symbol"], resources[, "ohlccode"]))
+
+    ## Get the currency symbols:
+    currency <- resources[resources[, "type"] == "Cash", "symbol"]
+
+    ## Compute the possible fx pairs:
+    pairs <- expand.grid(currency, currency)
+
+    ## Get rid of identities and combine the legs:
+    pairs <- as.character(apply(pairs[apply(pairs, MARGIN=1, function(x) x[1] != x[2]), ], MARGIN=1, function(x) paste0(x, collapse="")))
+
+    ## Append pairs to the symbols:
+    uSymbols <- c(uSymbols, pairs)
+
+    ## Get the ohlc observations for each symbol:
+    ohlcObsList <- lapply(uSymbols, function(sym) getOhlcObsForSymbol(sourceSession, sym, lte, lookBack))
+
+    ## Discard empty lists:
+    ohlcObsList <- ohlcObsList[sapply(ohlcObsList, function(x) dim(x)[1] != 0)]
+
+    ## Retain the dates as character:
+    dates <- do.call(c, lapply(ohlcObsList, function(x) as.character(x[, "date"])))
+
+    ## Safely combine the ohlc list:
+    ohlcObs <- safeRbind(ohlcObsList)
+
+    ## Overwrite dates:
+    ohlcObs[, "date"] <- dates
+
+    ## Get rid of id:
+    ohlcObs[, "id"] <- NULL
+
+    ## In which chunks shall we push?
+    chunk <- 20000
+
+    ## Initialize the starting index:
+    start <- 1
+
+    ## Compute the number of interations required:
+    iterations <- ceiling(NROW(ohlcObs) / chunk)
+
+    ## Iterate over chunks:
+    for (i in 1:iterations) {
+
+        ## Compute the minimum chunk:
+        chunk <- min(NROW(ohlcObs) - start, chunk)
+
+        ## Compute the end index:
+        end <- start + chunk
+
+        ## Print stuff:
+        print(paste0("Pushing chunk: ", end, " of ", NROW(ohlcObs)))
+
+        ## Get the chunk of observations to be pushed this iteration:
+        ohlcObsN <- ohlcObs[start:end,]
+
+        ## Construct the payload:
+        payload <- toJSON(ohlcObsN, auto_unbox=TRUE, na = c("null"))
+
+        ## Push:
+        result <- httr::POST(paste0(targetSession[["location"]], "/ohlcobservations/updatebulk/"),
+                             authenticate(targetSession[["username"]], targetSession[["password"]]),
+                             body=payload,
+                             add_headers(.headers = c("Content-Type"="application/json")))
+
+        ## Update the start index:
+        start <- start + chunk + 1
+    }
+
+    ## Done, return
+    ohlcObs
 }

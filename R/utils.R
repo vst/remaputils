@@ -1,3 +1,35 @@
+##' A function to convert integers to string deterministically.
+##'
+##' @param int A vector of integers.
+##' @return A vector with strings.
+##' @export
+integerToString <- function(int) {
+
+    ## The work horse function:
+    auxFun <- function(x) {
+        paste(sapply(1:nchar(int), function(i) {
+            toupper(letters)[as.numeric(substr(int, i, i))]
+        }), collapse="")
+    }
+
+    ## Sapply and return:
+    sapply(int, auxFun)
+
+}
+
+
+##' A function to order a data-frame based on multiple columns:
+##'
+##' @param df A data-frame.
+##' @param colNames The names of the columns to be considered for order. The columns must be numeric.
+##' @return The ordered data-frame.
+##' @export
+nestedOrdering <- function(df, colNames) {
+    ## Order and return:
+    df[do.call(order, lapply(apply(df[, colNames], MARGIN=2, function(x) list(x)), unlist)), ]
+}
+
+
 ##' A function to match a string with candidates:
 ##'
 ##' @param sourceStr A vector with strings to match from.

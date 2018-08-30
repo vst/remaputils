@@ -67,7 +67,7 @@ figiWrapper <- function(data, idType="ID_ISIN", fld="isin", ccy="ccymain", figiA
         ## Hebele
         figiResult <- figi(data[naResources, ], idType, fld, ccy, figiApi)
 
-        ## Matcht the figi isin to our data isins:
+        ## Match the figi isin to our data isins:
         figiIdx <- match(paste0(data[, fld], data[, ccy]), paste0(figiResult[,"idValue"], figiResult[,"currency"]))
         dataIdx <- !is.na(figiIdx)
         figiIdx <- figiIdx[!is.na(figiIdx)]
@@ -190,6 +190,9 @@ figiResultTreater <- function(figiResult){
 
     ## Construct the names: 1. Define as character:
     figiResult[,"name"] <- as.character(figiResult[,"name"])
+
+    ## Replace bond name:
+    figiResult[isBond, "name"] <- gsub("Corp", "", figiResult[isBond, "symbol"])
 
     ## Get rid of NA's, duplicate words and double white spaces:
     figiResult[, "symbol"] <- sapply(strsplit(gsub("NA", "", figiResult[,"symbol"]), " "), function(x) trimDws(paste0(unique(x), collapse=" ")))

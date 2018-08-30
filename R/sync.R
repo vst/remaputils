@@ -209,7 +209,7 @@ syncAgent <- function(sourceSession, targetSession, tradeAgents){
 ##' @return The function creates the resources in the target instance and returns a resource data-frame.
 ##' @import rdecaf
 ##' @export
-syncResources <- function(targetSession, sourceSession, sourceAccounts) {
+syncResources <- function(targetSession, sourceSession, sourceAccounts, noPush=FALSE) {
 
     ## Get the vision stocks:
     stocks <- getStocks(sourceAccounts, sourceSession)
@@ -233,6 +233,11 @@ syncResources <- function(targetSession, sourceSession, sourceAccounts) {
 
         ## Push the payload:
         response <- pushPayload(payload=payload, endpoint=NULL, session=targetSession, import=FALSE, inbulk=TRUE, params=list(sync="True"))
+    }
+
+    ## Exit before pushing data to target:
+    if (noPush) {
+        return(resources)
     }
 
     ## Create the payload:
@@ -276,7 +281,7 @@ syncAtypes <- function(sourceSession, targetSession, sourceAccounts) {
     payload <- toJSON(list("analyticaltypes"=sourceAtypes), auto_unbox=TRUE, na="null", digits=10)
 
     ## Push the payload:
-    response <- pushPayload(payload=payload, endpoint=NULL, session=targetSession, import=FALSE, inbulk=TRUE, params=list(sync="True"))
+    response <- try(pushPayload(payload=payload, endpoint=NULL, session=targetSession, import=FALSE, inbulk=TRUE, params=list(sync="True")), silent=TRUE)
 
     ## Return:
     sourceAtypes
@@ -480,7 +485,7 @@ syncTrades <- function(targetSession, trades, atypes, shrclss, institutions, age
 syncOHLC <- function(sourceSession, targetSession, resources, lte=NULL, lookBack=NULL) {
 
     ## Get the unique symbols including ohlccodes:
-    uSymbols <- unique(c(resources[, "symbol"], resources[, "ohlccode"]))
+    uSymbols <- as.character(na.omit(unique(c(resources[, "symbol"], safeColumn(resources, "ohlccode")))))
 
     ## Get the currency symbols:
     currency <- resources[resources[, "type"] == "Cash", "symbol"]

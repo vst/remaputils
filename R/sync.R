@@ -206,6 +206,7 @@ syncAgent <- function(sourceSession, targetSession, tradeAgents){
 ##' @param sourceSession The session info for the DECAF instance to sync from.
 ##' @param targetSession The session info for the DECAF instance to sync to.
 ##' @param sourceAccounts The accounts data-frame coming from the source instance.
+##' @param noPush The flag to indiciate whether source resources should not be pushed.
 ##' @return The function creates the resources in the target instance and returns a resource data-frame.
 ##' @import rdecaf
 ##' @export

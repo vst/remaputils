@@ -339,7 +339,7 @@ safeRbind <- function(x){
 ##' @return Formated number(s):
 ##' @export
 beautify <- function(number, nsmall=0){
-    format(as.numeric(number), nsmall=nsmall, big.mark=",")
+    format(as.numeric(as.character(number)), nsmall=nsmall, big.mark=",")
 }
 
 

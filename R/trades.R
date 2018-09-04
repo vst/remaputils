@@ -4,10 +4,11 @@
 ##'
 ##' @param accounts A vector with account id's.
 ##' @param session The DECAF session info.
+##' @param gte The date after which trades should be considered.
 ##' @return A data-frame with DECAF trades.
 ##' @import rdecaf
 ##' @export
-getAccountWiseTrades <- function(accounts, session) {
+getAccountWiseTrades <- function(accounts, session, gte=NULL) {
 
     ## Initialise the trade list:
     trades <- list()
@@ -16,7 +17,11 @@ getAccountWiseTrades <- function(accounts, session) {
     for (i in 1:length(accounts)) {
 
         ## Get the trades list:
-        params <- list("accmain"=accounts[i], "page_size"=-1, "format"="csv")
+        params <- list("accmain"=accounts[i],
+                       "page_size"=-1,
+                       "format"="csv",
+                       "commitment__gte"=gte)
+
         trds  <- as.data.frame(getResource("trades", params=params, session=session))
 
         ## If no trades, next:

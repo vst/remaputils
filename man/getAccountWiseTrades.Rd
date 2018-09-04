@@ -4,12 +4,14 @@
 \alias{getAccountWiseTrades}
 \title{A function to get account-wise trades from a DECAF instance.}
 \usage{
-getAccountWiseTrades(accounts, session)
+getAccountWiseTrades(accounts, session, gte = NULL)
 }
 \arguments{
 \item{accounts}{A vector with account id's.}
 
 \item{session}{The DECAF session info.}
+
+\item{gte}{The date after which trades should be considered.}
 }
 \value{
 A data-frame with DECAF trades.

@@ -4,7 +4,8 @@
 \alias{syncResources}
 \title{A function to sync resources between 2 DECAF instances:}
 \usage{
-syncResources(targetSession, sourceSession, sourceAccounts)
+syncResources(targetSession, sourceSession, sourceAccounts,
+  noPush = FALSE)
 }
 \arguments{
 \item{targetSession}{The session info for the DECAF instance to sync to.}
@@ -12,6 +13,8 @@ syncResources(targetSession, sourceSession, sourceAccounts)
 \item{sourceSession}{The session info for the DECAF instance to sync from.}
 
 \item{sourceAccounts}{The accounts data-frame coming from the source instance.}
+
+\item{noPush}{The flag to indiciate whether source resources should not be pushed.}
 }
 \value{
 The function creates the resources in the target instance and returns a resource data-frame.

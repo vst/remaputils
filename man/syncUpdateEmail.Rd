@@ -4,7 +4,8 @@
 \alias{syncUpdateEmail}
 \title{A function to send system emails using the an HTML email template.}
 \usage{
-syncUpdateEmail(template, updateText, emailParams, timezone = "CET")
+syncUpdateEmail(template, updateText, emailParams, timezone = "CET",
+  subject = " DECAF Data Update: ")
 }
 \arguments{
 \item{template}{The HTML template.}
@@ -14,6 +15,8 @@ syncUpdateEmail(template, updateText, emailParams, timezone = "CET")
 \item{emailParams}{The parameter list for the email report function.}
 
 \item{timezone}{The timezone to be used. Default is CET.}
+
+\item{subject}{The subject of the email.}
 }
 \value{
 A java-object of class org.apache.commons.mail.SimpleEmail

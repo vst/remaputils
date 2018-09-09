@@ -60,9 +60,10 @@ emailReport <- function(from, emailList, subject, body, isLocal=FALSE, html=TRUE
 ##' @param updateText A list with the keyword and the corresponding replacement string.
 ##' @param emailParams The parameter list for the email report function.
 ##' @param timezone The timezone to be used. Default is CET.
+##' @param subject The subject of the email.
 ##' @return A java-object of class org.apache.commons.mail.SimpleEmail
 ##' @export
-syncUpdateEmail <- function(template, updateText, emailParams, timezone="CET") {
+syncUpdateEmail <- function(template, updateText, emailParams, timezone="CET", subject=" DECAF Data Update: ") {
 
     ## Get the system time:
     sysTime <- format(Sys.time(), "tz"=timezone)
@@ -84,7 +85,7 @@ syncUpdateEmail <- function(template, updateText, emailParams, timezone="CET") {
     }
 
     ## Construct the subject:
-    subject <- paste0(updateText[["DEPLOYMENT"]], " DECAF Data Update: ", sysTime)
+    subject <- paste0(updateText[["DEPLOYMENT"]], subject, sysTime)
 
     ## Push the email:
     emailReport(emailParams[["from"]],
@@ -92,4 +93,27 @@ syncUpdateEmail <- function(template, updateText, emailParams, timezone="CET") {
                 subject=subject,
                 body=paste(template, collapse=""),
                 emailParams[["isLocal"]])
+}
+
+
+##' A function to generate email-friendly HTML table.
+##'
+##' TODO:
+##'
+##' @param df A data-frame.
+##' @param provider The name of the provider of the data to be used in the footer.
+##' @param caption The caption of the table to be used.
+##' @param sourceType The type of the source data to be used for the footer.E.g., 'Api'.
+##' @return A java-object of class org.apache.commons.mail.SimpleEmail
+##' @export
+emailHTMLTable <- function(df, provider, caption, sourceType="API") {
+    tableHTML::tableHTML(df,
+                         border=0,
+                         spacing="4px",
+                         footer=paste0("Source Reference: ", toupper(provider), " " , sourceType),
+                         caption=caption,
+                         rownames=FALSE) %>%
+        tableHTML::add_css_caption(css = list(c('color', 'font-size', 'text-align', 'margin-bottom'), c("#666666", '18px', 'center', '10px'))) %>%
+        tableHTML::add_css_footer(css = list(c('color', 'font-size', 'text-align', 'margin-top'), c("#999999", '12px', 'center', '10px'))) %>%
+        tableHTML::add_css_column(css = list(c("text-align"), c("left")), columns=colnames(result))
 }

@@ -629,7 +629,7 @@ cleanNA <- function(data){
 ##' @export
 safeGrep <- function (str, key) {
     ## Count key in strings and return:
-    sapply(str, function(s) length(grep(key, s)))
+    as.character(sapply(str, function(s) length(grep(key, s))))
 }
 
 
@@ -657,17 +657,18 @@ capitalise <- function(str){
 ##' @export
 isIsin <- function(str){
 
+
     ## Make sure strings are character.
     str <- as.character(str)
 
     ## Split each string by space and take first element.
-    word <- strsplit(str, " ")[[1]][1]
+    word <- do.call(c, lapply(str, function(s) strsplit(s, " ")[[1]][1]))
 
     ## Split each word by @ and take first element.
-    word <- strsplit(word, "@")[[1]][1]
+    word <- do.call(c, lapply(word, function(w) strsplit(w, "@")[[1]][1]))
 
     ## Are the words 12 characters?
-    twelveChars <- nchar(word) == 12
+    twelveChars <- ifelse(isNAorEmpty(word), FALSE, nchar(word) == 12)
 
     ## Are the first 2 characters letters?
     twoChars <- grepl("^[A-Za-z]+$", substr(word, 1, 2), perl = T)
@@ -676,10 +677,7 @@ isIsin <- function(str){
     hasDigit <- grepl("[[:digit:]]", word)
 
     ## Are the 3 conditions met?
-    isIsin <- twelveChars & twoChars & hasDigit
-
-    ## If no ISIN resemblence, add NA's and return:
-    ifelse(isIsin, as.character(word), NA)
+    twelveChars & twoChars & hasDigit
 
 }
 

@@ -115,5 +115,5 @@ emailHTMLTable <- function(df, provider, caption, sourceType="API") {
                          rownames=FALSE) %>%
         tableHTML::add_css_caption(css = list(c('color', 'font-size', 'text-align', 'margin-bottom'), c("#666666", '18px', 'center', '10px'))) %>%
         tableHTML::add_css_footer(css = list(c('color', 'font-size', 'text-align', 'margin-top'), c("#999999", '12px', 'center', '10px'))) %>%
-        tableHTML::add_css_column(css = list(c("text-align"), c("left")), columns=colnames(result))
+        tableHTML::add_css_column(css = list(c("text-align"), c("left")), columns=colnames(df))
 }

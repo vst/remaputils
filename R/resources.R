@@ -761,6 +761,9 @@ getEnrichedStocks <- function(stocks, accounts, resources){
     ## Append the sub type:
     stocks[,"country"] <- resources[match(stocks[,"artifact"], resources[,"id"]), "country"]
 
+    ## Append the sub type:
+    stocks[,"isin"] <- resources[match(stocks[,"artifact"], resources[,"id"]), "isin"]
+
     ## Return:
     stocks
 

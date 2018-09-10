@@ -136,6 +136,11 @@ quantityFinder <- function(sourceValue, targetValue) {
 ##' @export
 getFutureExpiry <- function(bbgticker, weekday="Friday", nthWeekday=3){
 
+    ## If empty or NA, return NA:
+    if (isNAorEmpty(bbgticker) | bbgticker == "NA") {
+        return(NA)
+    }
+
     ## Infere the location of the year number in ticker for single line:
     if (NROW(bbgticker) == 1){
 

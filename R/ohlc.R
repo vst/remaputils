@@ -11,6 +11,9 @@
 ##' @export
 getOhlcObsForSymbol <- function(session, symbol, lte=Sys.Date(), lookBack=30) {
 
+    ## Print some stuff:
+    sprintf("Retrieving ohlc observations for: %s", symbol)
+
     ## Build the parameters:
     params=list("format"="csv",
                 "_fields"="id,symbol,date,open,high,low,close",

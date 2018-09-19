@@ -4,14 +4,19 @@
 \alias{getStocks}
 \title{A function to retrieve the stocks for set of accounts:}
 \usage{
-getStocks(accounts, session, zero = 1)
+getStocks(container, session, zero = 1, date = Sys.Date(),
+  c = "account")
 }
 \arguments{
-\item{accounts}{The accounts data-frame from rdecaf}
+\item{container}{The container data-frame from rdecaf}
 
 \item{session}{The rdecaf session}
 
 \item{zero}{Either 1 or 0 to indicate whether closed positions should be included.}
+
+\item{date}{The as of date for the stocks. Default is today.}
+
+\item{c}{The type. Either "account" or "portfolio".}
 }
 \value{
 Returns a data-frame with the stocks for the accounts.

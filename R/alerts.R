@@ -112,6 +112,11 @@ performanceOutliers <- function(portfolio, start=NULL, factor=8, session) {
     ## Get the date index:
     index <- unlist(performance[["returns"]][["index"]])
 
+    ## If no returns, return NULL:
+    if (is.null(returns)) {
+        return(NULL)
+    }
+
     ## Make zoo:
     xtsReturns <- data.frame("returns"=xts::as.xts(returns, order.by=as.Date(index)))
 

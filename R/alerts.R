@@ -65,8 +65,17 @@ duplicatedIsinInPortfolios <- function(accounts=NULL, resources, session) {
 }
 
 
-
-
+##' A function prepares the performance outliers data-frame
+##'
+##' This is the description
+##'
+##' @param portfolio The portfolio id,
+##' @param start The start date of the performance. Default is start of the current year.
+##' @param factor The factor to sd()
+##' @param session The rdecaf session.
+##' @return A data-frame with outliers.
+##' @import rdecaf
+##' @export
 performanceOutliers <- function(portfolio, start=NULL, factor=8, session) {
 
     if (is.null(start)) {

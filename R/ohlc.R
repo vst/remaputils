@@ -64,7 +64,7 @@ getOHLCSeriesForStocks <- function(container, containerType, asof, resources, se
     symbols <- ifelse(is.na(stocks[, "ohlccode"]), stocks[, "symbol"], stocks[, "ohlccode"])
 
     ## Get the unique symbols:
-    uniqueSymbols <- unique(symbols)[200:400]
+    uniqueSymbols <- unique(symbols)
 
     ## Retrieve the ohlc observations for symbols:
     ohlcs <- lapply(uniqueSymbols, function(sym) getOhlcObsForSymbol(session=session, symbol=sym, lookBack=lookBack))

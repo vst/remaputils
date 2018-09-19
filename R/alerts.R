@@ -63,3 +63,62 @@ duplicatedIsinInPortfolios <- function(accounts=NULL, resources, session) {
                "Symbol"=pWiseStocks[, "symbol"],
                "Name"=pWiseStocks[, "name"])
 }
+
+
+
+
+performanceOutliers <- function(portfolio, start=NULL, factor=8, session) {
+
+    if (is.null(start)) {
+        ## Get the year start:
+        start <- paste0(substr(Sys.Date(), 1, 4), "-01-01")
+
+    }
+
+    print(portfolio)
+
+    ## Construct the parameters:
+    params <- list("portfolios"=portfolio,
+                   "start"=start)
+
+    ## Get the performance data:
+    performance <- try(getResource("performance", params=params, session=session), silent=TRUE)
+
+    link <- paste0(gsub("api", "", session[["location"]]),
+                   "dashboard/performance?portfolios=", portfolio,
+                   "&start=", as.character(start))
+
+    if (class(performance) == "try-error") {
+        return(data.frame("Portfolio"=portfolio,
+                          "Date"="ERROR",
+                          "Return"="ERROR",
+                          "Link to Performance"=link,
+                          check.names=FALSE,
+                          stringsAsFactors=FALSE))
+    }
+
+    ## Get the returns:
+    returns <- unlist(performance[["returns"]][["data"]])
+
+    ## Get the date index:
+    index <- unlist(performance[["returns"]][["index"]])
+
+    ## Make zoo:
+    xtsReturns <- data.frame("returns"=xts::as.xts(returns, order.by=as.Date(index)))
+
+    ## Get the outliersxs:
+    outliers <- returnOutliers(xtsReturns, factor)
+
+    ## Return outlier observations:
+    if (any(outliers)) {
+        return(data.frame("Portfolio"=portfolio,
+                          "Date"=as.character(rownames(xtsReturns)[outliers]),
+                          "Return"=round(as.numeric(xtsReturns[outliers,]), 4),
+                          "Link to Performance"=link,
+                          check.names=FALSE,
+                          stringsAsFactors=FALSE))
+    }
+
+    ## Return:
+    NULL
+}

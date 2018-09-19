@@ -12,7 +12,7 @@
 getOhlcObsForSymbol <- function(session, symbol, lte=Sys.Date(), lookBack=30) {
 
     ## Print some stuff:
-    sprintf("Retrieving ohlc observations for: %s", symbol)
+    print(sprintf("Retrieving ohlc observations for: %s", as.character(symbol)))
 
     ## Build the parameters:
     params=list("format"="csv",
@@ -24,4 +24,55 @@ getOhlcObsForSymbol <- function(session, symbol, lte=Sys.Date(), lookBack=30) {
 
     ## Get the ohlc observation and return data-frame:
     as.data.frame(getResource("ohlcobservations", params=params, session=session))
+}
+
+
+##' This function retrieves all OHLC series for stocks in give portfolios.
+##'
+##' This is a description
+##'
+##' @param container The container data-frame from rdecaf (either portfolio or account data-frame).
+##' @param containerType A string with container type (either "portfolio" or "account").
+##' @param asof The date of the stocks.
+##' @param resources The resource data-frame from rdecaf.
+##' @param session The rdecaf session.
+##' @param lookBack The lookback period for the ohlc observations.
+##' @param exclType The instrument types to be excluded from stocks. Default is c("CCY", "DEPO", "LOAN")
+##' @return A list with the ohlc observations.
+##' @export
+getOHLCSeriesForStocks <- function(container, containerType, asof, resources, session, lookBack=30, exclType=c("CCY", "DEPO", "LOAN")) {
+
+    ## Get the stocks for portfolios:
+    stocks <- getStocks(container=container,
+                        session=session,
+                        zero=0,
+                        date=asof,
+                        c=containerType)
+
+    ## Get the enriched stocks:
+    stocks <- getEnrichedStocks(stocks, container, resources)
+
+    ## Exclude types from stocks:
+    for (excl in exclType) {
+        stocks <- stocks[stocks[, "type"] != excl, ]
+    }
+
+    ## Append ohlccode to stocks:
+    stocks[, "ohlccode"] <- resources[match(stocks[, "symbol"], resources[, "symbol"]), "ohlccode"]
+
+    ## Use ohlccode as symbol if exists:
+    symbols <- ifelse(is.na(stocks[, "ohlccode"]), stocks[, "symbol"], stocks[, "ohlccode"])
+
+    ## Get the unique symbols:
+    uniqueSymbols <- unique(symbols)[200:400]
+
+    ## Retrieve the ohlc observations for symbols:
+    ohlcs <- lapply(uniqueSymbols, function(sym) getOhlcObsForSymbol(session=session, symbol=sym, lookBack=lookBack))
+
+    ## Append the symbols as names:
+    names(ohlcs) <- uniqueSymbols
+
+    ## Done, return:
+    ohlcs
+
 }

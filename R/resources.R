@@ -340,6 +340,39 @@ createFXFwdResource <- function(df, session){
 }
 
 
+##' A function to create fx forward resources:
+##'
+##' This is a description.
+##'
+##' @param df The data-frame with the resource information
+##' @param session The rdecaf session.
+##' @return Returns the http post result.
+##' @import rdecaf
+##' @import jsonlite
+##' @export
+createFXFutureResource <- function(df, session){
+
+    ## Create the data frame:
+    dfx <- data.frame("symbol"=df[, "symbol"],
+                      "ccymain"=df[,"ccymain"],
+                      "ccyaltn"=df[,"ccyaltn"],
+                      "expiry"=safeColumn(df,"expiry"),
+                      "ohlccode"=safeColumn(df ,"ohlccode"),
+                      "id"=NA,
+                      "ctype"="FXFUT",
+                      "stype"=safeColumn(df, "stype"),
+                      "quantity"=safeColumn(df, "contractsize"),
+                      "pxflip"=as.character(df[,"isFlip"]),
+                      stringsAsFactors=FALSE)
+
+    ## Create the payload:
+    payload <- toJSON(apply(dfx, MARGIN=1, as.list), auto_unbox=TRUE, digits=10)
+
+    ## Post the resource:
+    postResource("resources", "imports", payload=payload, session=session)
+}
+
+
 ##' A function to create structured product resources:
 ##'
 ##' This is a description.
@@ -703,27 +736,30 @@ getResourcesByStock <- function(stocks, session){
 ##'
 ##' This is a description.
 ##'
-##' @param accounts The accounts data-frame from rdecaf
+##' @param container The container data-frame from rdecaf
 ##' @param session The rdecaf session
 ##' @param zero Either 1 or 0 to indicate whether closed positions should be included.
+##' @param date The as of date for the stocks. Default is today.
+##' @param c The type. Either "account" or "portfolio".
 ##' @return Returns a data-frame with the stocks for the accounts.
 ##' @import rdecaf
 ##' @export
-getStocks <- function(accounts, session, zero=1){
+getStocks <- function(container, session, zero=1, date=Sys.Date(), c="account") {
 
     ## Constrct the stocks params:
     params <- list("page_size"=-1,
-                   "c"="account",
+                   "c"=c,
                    "format"="csv",
+                   "date"=date,
                    "zero"=zero)
 
     ## Iterate over accounts and append account id to params:
-    for (row in 1:NROW(accounts)) {
-        params <- c(params, accounts[row,"id"])
+    for (row in 1:NROW(container)) {
+        params <- c(params, container[row,"id"])
     }
 
     ## Append the names to stocks params:
-    names(params) <- c("page_size", "c", "format", "zero", rep("i", NROW(accounts)))
+    names(params) <- c("page_size", "c", "format", "date", "zero", rep("i", NROW(container)))
 
     ## Return stocks:
     as.data.frame(getResource("stocks", params=params, session=session))

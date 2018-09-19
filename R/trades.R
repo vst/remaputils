@@ -45,3 +45,31 @@ getAccountWiseTrades <- function(accounts, session, gte=NULL) {
     ## Safely bind and return:
     safeRbind(trades)
 }
+
+
+##' A function to detect outliers in xts return series:
+##'
+##' This is the description
+##'
+##' @param portfolio A vector of portfolio id's
+##' @param session The rdecaf session
+##' @param gte A date after which the trades should be considered
+##' @param lte A date before which the trades should be considered. Default is set to gte.
+##' @param nojournal Either "True" or "False" indicating whether journal entries shall be omitted.
+##' @return A vector with string representing the decaf url
+##' @export
+getLinkToTradesByDate <- function(portfolio, session, gte, lte=NULL, nojournal="False") {
+
+    ## If lte is null, set to gte:
+    if (is.null(lte)) {
+        lte <- as.character(gte)
+    }
+
+    ## Construct the link:
+    paste0(gsub("api", "", session[["location"]]),
+           "trade?accmain__portfolio=", portfolio,
+           "&commitment__gte=", as.character(gte),
+           "&commitment__lte=", as.character(lte),
+           "&nojournal=", nojournal)
+
+}

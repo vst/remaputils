@@ -1,3 +1,21 @@
+##' A function to gsub strings.
+##'
+##' @param string The original string.
+##' @param cleaningMaps The vector with the pattern and the replacement.
+##' @return The cleaned string,
+##' @export
+stringCleaner <- function(string, cleaningMaps=c("&#62;LINK&#60;/a&#62;"=">LINK</a>",
+                                                 "&#60;a href"="<a href")) {
+
+    ## Clean the HTML text:
+    for (row in 1:NROW(cleaningMaps)) {
+        string <- gsub(names(cleaningMaps)[row], as.character(cleaningMaps[row]), string)
+    }
+
+    string
+}
+
+
 ##' A function to convert integers to string deterministically.
 ##'
 ##' @param int A vector of integers.

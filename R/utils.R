@@ -1,3 +1,23 @@
+##' A function to gsub multiple patterns.
+##'
+##' @param str The original string.
+##' @param patterns A vector with string patterns.
+##' @param replace A string to replace the patterns with. Default is "".
+##' @return The new string.
+##' @export
+mgsub <- function(str, patterns, replace="") {
+
+    ## Iterate over the patterns:
+    for (p in patterns) {
+        ## gsub pattern with replacement
+        str <- trimDws(gsub(p, replace, str))
+    }
+
+    ## Done, return:
+    str
+}
+
+
 ##' A function to gsub strings.
 ##'
 ##' @param string The original string.
@@ -518,6 +538,11 @@ parseDate <- function(str, origin="1899-12-30"){
     ## If trial was error, try next possible format:
     if (any(is.na(trial) &&  ncharStr > 6)) {
         trial <- as.Date(str, format="%d/%m/%y")
+    }
+
+    ## If trial was error, try next possible format:
+    if (any(is.na(trial) && ncharStr > 6)) {
+        trial <- as.Date(str, format = "%m/%d/%Y")
     }
 
     ## If trial was error, try next possible format:

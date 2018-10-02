@@ -1,4 +1,4 @@
-##' A function to provide the future month memnonic mapper:
+#' A function to provide the future month memnonic mapper:
 ##'
 ##' This is a description.
 ##'
@@ -661,16 +661,16 @@ bondMaturityFromTicker <- function(ticker){
     splitTicker <- lapply(ticker, function(n) strsplit(as.character(n), " ")[[1]])
 
     ## Get the maturities:
-    maturities <- lapply(splitTicker, function(x) {
+    maturities <- lapply(1:length(splitTicker), function(i) {
 
         ## If perpetual, return afar date:
-        isPerp <- grep("PERP", x)
+        isPerp <- grep("PERP", splitTicker[[i]])
         if (length(isPerp) > 0){
             return("01/01/49")
         }
 
         ## Get and return the date string:
-        x[grep("\\/", x)]
+        splitTicker[[i]][grep("\\/", splitTicker[[i]])]
     })
 
     ## hebele
@@ -807,5 +807,38 @@ getEnrichedStocks <- function(stocks, accounts, resources){
 
     ## Return:
     stocks
+
+}
+
+##' A function to match instrument in a data frame with resources in the system.
+##'
+##' This is a description.
+##'
+##' @param data A data-frame with 'isin' and 'ccymain' columns
+##' @param resources The resources data-frame from rdecaf
+##' @return The data-frame with the resmain column
+##' @export
+isinCCYMatch <- function(data, resources) {
+
+    ## ISIN and CCY composite in data:
+    compositeD <- paste0(data[, "isin"], data[, "ccymain"])
+
+    ## ISIN and CCY composite in resources:
+    compositeR <- paste0(resources[, "isin"], resources[, "ccymain"])
+
+    ## Append first pass of resmain matches:
+    data <- data.frame(data, "resmain"=resources[match(compositeD, compositeR), "id"])
+
+    ## Get the na resmains:
+    naResmains <- is.na(data[, "resmain"])
+
+    ## ISIN of na resmains in data:
+    naResD <- as.character(data[naResmains, "isin"])
+
+    ## Match isins with no ccy:
+    data[naResmains, "resmain"] <- resources[match(naResD, resources[, "isin"]), "id"]
+
+    ## Done, return:
+    data
 
 }

@@ -40,6 +40,8 @@ figiCtype <- function() {
 ##' @export
 securityTypeCurrency <- function() {
     c("EURO-DOLLAR"="USD",
+      "EURO-ZONE"="EUR",
+      "GLOBAL"="USD",
       "EURO MTN"="EUR",
       "EURO NON-DOLLAR"="EUR")
 }
@@ -69,6 +71,10 @@ figiWrapper <- function(data, idType="ID_ISIN", fld="isin", ccy="ccymain", figiA
 
         ## Match the figi isin to our data isins:
         figiIdx <- match(paste0(data[, fld], data[, ccy]), paste0(figiResult[,"idValue"], figiResult[,"currency"]))
+
+        ## Second pass match without currency:
+        figiIdx[is.na(figiIdx)] <- match(data[is.na(figiIdx), fld], figiResult[,"idValue"])
+
         dataIdx <- !is.na(figiIdx)
         figiIdx <- figiIdx[!is.na(figiIdx)]
 
@@ -89,6 +95,9 @@ figiWrapper <- function(data, idType="ID_ISIN", fld="isin", ccy="ccymain", figiA
 
         ## Get the maturity:
         data[dataIdx,"maturity"] <- figiResult[figiIdx,"maturity"]
+
+        ## Get the currency:
+        data[dataIdx, "currency"] <- figiResult[figiIdx, "currency"]
 
     }
 
@@ -131,7 +140,6 @@ figi <- function(data, idType="ID_ISIN", fld="isin", ccy="ccymain", figiApi){
         figiResult <- rbind(figiResult1, figiResult2[, match(colnames(figiResult1), colnames(figiResult2))])
 
     } else {
-
         ## Call the figi:
         figiResult <- figiCall(figiJob, figiApi)
     }
@@ -183,7 +191,7 @@ figiResultTreater <- function(figiResult){
     figiResult[isBond,"cpn"] <- cpn
 
     if (any(isBond)) {
-        figiResult[isBond, "maturity"] <- as.character(as.Date(bondMaturityFromTicker(figiResult[isBond,"symbol"]), format="%m/%d/%y"))
+        figiResult[isBond, "maturity"] <- as.character(as.Date(bondMaturityFromTicker(figiResult[isBond,"symbol"])))
     } else {
         figiResult[,"maturity"] <- NA
     }
@@ -193,6 +201,14 @@ figiResultTreater <- function(figiResult){
 
     ## Replace bond name:
     figiResult[isBond, "name"] <- gsub("Corp", "", figiResult[isBond, "symbol"])
+
+    ## Treat the symbol:
+    for (cp in cpn) {
+        figiResult[, "symbol"] <- gsub(paste0("V", cp), cp, figiResult[, "symbol"])
+    }
+
+    ## Treat the symbol:
+    figiResult[, "symbol"] <- mgsub(figiResult[, "symbol"], c("EMTN", "REGS"))
 
     ## Get rid of NA's, duplicate words and double white spaces:
     figiResult[, "symbol"] <- sapply(strsplit(gsub("NA", "", figiResult[,"symbol"]), " "), function(x) trimDws(paste0(unique(x), collapse=" ")))

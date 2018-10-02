@@ -367,7 +367,7 @@ syncAccounts <- function(sourceSession, targetSession, atypes, institutions, por
     accounts[!is.na(accounts[, "atype"]), "atype"] <- paste0("dcf:analyticaltype?guid=", atypes[, "guid"])
 
     ## Overwrite custodian with guid:
-    accounts[, "custodian"] <- paste0("dcf:custodian?guid=", institutions[, "guid"])
+    accounts[, "custodian"] <- paste0("dcf:institution?guid=", institutions[, "guid"])
 
     ## Overwrite portfolio with guid:
     accounts[, "portfolio"] <- paste0("dcf:portfolio?guid=",

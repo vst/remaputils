@@ -191,6 +191,7 @@ COMPOSITION4 <- function(portfolio, ccy, date, dtype, regions, session){
 ##'
 ##' @param indata Data as returned by `getPrintableHoldings` function.
 ##' @return Retreated report data:
+##' @export
 retreatReport <- function (indata) {
     ## Get holdings:
     holdings <- indata$holdings
@@ -229,6 +230,7 @@ retreatReport <- function (indata) {
 ##' @param alignments Vector of values from `{r, l, c}` for cell.
 ##' @param baseStyle Base style for the cells
 ##' @return Next row number.
+##' @export
 writeTableHeader <- function (sheet, row, header, alignments, baseStyle) {
     ## Translate alignments and filter out nulls:
     alignments <- Filter(Negate(is.null), lapply(alignments, function (x) .lookupAlignment()[[x]]))
@@ -264,6 +266,7 @@ writeTableHeader <- function (sheet, row, header, alignments, baseStyle) {
 ##' @param value Cell value.
 ##' @param style Cell style.
 ##' @return written cell.
+##' @export
 writeCell <- function (sheet, row, col, value, style) {
     ## Attempt to get the row:
     rows <- getRows(sheet, row)
@@ -299,6 +302,7 @@ writeCell <- function (sheet, row, col, value, style) {
 ##' @param report Report data.
 ##' @param file Path to file to write the excel to.
 ##' @return The workbook written to the file.
+##' @export
 writeFundReport <- function (report, file) {
 
     ## Define function globals:
@@ -559,6 +563,7 @@ writeFundReport <- function (report, file) {
 ##' @param orderedHoldings TODO.
 ##' @param nestedHoldings TODO.
 ##' @return TODO.
+##' @export
 appendCash <- function(orderedHoldings, nestedHoldings){
 
     ## Get the cash positions:
@@ -594,6 +599,7 @@ appendCash <- function(orderedHoldings, nestedHoldings){
 ##'
 ##' @param holdings TODO.
 ##' @return TODO.
+##' @export
 getSubtotalledHoldings <- function(holdings) {
 
     ## Divide the holdings to list by order indices.
@@ -636,6 +642,7 @@ getSubtotalledHoldings <- function(holdings) {
 ##' @param holdings TODO.
 ##' @param idxpair TODO
 ##' @return TODO.
+##' @export
 getSummary <- function(holdings, idxpair){
     ## Prepare the chunks:
     chunk <-  holdings[idxpair[1]:idxpair[2],]
@@ -653,6 +660,7 @@ getSummary <- function(holdings, idxpair){
 ##' Defines the alignment translation table.
 ##'
 ##' @return TODO.
+##' @export
 .lookupAlignment <- function() {
     list(r=Alignment(h="ALIGN_RIGHT"), c=Alignment(h="ALIGN_CENTER"), l=Alignment(h="ALIGN_LEFT"))
 }

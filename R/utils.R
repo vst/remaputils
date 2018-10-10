@@ -1,3 +1,188 @@
+##' A function to grep the NA and replace with ""
+##'
+##' @param x A vector
+##' @param repl The value to replace the NA's with
+##' @return A vector with NA's removed.
+.replaceNA <- function(x, repl="") {
+
+    ## Get the index with NA's
+    naIdx <- grep("NA", x)
+
+    ## If NA, replace with empty:
+    if (length(naIdx) > 0){
+        x[naIdx] <- repl
+    }
+
+    ## Return:
+    x
+}
+
+
+##' A function to give the value of the nearest date.
+##'
+##' @param targetDate The target date
+##' @param data A data frame with the date and value column.
+##' @param tolerance The maximum allowed distance in days.
+##' @param dateField The column name of the date in data.
+##' @param valueField The column name of the value field.
+##' @return A list with date and value.
+valueOfNearestDate <- function(targetDate, data, tolerance, dateField="date", valueField="price") {
+
+    ## Compute the date difference:
+    dateDist <- data[, dateField] - targetDate
+
+    ## Filter the data for negative distances:
+    data <- data[dateDist < 0,]
+    dateDist <- dateDist[dateDist < 0]
+
+    ## If empty, return NA:
+    if (length(dateDist) == 0) {
+        return(list("date"=NA,
+                    "value"=NA))
+    }
+
+    ## Get the minimum absolute distance:
+    minDistIdx <- which(abs(dateDist) == min(abs(dateDist)))
+
+    ## If distance is higher than tolerance, return NA
+    if (abs(dateDist)[minDistIdx] > tolerance) {
+        return(list("date"=NA,
+                    "value"=NA))
+    }
+
+    ## Done, return the value and corresponding date:
+    return(list("date"=data[, dateField][minDistIdx],
+                "value"=data[, valueField][minDistIdx]))
+
+}
+
+
+##' TODO
+##'
+##' @param value TODO
+##' @return TODO
+.emptyToNA <- function (value) {
+    if(is.null(value) || length(value) == 0) {
+        NA
+    } else {
+        value
+    }
+}
+
+
+##' TODO
+##'
+##' @param value TODO
+##' @return TODO
+.emptyToNULL <- function (value) {
+    if(is.null(value) || length(value) == 0) {
+        NULL
+    } else {
+        value
+    }
+}
+
+
+##' Formats the given ISO string date to european style.
+##'
+##' @param value ISO string date.
+##' @return European string date.
+.formatDate <- function (value) {
+    ifelse(is.na(value) || is.null(value), NA, format(as.Date(value), "%d/%m/%Y"))
+}
+
+
+##' Stop with error if condition is FALSE.
+##'
+##' @param condition Boolean value.
+##' @param error Error message.
+##' @return Nothing but exception!
+assertit <- function (condition, error) {
+    if (!condition) {
+        stop(error)
+    }
+}
+
+
+##' TODO:
+##'
+##' TODO:
+##'
+##' @param df A data-frame.
+##' @param inCols TODO
+##' @param exCols TODO
+##' @param idCols TODO
+##' @param addConditions TODO
+##' @return A list with the row indices and the group indices of the strategy.
+##' @export
+indexCompiler <- function(df, inCols, exCols, idCols, addConditions) {
+
+    ## Initialise the reval:
+    retval <- list("index"=NULL,
+                   "grpIdx"=NULL)
+
+    ## Which values in inclusive columns to be considered:
+    consider <- apply(do.call(cbind, lapply(1:length(inCols), function(i) {
+        apply(do.call(cbind, lapply(inCols[[i]], function(z) df[, names(inCols)[i]] == z)), MARGIN=1, any)
+    })), MARGIN=1, all)
+
+    ## Create the consider id:
+    considerId <- ifelse(consider, "CONSIDER", sapply(1:NROW(df), function(z) getRandString()))
+
+    ## Construct the composite id:
+    idColVals <- apply(df[, unlist(idCols)], MARGIN=2, function(x) sapply(x, function(z) ifelse(is.na(z), getRandString(), z)))
+    df[, "composite"] <- paste0(apply(idColVals, MARGIN=1, function(x) trimDws(paste0(x, collapse=""))), considerId)
+
+    ## Get the table with occurances:
+    occurances <- data.frame(table(as.character(df[, "composite"])))
+
+    ## Get the duplicated composite id's:
+    isDuplicate <- !is.na(match(df[, "composite"], as.character(occurances[occurances[, "Freq"] == 2, 1])))
+
+    ## Append the duplicated indices:
+    df[isDuplicate, "idx"] <- which(isDuplicate)
+
+    ## Filter the duplicated:
+    duplicates <- df[isDuplicate, ]
+
+    ## Separate the duplicated by unique composite id in list:
+    duplicateWise <- lapply(unique(duplicates[, "composite"]), function(z) duplicates[z == duplicates[, "composite"], ])
+
+    ## Iterate over additional conditions:
+    for (cond in addConditions) {
+
+        ## Return initial return value if empty:
+        if (length(duplicateWise) == 0) {
+            return(retval)
+        }
+
+        ## Only carry on with elements which fulfil the condition:
+        duplicateWise <- duplicateWise[sapply(duplicateWise, cond)]
+
+        ## Return initial return value if empty:
+        if (length(duplicateWise) == 0) {
+            return(retval)
+        }
+
+    }
+
+    ## Append the indices of group to every element:
+    duplicateWise <- lapply(duplicateWise, function(z) data.frame(z, "comp_idx"=(as.list(z[, "idx"]))))
+
+    ## Safely bind the list:
+    duplicates <- safeRbind(duplicateWise)
+
+    ## Assing the index:
+    retval[["index"]] = duplicates[, "idx"]
+
+    ## Assign the group indices:
+    retval[["grpIdx"]] = duplicates[, grep("comp_idx", colnames(duplicates))]
+
+    ## Return:
+    retval
+}
+
+
 ##' A function to gsub multiple patterns.
 ##'
 ##' @param str The original string.

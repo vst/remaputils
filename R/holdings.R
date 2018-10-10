@@ -77,23 +77,25 @@ getHoldingsWrapper <- function(params, resources, session, charLimit=50, regions
 ##' @import rdecaf
 ##' @export
 getFlatHoldings <- function(x, charLimit=30){
-    holdings <- lapply(x, function(h) data.frame("Name"=as.character(ellipsify(h[["artifact"]][["name"]], charLimit=charLimit)),
-                                                 "Account"=h[["accounts"]][[1]][["id"]],
-                                                 "Symbol"=as.character(h[["artifact"]][["symbol"]]),
-                                                 "ID"=as.numeric(h[["artifact"]][["id"]]),
-                                                 "CCY"=as.character(h[["artifact"]][["ccy"]]),
-                                                 "Type"=as.character(trimws(gsub("Contract", "", h[["artifact"]][["type"]][["name"]]))),
-                                                 "Subtype"=as.character(ifelse(isNAorEmpty(h[["artifact"]][["stype"]]), NA,h[["artifact"]][["stype"]])),
-                                                 "Country"=capitalise(as.character(ifelse(isNAorEmpty(h[["artifact"]][["country"]]), NA, h[["artifact"]][["country"]]))),
-                                                 "Sector"=capitalise(as.character(ifelse(isNAorEmpty(h[["artifact"]][["sector"]]), NA, h[["artifact"]][["sector"]]))),
-                                                 "QTY"=as.numeric(h[["quantity"]]),
-                                                 "PX Cost"=as.numeric(h[["investment"]][["px"]][["org"]]),
-                                                 "PX Last"=as.numeric(h[["valuation"]][["px"]][["org"]]),
-                                                 "Value"=safeNull(as.numeric(h[["valuation"]][["value"]][["net"]][["ref"]])),
-                                                 "Exposure"=safeNull(as.numeric(h[["valuation"]][["exposure"]][["abs"]][["ref"]])),
-                                                 "PnL (Unreal)"=safeNull(as.numeric(h[["pnl"]])),
-                                                 "PnL (% Inv.)"=safeNull(as.numeric(h[["pnl_to_investment"]])),
+    holdings <- lapply(x, function(h) data.frame("Name"=.emptyToNA(as.character(ellipsify(h[["artifact"]][["name"]], charLimit=charLimit))),
+                                                 "Account"=.emptyToNA(h[["accounts"]][[1]][["id"]]),
+                                                 "Symbol"=.emptyToNA(as.character(h[["artifact"]][["symbol"]])),
+                                                 "ID"=.emptyToNA(as.numeric(h[["artifact"]][["id"]])),
+                                                 "CCY"=.emptyToNA(as.character(h[["artifact"]][["ccy"]])),
+                                                 "Type"=.emptyToNA(as.character(trimws(gsub("Contract", "", h[["artifact"]][["type"]][["name"]])))),
+                                                 "Subtype"=.emptyToNA(as.character(ifelse(isNAorEmpty(h[["artifact"]][["stype"]]), NA,h[["artifact"]][["stype"]]))),
+                                                 "Country"=.emptyToNA(capitalise(as.character(ifelse(isNAorEmpty(h[["artifact"]][["country"]]), NA, h[["artifact"]][["country"]])))),
+                                                 "Sector"=.emptyToNA(capitalise(as.character(ifelse(isNAorEmpty(h[["artifact"]][["sector"]]), NA, h[["artifact"]][["sector"]])))),
+                                                 "QTY"=.emptyToNA(as.numeric(h[["quantity"]])),
+                                                 "PX Cost"=.emptyToNA(as.numeric(h[["investment"]][["px"]][["org"]])),
+                                                 "PX Last"=.emptyToNA(as.numeric(h[["valuation"]][["px"]][["org"]])),
+                                                 "Value"=.emptyToNA(safeNull(as.numeric(h[["valuation"]][["value"]][["net"]][["ref"]]))),
+                                                 "Accrd"=.emptyToNA(as.numeric(h[["valuation"]][["accrued"]][["org"]])),
+                                                 "Exposure"=.emptyToNA(safeNull(as.numeric(h[["valuation"]][["exposure"]][["abs"]][["ref"]]))),
+                                                 "PnL (Unreal)"=.emptyToNA(safeNull(as.numeric(h[["pnl"]]))),
+                                                 "PnL (% Inv.)"=.emptyToNA(safeNull(as.numeric(h[["pnl_to_investment"]]))),
                                                  check.names=FALSE))
+
     ## Get the holdings:
     classify(as.data.frame(do.call(rbind, holdings), check.names=FALSE))
 }
@@ -325,7 +327,7 @@ getFormattedHoldings <- function(holdings){
             next
         }
 
-        holdings[, col] <- grepNA(val)
+        holdings[, col] <- .replaceNA(val)
     }
 
     holdings

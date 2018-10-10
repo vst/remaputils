@@ -1,4 +1,24 @@
-#' A function to provide the future month memnonic mapper:
+##' A function the country to region mapping
+##'
+##' This is a description.
+##'
+##' @return Returns a list with the country to region mapping.
+##' @export
+countryRegionMap <- function() {
+    list(
+        "Europe"=c("Switzerland", "Germany", "Denmark", "Sweden",
+                   "Norway", "France", "UK", "Britain", "Spain",
+                   "Belgium", "Luxembourg", "Netherlands", "Ireland", "Italy"),
+        "North America"=c("United States", "Canada", "Bahamas"),
+        "Americas"=c("Brazil", "Mexico", "Argentina"),
+        "EMEA"=c("Poland", "Hungary", "Turkey", "South Africa", "Israel"),
+        "Asia"=c("China", "Japan", "Korea", "Hong Kong", "Thailand",
+                 "Malaysia", "Australia")
+    )
+}
+
+
+##' A function to provide the future month memnonic mapper:
 ##'
 ##' This is a description.
 ##'
@@ -82,7 +102,6 @@ futureContractSizes <- function() {
           "Z " = 10,
           "CF" = 10)
 }
-
 
 
 ##' A function to infer the rounded factor between two values.

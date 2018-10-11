@@ -377,12 +377,15 @@ getPrintableHoldings <- function(portfolio, ccy, date, dtype, toplevel, sublevel
             shclses <- as.data.frame(rdecaf::getResource("shareclasses", params=list("id"=portfolioDetails[, shcl], "format"="csv", "page_size"=-1), session=session))
 
             ## Append the isin of the in-loop shareclass to the isin variable:
-            isin <- paste(isin, ifelse(is.na(shclses[, "isin"]), "", shclses[, "isin"]), sep=",")
+            isin <- paste(isin, ifelse(is.na(shclses[, "isin"]), "", shclses[, "isin"]), sep=" ")
         }
+
     ## If not shareclass exists, try to get the isin from portfolio details:
     } else {
         isin <- safeTry(try(portfolioDetails[,"isin"], silent=TRUE))
     }
+
+    isin <- gsub(" ", ", ", trimws(isin))
 
     ## Get the passive table:
     passive <- as.data.frame(rdecaf::getResource("passivevaluations",
@@ -395,9 +398,6 @@ getPrintableHoldings <- function(portfolio, ccy, date, dtype, toplevel, sublevel
         ## Get the starting passive NAV:
         startingNAV <- valueOfNearestDate(dateOfPeriod("Y-0"), passive, 5)
     }
-
-    ## Get the isin:
-    isin <- safeTry(try(portfolioDetails[,"isin"], silent=TRUE))
 
     ## Get the inception:
     inception <- safeTry(try(portfolioDetails[,"inception"], silent=TRUE))

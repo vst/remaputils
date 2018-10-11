@@ -377,7 +377,7 @@ getPrintableHoldings <- function(portfolio, ccy, date, dtype, toplevel, sublevel
             shclses <- as.data.frame(rdecaf::getResource("shareclasses", params=list("id"=portfolioDetails[, shcl], "format"="csv", "page_size"=-1), session=session))
 
             ## Append the isin of the in-loop shareclass to the isin variable:
-            isin <- paste(isin, ifelse(is.na(shclses[, "isin"]), "", shclsses[, "isin"]), sep=",")
+            isin <- paste(isin, ifelse(is.na(shclses[, "isin"]), "", shclses[, "isin"]), sep=",")
         }
     ## If not shareclass exists, try to get the isin from portfolio details:
     } else {

@@ -33,11 +33,12 @@ getEnrichedHoldings <- function(holdings, nav, gav, regions, resources){
                "Region"=safeTry(try(as.character(regions))),
                "Value (%)"=safeTry(try(holdings[,"Value"] / nav, silent=TRUE)),
                "Exp (%)"=safeTry(try(holdings[,"Exposure"] / nav, silent=TRUE)),
-               "Expiry"=resources[matchIdx, "expiry"],
+               "Expiry"=as.character(resources[matchIdx, "expiry"]),
                "Call/Put"=safeCondition(resources[matchIdx, ], "callput", "True"),
                "Rate"= ifelse(sapply(resources[matchIdx, "pxmain"], is.null), NA, resources[matchIdx, "pxmain"]),
                "Underlying"=ifelse(sapply(resources[matchIdx, "underlying"], is.null), NA, resources[matchIdx, "underlying"]),
-               check.names=FALSE)
+               check.names=FALSE,
+               stringsAsFactors=FALSE)
 
 }
 

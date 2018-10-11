@@ -361,19 +361,39 @@ getPrintableHoldings <- function(portfolio, ccy, date, dtype, toplevel, sublevel
     ## Get the portfolio details:
     portfolioDetails <- as.data.frame(rdecaf::getResource("portfolios", params=list("id"=portfolio, "format"="csv", "page_size"=-1), session=session))
 
+    ## Grep the columns with the name shareclass in it:
+    shareclassCol <- grep("shareclass", colnames(portfolioDetails))
+
+    ## If such column exists, do following:
+    if (length(shareclassCol) > 0) {
+
+        ## Initialise the isin variable:
+        isin <- NULL
+
+        ## Iterate over the shareclass columns:
+        for (shcl in shareclassCol) {
+
+            ## Get the in-loop shareclass:
+            shclses <- as.data.frame(rdecaf::getResource("shareclasses", params=list("id"=portfolioDetails[, shcl], "format"="csv", "page_size"=-1), session=session))
+
+            ## Append the isin of the in-loop shareclass to the isin variable:
+            isin <- paste(isin, ifelse(is.na(shclses[, "isin"]), "", shclsses[, "isin"]), sep=",")
+        }
+    ## If not shareclass exists, try to get the isin from portfolio details:
+    } else {
+        isin <- safeTry(try(portfolioDetails[,"isin"], silent=TRUE))
+    }
+
     ## Get the passive table:
     passive <- as.data.frame(rdecaf::getResource("passivevaluations",
                                                  params=list("portfolio"=portfolio,"account__isnull"=TRUE, "format"="csv", "page_size"=-1), session=session))
 
-
     ## If no passive entries, set validated NAV's to NA:
     if (NROW(passive) == 0) {
         startingNAV <- list("date"=NA, "value"=NA)
-        endingNAV <- list("date"=NA, "value"=NA)
     } else {
         ## Get the starting passive NAV:
-        startingNAV <- valueOfNearestDate(dateOfPeriod("Y-0"), passive, 4)
-        endingNAV <- valueOfNearestDate(date, passive, 14)
+        startingNAV <- valueOfNearestDate(dateOfPeriod("Y-0"), passive, 5)
     }
 
     ## Get the isin:
@@ -387,6 +407,9 @@ getPrintableHoldings <- function(portfolio, ccy, date, dtype, toplevel, sublevel
 
     ## Get the consolidation:
     consolidation <- rdecaf::getResource("fundreport", params=list("fund"=portfolio, ccy=ccy, date=date, type=dtype), session=session)
+
+    endingNAV <- list("value"=safeTry(try(consolidation[["nav"]] / consolidation[["shares"]], silent=TRUE)),
+                      "date"=date)
 
     ## Get the flat holdings:
     holdings <- getFlatHoldings(consolidation[["holdings"]])

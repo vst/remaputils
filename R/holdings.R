@@ -365,11 +365,15 @@ getPrintableHoldings <- function(portfolio, ccy, date, dtype, toplevel, sublevel
                                                  params=list("portfolio"=portfolio,"account__isnull"=TRUE, "format"="csv", "page_size"=-1), session=session))
 
 
-    ## Get the starting passive NAV:
-    startingNAV <- valueOfNearestDate(dateOfPeriod("Y-0"), passive, 4)
-
-    ## Get the ending passive NAV:
-    endingNAV <- valueOfNearestDate(date, passive, 14)
+    ## If no passive entries, set validated NAV's to NA:
+    if (NROW(passive) == 0) {
+        startingNAV <- list("date"=NA, "value"=NA)
+        endingNAV <- list("date"=NA, "value"=NA)
+    } else {
+        ## Get the starting passive NAV:
+        startingNAV <- valueOfNearestDate(dateOfPeriod("Y-0"), passive, 4)
+        endingNAV <- valueOfNearestDate(date, passive, 14)
+    }
 
     ## Get the isin:
     isin <- safeTry(try(portfolioDetails[,"isin"], silent=TRUE))
@@ -412,5 +416,4 @@ getPrintableHoldings <- function(portfolio, ccy, date, dtype, toplevel, sublevel
     ## Return:
     list("holdings"=formattedHoldings[,colselect],
          "consolidation"=consolidation)
-
 }

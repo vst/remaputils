@@ -1,3 +1,25 @@
+##' This function checks whether trade dates are dubious.
+##'
+##' This is a description
+##'
+##' @param trades A data-frame with the trades from rdecaf.
+##' @param backdatedness The number of days after which a trade should have been created.
+##' @return The trades data-frame with dubious trade dates.
+##' @export
+dubiousTradeDates <- function(trades, backdatedness) {
+
+    ## Trades with creation dates over N days of commitment date:
+    aPriorCreation <- as.Date(trades[, "created"]) - as.Date(trades[, "commitment"]) > backdatedness
+
+    ## Dates with commitment date later than creation date:
+    exAnteCreation <- as.Date(trades[, "created"]) < as.Date(trades[, "commitment"])
+
+    ## Filter and return:
+    trades <- trades[aPriorCreation | exAnteCreation, ]
+
+}
+
+
 ##' This function checks the health of the OHLC observations.
 ##'
 ##' This is a description

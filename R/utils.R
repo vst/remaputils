@@ -1,3 +1,27 @@
+##' A function to treat special characters:
+##'
+##' @param df A data-frame.
+##' @param cols A vector with the selective column names to be treated.
+##' @return A data-frame.
+specialCharacterTreater <- function(df, cols=NULL) {
+
+    ## If cols param is null, use colnames:
+    if (is.null(cols)) {
+        cols <- colnames(df)
+        }
+
+    ## Iterate over cols:
+    for (col in cols) {
+
+        ## Remove non-ascii characters:
+        df[, col] <- iconv(df[, col], "latin1", "ASCII", sub="")
+    }
+
+    ## Done, return
+    df
+}
+
+
 ##' A function to grep the NA and replace with ""
 ##'
 ##' @param x A vector

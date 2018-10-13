@@ -3,6 +3,7 @@
 ##' @param df A data-frame.
 ##' @param cols A vector with the selective column names to be treated.
 ##' @return A data-frame.
+##' @export
 specialCharacterTreater <- function(df, cols=NULL) {
 
     ## If cols param is null, use colnames:
@@ -27,6 +28,7 @@ specialCharacterTreater <- function(df, cols=NULL) {
 ##' @param x A vector
 ##' @param repl The value to replace the NA's with
 ##' @return A vector with NA's removed.
+##' @export
 .replaceNA <- function(x, repl="") {
 
     ## Get the index with NA's
@@ -50,6 +52,7 @@ specialCharacterTreater <- function(df, cols=NULL) {
 ##' @param dateField The column name of the date in data.
 ##' @param valueField The column name of the value field.
 ##' @return A list with date and value.
+##' @export
 valueOfNearestDate <- function(targetDate, data, tolerance, dateField="date", valueField="price") {
 
     ## Compute the date difference:
@@ -85,6 +88,7 @@ valueOfNearestDate <- function(targetDate, data, tolerance, dateField="date", va
 ##'
 ##' @param value TODO
 ##' @return TODO
+##' @export
 .emptyToNA <- function (value) {
     if(is.null(value) || length(value) == 0) {
         NA
@@ -98,6 +102,7 @@ valueOfNearestDate <- function(targetDate, data, tolerance, dateField="date", va
 ##'
 ##' @param value TODO
 ##' @return TODO
+##' @export
 .emptyToNULL <- function (value) {
     if(is.null(value) || length(value) == 0) {
         NULL
@@ -111,6 +116,7 @@ valueOfNearestDate <- function(targetDate, data, tolerance, dateField="date", va
 ##'
 ##' @param value ISO string date.
 ##' @return European string date.
+##' @export
 .formatDate <- function (value) {
     ifelse(is.na(value) || is.null(value), NA, format(as.Date(value), "%d/%m/%Y"))
 }
@@ -121,6 +127,7 @@ valueOfNearestDate <- function(targetDate, data, tolerance, dateField="date", va
 ##' @param condition Boolean value.
 ##' @param error Error message.
 ##' @return Nothing but exception!
+##' @export
 assertit <- function (condition, error) {
     if (!condition) {
         stop(error)

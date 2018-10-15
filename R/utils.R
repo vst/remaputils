@@ -717,6 +717,12 @@ trimDws <- function(str){
 
         ## Remove double white spaces
         str <- gsub("  ", " ", str)
+
+        ## If condition is NA, break:
+        if (is.na(any(str != newStr))) {
+            break
+        }
+
     }
 
     ## Done, return:

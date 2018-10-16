@@ -1,3 +1,35 @@
+##' A function to return a flat account to portfolio mapping using the portfolio data-frame
+##'
+##' This is the description
+##'
+##' @param portfolios The rdecaf portfolio data-frame
+##' @return A data-frame with the flat account to portfolio id's
+##' @export
+getAccountPortfolioMap <- function(portfolios) {
+
+    ## Get the account indices in portfolio:
+    accountIdx <- grep("accounts.", colnames(portfolios))
+
+    ## Initialse the portAccMap
+    portAccMap <- data.frame()
+
+    ## Iterate over the accIdx:
+    for (accIdx in accountIdx) {
+
+        portAccMap <- rbind(portAccMap, cbind(portfolios[, accIdx], portfolios[, "id"], portfolios[, "name"]))
+    }
+
+    ## Get rid of NA accounts:
+    portAccMap <- portAccMap[!is.na(portAccMap[,1]),]
+
+    ## Name the column:
+    colnames(portAccMap) <- c("account", "portfolio", "portfolio_name")
+
+    ## Done, return:
+    portAccMap
+
+}
+
 ##' A function to push a payload to a decaf instance.
 ##'
 ##' This is the description

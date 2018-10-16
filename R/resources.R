@@ -705,7 +705,7 @@ bondMaturityFromTicker <- function(ticker){
 ##' @param session The rdecaf session
 ##' @return Returns the inferred maturity
 ##' @import rdecaf
-##' @xexport
+##' @export
 getResourcesByStock <- function(stocks, session){
 
     ## Construct the resource params:

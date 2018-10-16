@@ -1,3 +1,32 @@
+##' A function to get trades from session using portfolio names:
+##'
+##' This is the description
+##'
+##' @param portfolioNames A vector with portfolio names:
+##' @param session The DECAF session info.
+##' @return A data-frame with DECAF trades for portfolio.
+##' @import rdecaf
+##' @export
+getTradesFromPortfolioNames <- function(portfolioNames, session) {
+
+    ## Construct the portfolio params:
+    params <- list("page_size"=-1,
+                   "name__in"=paste(portfolioNames, collapse=","),
+                   "format"="csv")
+
+    ## Get the portfolios:
+    portfolios <- as.data.frame(getResource("portfolios", params=params, session=session))
+
+    ## Get the account id:
+    accounts <- as.numeric(na.omit(unique(unlist(portfolios[, grep("accounts.", colnames(portfolios))]))))
+
+    ## Get the account wise trades and return:
+    list("trades"=getAccountWiseTrades(accounts, session),
+         "portfolios"=portfolios)
+
+}
+
+
 ##' A function to get account-wise trades from a DECAF instance.
 ##'
 ##' This is the description

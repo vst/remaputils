@@ -1,3 +1,67 @@
+##' A function to provide the enriched trade data-frame from source session.
+##'
+##' This is the description
+##'
+##' @param sourceSession The rdecaf session for source instance.
+##' @param targetSession The rdecaf session for target instance.
+##' @param portfolioMap A named character vector, such as c("[NAME of source portfolio]"="[NAME of target portfolio]")
+##' @return A trade data-frame with mapped/created accmains and auxiliary resource information.
+##' @export
+xDecafPreemble <- function(sourceSession, targetSession, portfolioMap) {
+
+    ## Print message:
+    print("Retrieving trades by portfolio names from source ...")
+
+    ## Get the trades by portfolio name:
+    tradesAndPortfolios <- getTradesFromPortfolioNames(names(portfolioMap), sourceSession)
+
+    ## Get the vision portfolios:
+    sourcePortfolios <- tradesAndPortfolios[["portfolios"]]
+
+    ## Get the vision trades by portfolio:
+    sourceTrades <- tradesAndPortfolios[["trades"]]
+
+    ## Get the portfolio account map:
+    portAccMap <- getAccountPortfolioMap(sourcePortfolios)
+
+    ## Match and add the ucpbh names to the portAccMap
+    portAccMap[, "target"] <- portfolioMap[match(portAccMap[, "portfolio_name"], names(portfolioMap))]
+
+    ## Print message:
+    print("Retrieving stocks and corresponding resources from source ...")
+
+    ## Get the vision resources by stock:
+    sourceResources <- getResourcesByStock(getStocks(sourcePortfolios, sourceSession, zero = 1, date = Sys.Date(), c = "portfolio"), sourceSession)
+
+    ## Append the ucapbh portfolioNames to the vision trades:
+    sourceTrades <- data.frame(sourceTrades, "port_name_target"=portAccMap[match(sourceTrades[, "accmain"], portAccMap[, "account"]), "target"])
+
+    ## Append the instrument currencies to the vision trades:
+    sourceTrades <- data.frame(sourceTrades, "ccymain"=as.character(sourceResources[match(sourceTrades[, "resmain"], sourceResources[, "id"]), "ccymain"]))
+
+    ## Print message:
+    print("Mapping / Creating accounts ...")
+
+    ## Map and overwrite the vision accmain id's with ucapbh accmain id's:
+    sourceTrades[, "accmain"] <- accountMapper(trimConcatenate(sourceTrades[, "port_name_target"]), as.character(sourceTrades[,"ccymain"]), targetSession)
+
+    ## Map and append the resource quantity to vision trades:
+    sourceTrades <- data.frame(sourceTrades, "resmain_quantity_source"=as.character(sourceResources[match(sourceTrades[, "resmain"], sourceResources[, "id"]), "quantity"]))
+
+    ## Map and append the resource isin to vision trades:
+    sourceTrades <- data.frame(sourceTrades, "isin"=sourceResources[match(sourceTrades[, "resmain"], sourceResources[, "id"]), "isin"])
+
+    ## Map and append the resource name to vision trades:
+    sourceTrades <- data.frame(sourceTrades, "name"=sourceResources[match(sourceTrades[, "resmain"], sourceResources[, "id"]), "name"])
+
+    ## Done, return:
+    list("trades"=sourceTrades,
+         "resources"=sourceResources,
+         "portAccMap"=portAccMap)
+
+}
+
+
 ##' A function to return a flat account to portfolio mapping using the portfolio data-frame
 ##'
 ##' This is the description
@@ -54,6 +118,7 @@ pushPayload <- function(payload, endpoint, session, import=TRUE, inbulk=FALSE, p
 
     ## If inbulk, extend the url and push payload:
     if (inbulk) {
+
         response <- try(postResource("imports/inbulk", payload=payload, params=params, session=session), silent=TRUE)
         response <- list("id"=response)
     }

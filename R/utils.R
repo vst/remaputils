@@ -1,3 +1,46 @@
+##' A function to provide the start and end indices of desired batches.
+##'
+##' @param n The length
+##' @param batchSize The desired batch size
+##' @return A list with starting and ending indices
+##' @export
+createBatches <- function(n, batchSize) {
+
+    ## Initialise the ending index:
+    endingIdx <- seq(0, n, batchSize)
+
+    ## Create the starting index:
+    startingIdx <- endingIdx + 1
+
+    ## Update the ending index:
+    endingIdx <- c(tail(endingIdx, -1), n - tail(endingIdx, 1) + tail(endingIdx, 1))
+
+    ## Done, return:
+    list("startingIdx"=startingIdx,
+         "endingIdx"=endingIdx)
+}
+
+
+##' A function to set specific columns to NULL
+##'
+##' @param df A data-frame.
+##' @param cols A vector with the selective column names.
+##' @return A data-frame.
+##' @export
+setColsToNull <- function(df, cols) {
+
+    ## Iterate over columns
+    for (col in cols) {
+
+        ## Set column to NULL:
+        df[, col] <- NULL
+    }
+
+    ## Done, return:
+    df
+}
+
+
 ##' A function to treat special characters:
 ##'
 ##' @param df A data-frame.
@@ -706,27 +749,34 @@ isNAorEmpty <- function(str){
 ##' @export
 trimDws <- function(str){
 
-    ## Get rid of the first set of double spaces.
+    ## Store original string vector:
+    oldStr <- str
+
+    ## Get the non NA strings index:
+    nonNA <- !is.na(str)
+
+    ## Get the non NA strings:
+    str <- str[nonNA]
+
+    ## Sub double white space with single white space:
     newStr <- gsub("  ", " ", str)
 
-    ## While double white space exists, iterate:
+    ## Do while no double white space:
     while (any(str != newStr)) {
 
-        ## Assign string to new variable:
+        ## Assign str to new variable:
         newStr <- str
 
-        ## Remove double white spaces
+        ## Sub double white space with single white space:
         str <- gsub("  ", " ", str)
-
-        ## If condition is NA, break:
-        if (is.na(any(str != newStr))) {
-            break
-        }
-
     }
 
+    ## Assign new strings to non NA string index:
+    oldStr[nonNA] <- str
+
     ## Done, return:
-    str
+    oldStr
+
 }
 
 

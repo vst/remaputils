@@ -1,28 +1,45 @@
-##' A function to get trades from session using portfolio names:
+##' A function to get trades from session using container names:
 ##'
 ##' This is the description
 ##'
-##' @param portfolioNames A vector with portfolio names:
-##' @param session The DECAF session info.
-##' @return A data-frame with DECAF trades for portfolio.
+##' @param containerNames A vector with container names
+##' @param session The DECAF session info
+##' @param type The container type
+##' @param gte A date object to express 'Greater Than' for commitment date of trades. Default is NULL.
+##' @return A data-frame with DECAF trades for container.
 ##' @import rdecaf
 ##' @export
-getTradesFromPortfolioNames <- function(portfolioNames, session) {
+getTradesFromContainerNames <- function(containerNames, session, type, gte=NULL) {
 
-    ## Construct the portfolio params:
-    params <- list("page_size"=-1,
-                   "name__in"=paste(portfolioNames, collapse=","),
-                   "format"="csv")
+    if (type == "accounts") {
 
-    ## Get the portfolios:
-    portfolios <- as.data.frame(getResource("portfolios", params=params, session=session))
+        ## Construct the account params:
+        params <- list("page_size"=-1,
+                       "name__in"=paste(containerNames, collapse=","))
 
-    ## Get the account id:
-    accounts <- as.numeric(na.omit(unique(unlist(portfolios[, grep("accounts.", colnames(portfolios))]))))
+        ## Get the portfolios:
+        container <- do.call(rbind, getResource(type, params=params, session=session))
+
+        accounts <- container[, "id"]
+    }
+
+    if (type == "portfolios") {
+
+        ## Construct the portfolio params:
+        params <- list("page_size"=-1,
+                       "format"="csv",
+                       "name__in"=paste(containerNames, collapse=","))
+
+        ## Get the portfolios:
+        container <- as.data.frame(getResource(type, params=params, session=session))
+
+        ## Get the account id:
+        accounts <- as.numeric(na.omit(unique(unlist(container[, grep("accounts.", colnames(container))]))))
+    }
 
     ## Get the account wise trades and return:
-    list("trades"=getAccountWiseTrades(accounts, session),
-         "portfolios"=portfolios)
+    list("trades"=getAccountWiseTrades(accounts, session, gte),
+         "container"=container)
 
 }
 

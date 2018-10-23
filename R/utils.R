@@ -1,4 +1,42 @@
+##' A function which tells whether now is desired day and/or time
+##'
+##' This is a description.
+##'
+##' @param tz The time zone
+##' @param gte Current time has to be greater than this to be TRUE. Expressed in \%H:\%M:\%S.
+##' @param lte Current time has to be less than this to be TRUE. Expressed in H:M:S.
+##' @param inWeekdays Current day has to match with any of these days. Expressed in c('MON', 'TUE', ...). Default are all weekdays.
+##' @return TRUE or FALSE.
+##' @export
+itsTime <- function(tz="UTC", gte="00:00:01", lte="23:59:59", inWeekdays=c("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")) {
+    ## Get the current date time in desired time zone:
+    currentDateTime <- as.POSIXct((format(Sys.time(), "tz"=tz)))
+    ## Get current time in desired time zone:
+    currentTime <- format(currentDateTime, "%H:%M:%S")
+    ## Get current weekday in desired time zone:
+    currentWeekday <- toupper(weekdays(currentDateTime, abbreviate=TRUE))
+    ## Is today the day?
+    itsTime <- any(safeGrep(inWeekdays, currentWeekday) == "1")
+    ## is now the time?
+    itsTime & (currentTime > gte & currentTime < lte)
+}
+
+
+##' TODO:
+##'
+##' This is a description
+##'
+##' @param x TODO
+##' @return TODO
+##' @export
+.removeList <- function(x) {
+    x[!sapply(x, is.list)]
+}
+
+
 ##' A function to provide the start and end indices of desired batches.
+##'
+##' This is a description.
 ##'
 ##' @param n The length
 ##' @param batchSize The desired batch size
@@ -23,6 +61,8 @@ createBatches <- function(n, batchSize) {
 
 ##' A function to set specific columns to NULL
 ##'
+##' This is a description.
+##'
 ##' @param df A data-frame.
 ##' @param cols A vector with the selective column names.
 ##' @return A data-frame.
@@ -42,6 +82,8 @@ setColsToNull <- function(df, cols) {
 
 
 ##' A function to treat special characters:
+##'
+##' This is a description.
 ##'
 ##' @param df A data-frame.
 ##' @param cols A vector with the selective column names to be treated.
@@ -68,6 +110,8 @@ specialCharacterTreater <- function(df, cols=NULL) {
 
 ##' A function to grep the NA and replace with ""
 ##'
+##' This is a description.
+##'
 ##' @param x A vector
 ##' @param repl The value to replace the NA's with
 ##' @return A vector with NA's removed.
@@ -88,6 +132,8 @@ specialCharacterTreater <- function(df, cols=NULL) {
 
 
 ##' A function to give the value of the nearest date.
+##'
+##' This is a description.
 ##'
 ##' @param targetDate The target date
 ##' @param data A data frame with the date and value column.
@@ -129,6 +175,8 @@ valueOfNearestDate <- function(targetDate, data, tolerance, dateField="date", va
 
 ##' TODO
 ##'
+##' This is a description.
+##'
 ##' @param value TODO
 ##' @return TODO
 ##' @export
@@ -142,6 +190,8 @@ valueOfNearestDate <- function(targetDate, data, tolerance, dateField="date", va
 
 
 ##' TODO
+##'
+##' This is a description.
 ##'
 ##' @param value TODO
 ##' @return TODO
@@ -157,6 +207,8 @@ valueOfNearestDate <- function(targetDate, data, tolerance, dateField="date", va
 
 ##' Formats the given ISO string date to european style.
 ##'
+##' This is a description.
+##'
 ##' @param value ISO string date.
 ##' @return European string date.
 ##' @export
@@ -166,6 +218,8 @@ valueOfNearestDate <- function(targetDate, data, tolerance, dateField="date", va
 
 
 ##' Stop with error if condition is FALSE.
+##'
+##' This is a description.
 ##'
 ##' @param condition Boolean value.
 ##' @param error Error message.
@@ -259,6 +313,8 @@ indexCompiler <- function(df, inCols, exCols, idCols, addConditions) {
 
 ##' A function to gsub multiple patterns.
 ##'
+##' This is a description.
+##'
 ##' @param str The original string.
 ##' @param patterns A vector with string patterns.
 ##' @param replace A string to replace the patterns with. Default is "".
@@ -279,6 +335,8 @@ mgsub <- function(str, patterns, replace="") {
 
 ##' A function to gsub strings.
 ##'
+##' This is a description.
+##'
 ##' @param string The original string.
 ##' @param cleaningMaps The vector with the pattern and the replacement.
 ##' @return The cleaned string,
@@ -296,6 +354,8 @@ stringCleaner <- function(string, cleaningMaps=c("&#62;LINK&#60;/a&#62;"=">LINK<
 
 
 ##' A function to convert integers to string deterministically.
+##'
+##' This is a description.
 ##'
 ##' @param int A vector of integers.
 ##' @return A vector with strings.
@@ -317,6 +377,8 @@ integerToString <- function(int) {
 
 ##' A function to order a data-frame based on multiple columns:
 ##'
+##' This is a description.
+##'
 ##' @param df A data-frame.
 ##' @param colNames The names of the columns to be considered for order. The columns must be numeric.
 ##' @return The ordered data-frame.
@@ -328,6 +390,8 @@ nestedOrdering <- function(df, colNames) {
 
 
 ##' A function to match a string with candidates:
+##'
+##' This is a description.
 ##'
 ##' @param sourceStr A vector with strings to match from.
 ##' @param targetStr A vector with strings to match against.
@@ -390,6 +454,8 @@ safeNull <- function(x){
 
 ##' A function to trim string and transform to upper case.
 ##'
+##' This is a description.
+##'
 ##' @param str A string.
 ##' @return Returns the transformed string.
 ##' @export
@@ -413,6 +479,8 @@ trimConcatenate <- function(str){
 
 ##' A function to check condition of numeric value:
 ##'
+##' This is a description.
+##'
 ##' @param vector The numeric value to check condition for.
 ##' @param val The numeric value to check condition against>
 ##' @param condition Either of 'equal', 'greater', 'smaller'.
@@ -435,6 +503,8 @@ checkCondition <- function(vector, val, condition="equal"){
 
 
 ##' A function to extend file name by random/date string.
+##'
+##' This is a description.
 ##'
 ##' @param str A string.
 ##' @param customExt A custom extention of the string. Default is NULL.
@@ -477,6 +547,8 @@ extendFileName <- function(str, customExt=NULL, randomStrN=NULL, addTime=TRUE){
 
 ##' A function to parse command line arguments
 ##'
+##' This is a description.
+##'
 ##' @param commandArgs Command line arguments whereby arguments sets are separated by --
 ##' @return A list with the arguments:
 ##' @import utils
@@ -507,6 +579,8 @@ argsParser <- function(commandArgs){
 
 ##' If try-error, return NA:
 ##'
+##' This is a description.
+##'
 ##' @param x A object of try.
 ##' @param nullToNa Boolean to indicate whether null should be replaced to NA. Default is TRUE.
 ##' @return NA or valid value.
@@ -532,6 +606,8 @@ safeTry <- function(x, nullToNa=TRUE){
 
 
 ##' A function to produce dates in requested periodicity.
+##'
+##' This is a description.
 ##'
 ##' @param periodLetter Any of "D", "W", "M", "Q", "Y"
 ##' @param yearsOfHistory The amount of years to lookback. Default is 3.
@@ -566,6 +642,8 @@ periodDates <- function(periodLetter, yearsOfHistory=3, endOfWeek="Friday"){
 
 ##' A function to get the date of a specific verbosely expressed date (expressed by memnonic).
 ##'
+##' This is a description
+##'
 ##' @param memnonic Follow the convention: [Period Letter] - [lookback], e.g "D-0" or "W-3".
 ##' @return The specific date of the date memnonic.
 ##' @export
@@ -591,16 +669,21 @@ dateOfPeriod <- function(memnonic="D-0"){
 
 ##' A function to safely rbind a list with data frames.
 ##'
+##' This is a description.
+##'
 ##' @param x A list with data frames.
 ##' @return A single data frame.
 ##' @export
 safeRbind <- function(x){
 
-    ## Ge the unique column names of all ucapbh resources:
-    colNames <- unique(do.call(c, lapply(x, colnames)))
-
-    ## Initialise the new resource data frame:
-    df <- as.data.frame(matrix(NA, ncol=length(colNames), nrow=sum(sapply(x, NROW))))
+    if (is.list(x[[1]])) {
+        colNames <- unique(do.call(c, lapply(x, names)))
+        df <- as.data.frame(matrix(NA, ncol=length(colNames), nrow=length(x)))
+    } else {
+        ## Ge the unique column names of all ucapbh resources:
+        colNames <- unique(do.call(c, lapply(x, colnames)))
+        df <- as.data.frame(matrix(NA, ncol=length(colNames), nrow=sum(sapply(x, NROW))))
+    }
 
     ## Reassign the column names:
     colnames(df) <- colNames
@@ -614,6 +697,10 @@ safeRbind <- function(x){
         ## Get the current data frame from list:
         ca <- x[[i]]
 
+        if (class(ca) == "list") {
+            ca <- data.frame(do.call(cbind, .removeList(ca)), stringsAsFactors=FALSE)
+        }
+
         ## Compute the ending row given current data-frames dimension:
         eRow <- NROW(ca) + sRow - 1
 
@@ -625,11 +712,13 @@ safeRbind <- function(x){
     }
 
     ## Return:
-    df
+    data.frame(df, stringsAsFactors=FALSE)
 }
 
 
 ##' A Wrapper function for formatting numbers:
+##'
+##' This is a description.
 ##'
 ##' @param number An array of numeric values.
 ##' @param nsmall The number of digits.
@@ -642,15 +731,20 @@ beautify <- function(number, nsmall=0){
 
 ##' A function for formatting percentages:
 ##'
+##' This is a description.
+##'
 ##' @param number An array of numeric values.
+##' @param digit the number of digits. Default is 2.
 ##' @return A string of percentage:
 ##' @export
-percentify <- function(number){
-    paste0(round(as.numeric(number) * 100, 2), " %")
+percentify <- function(number, digit=2){
+    paste0(round(as.numeric(number) * 100, digit), " %")
 }
 
 
 ##' A function to round up/down to the the nearest value.
+##'
+##' This is a description.
 ##'
 ##' @param x An array of numeric values.
 ##' @param nearest The value to be rounded to.
@@ -669,6 +763,8 @@ nearesth <- function(x, nearest=0.1, dir="up"){
 
 ##' A Wrapper function to source R scripts from specified paths.
 ##'
+##' This is a description.
+##'
 ##' @param paths The path where the R scripts are located.
 ##' @param pattern The pattern of the R scripts (default = *.R).
 ##' @return Source R scripts:
@@ -680,6 +776,8 @@ sourceFromFolder <- function(paths, pattern="*.R"){
 
 ##' A function to safely call a column in a data-frame whether column
 ##' exists or not.
+##'
+##' This is a description.
 ##'
 ##' @param df The data-frame.
 ##' @param col The expected column name.
@@ -702,6 +800,8 @@ safeColumn <- function(df, col) {
 
 ##' A function to exclude rows in which a specified column
 ##' has a key.
+##'
+##' This is a description.
 ##'
 ##' @param data The data-frame.
 ##' @param field The field names to be excluded.
@@ -729,6 +829,8 @@ excludeRowsWithKeys <- function(data, field, keys){
 
 ##' A function to check whether value is empty or NA:
 ##'
+##' This is a description.
+##'
 ##' @param str A vector of strings.
 ##' @return TRUE or FALSE.
 ##' @export
@@ -743,6 +845,8 @@ isNAorEmpty <- function(str){
 
 
 ##' A function to trim double white spaces.
+##'
+##' This is a description.
 ##'
 ##' @param str A vector of strings.
 ##' @return A vector of strings with double white space removed.
@@ -781,6 +885,8 @@ trimDws <- function(str){
 
 
 ##' A function to transform arbitrary date formats into YYYY-MM-DD.
+##'
+##' This is a description.
 ##'
 ##' @param str A single date string.
 ##' @param origin The origin for numerical date inputs (default = "1899-12-30".
@@ -848,6 +954,8 @@ parseDate <- function(str, origin="1899-12-30"){
 
 ##' A function clean to NA rows and columns.
 ##'
+##' This is a description.
+##'
 ##' @param df A data frame.
 ##' @param ratio The ratio of NA's to number of values in row.
 ##' @return A data frame with cleaned NA rows and columns.
@@ -878,6 +986,8 @@ cleanNARowsCols <- function(df, ratio=0.85){
 
 ##' A function to produce a random string.
 ##'
+##' This is a description.
+##'
 ##' @param n The number of random strings.
 ##' @param len The desired lenght of the random string.
 ##' @return A random string.
@@ -899,6 +1009,8 @@ getRandString <- function(n=1, len=12) {
 
 
 ##' Shortens the string and attaches ellipsis.
+##'
+##' This is a description.
 ##'
 ##' @param str A string.
 ##' @param charLimit The maximum number of characters.
@@ -922,6 +1034,8 @@ ellipsify <- function(str, charLimit=30, capitalise=TRUE){
 
 ##' Replaces NA's with empty value
 ##'
+##' This is a description.
+##'
 ##' @param data A data frame.
 ##' @return Data-frame with no NA's.
 ##' @export
@@ -938,6 +1052,8 @@ cleanNA <- function(data){
 
 ##' A function to count keys in strings.
 ##'
+##' This is a description.
+##'
 ##' @param str A vector with strings.
 ##' @param key Key to be found.
 ##' @return A vector of counts.
@@ -949,6 +1065,8 @@ safeGrep <- function (str, key) {
 
 
 ##' A function to capitalise a string.
+##'
+##' This is a description.
 ##'
 ##' @param str A vector with strings.
 ##' @return Capitalised strings.
@@ -966,6 +1084,8 @@ capitalise <- function(str){
 
 
 ##' A function to determine whether string resembles ISIN:
+##'
+##' This is a description.
 ##'
 ##' @param str A vector with strings.
 ##' @return A vector with either string or NA.
@@ -999,6 +1119,9 @@ isIsin <- function(str){
 
 ##' A function to transform each column in data frame to
 ##' the correct class.
+##'
+##' This is a description.
+##'
 ##' @param df The data frame.
 ##' @return The data frame with correct column classes.
 ##' @export
@@ -1050,6 +1173,9 @@ classify <- function(df){
 
 ##' A function to whether values in data frame column
 ##' satisfies a condition.
+##'
+##' This is a description.
+##'
 ##' @param df The data frame.
 ##' @param col The column to be checked.
 ##' @param condition The condition to be checked.
@@ -1063,6 +1189,9 @@ safeCondition <- function(df, col, condition){
 
 ##' This function attempts to transform irregular number
 ##' formats into numerical values.
+##'
+##' This is a description.
+##'
 ##' @param str A vector of strings.
 ##' @return A vector of numerical values.
 ##' @export

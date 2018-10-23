@@ -207,11 +207,23 @@ figiResultTreater <- function(figiResult){
         figiResult[, "symbol"] <- gsub(paste0("V", cp), cp, figiResult[, "symbol"])
     }
 
+    replaceStringsinBonds <- c("EMTN",
+                               "REGS",
+                               "ENFZ",
+                               "EMXT",
+                               "EMTO",
+                               "$GDP",
+                               "EMIn",
+                               ".Mtn")
+
     ## Treat the symbol:
-    figiResult[, "symbol"] <- mgsub(figiResult[, "symbol"], c("EMTN", "REGS"))
+    figiResult[isBond, "symbol"] <- mgsub(toupper(figiResult[isBond, "symbol"]), replaceStringsinBonds)
 
     ## Get rid of NA's, duplicate words and double white spaces:
     figiResult[, "symbol"] <- sapply(strsplit(gsub("NA", "", figiResult[,"symbol"]), " "), function(x) trimDws(paste0(unique(x), collapse=" ")))
+
+    ## Get rid of strings in symbol which contain '000':
+    figiResult[isBond, "symbol"] <- sapply(strsplit(figiResult[isBond, "symbol"], " "), function(x) paste0(x[!safeGrep(x, "000") == "1"], collapse=" "))
 
     ## Done, return:
     figiResult

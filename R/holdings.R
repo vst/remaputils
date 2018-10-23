@@ -1,3 +1,60 @@
+##' TODO:
+##'
+##' This is the description
+##'
+##' @param session The rdecaf session
+##' @param containerType The container type
+##' @param containerId The container id
+##' @param ccy The currency of the consolidation
+##' @param date The date of the consolidation
+##' @return A data-frame with the holdings
+##' @import rdecaf
+##' @export
+getConsolidationHoldings <- function(session, containerType, containerId, ccy, date) {
+
+    print(paste0("From ", session[["location"]], ": Getting consolidation for ", containerType, " ", containerId))
+
+    ## Construct the params:
+    params <- list("c"=substr(containerType, 1, nchar(containerType) - 1), "i"=trimws(containerId), "ccy"=ccy, "date"=date)
+
+    ## Get the consolidation:
+    consolidation <- rdecaf::getResource("consolidation", params=params, session=session)
+
+    ## Get and return the flat holdings:
+    flatHoldings <- getFlatHoldings(consolidation[["holdings"]])
+
+    ## Add container name:
+    flatHoldings[, "CName"] <- as.character(unlist(consolidation[["containers"]][["containers"]])["name"])
+
+    ## Done, return:
+    flatHoldings
+
+}
+
+
+##' Gets the consolidation based on container type and name
+##'
+##' This is the description
+##'
+##' @param containerNames A vector with container names
+##' @param containerType The container type
+##' @param ccy The currency of the consolidation
+##' @param date The date of the consolidation
+##' @param session The rdecaf session
+##' @return A list with the holdings data-frames.
+##' @import rdecaf
+##' @export
+getConsolidationFromContainerName <- function(containerNames, containerType, ccy, date, session) {
+
+    ## Get the container by name:
+    container <- getContainer(containerNames, containerType, session)
+
+    ## Get the consolidations:
+    apply(container, MARGIN=1, function(x) getConsolidationHoldings(session, containerType, x["id"], ccy, date))
+
+}
+
+
 ##' A function to get the enriched holdings data-frame.
 ##'
 ##' This is the description

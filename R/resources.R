@@ -118,19 +118,31 @@ quantityFinder <- function(sourceValue, targetValue) {
     factor <- sourceValue / targetValue
 
     ## Is the factor 0.01:
-    factor <- ifelse(factor < 0.011 & factor > 0.009, 0.01, factor)
+    factor <- ifelse(factor < 0.00013 & factor > 0.00007, 0.0001, factor)
+
+    ## Is the factor 0.01:
+    factor <- ifelse(factor < 0.0013 & factor > 0.0007, 0.001, factor)
+
+    ## Is the factor 0.01:
+    factor <- ifelse(factor < 0.0130 & factor > 0.0070, 0.01, factor)
 
     ## Is the factor 0.10:
-    factor <- ifelse(factor < 0.110 & factor > 0.090, 0.10, factor)
+    factor <- ifelse(factor < 0.1300 & factor > 0.0700, 0.10, factor)
 
     ## Is the factor 1:
-    factor <- ifelse(factor < 1.100 & factor > 0.900, 1.00, factor)
+    factor <- ifelse(factor < 1.3000 & factor > 0.7000, 1.00, factor)
 
     ## Is the factor 10:
-    factor <- ifelse(factor < 11.00 & factor > 9.000, 10.0, factor)
+    factor <- ifelse(factor < 13.000 & factor > 7.0000, 10.0, factor)
 
     ## Is the factor 100:
-    factor <- ifelse(factor < 110.0 & factor > 90.00, 100 , factor)
+    factor <- ifelse(factor < 130.00 & factor > 70.000, 100 , factor)
+
+    ## Is the factor 100:
+    factor <- ifelse(factor < 1300.0 & factor > 700.00, 1000, factor)
+
+    ## Is the factor 100:
+    factor <- ifelse(factor < 13000 & factor > 7000.00, 10000, factor)
 
     ## Replace Inf values with 1:
     factor[which(abs(factor) == Inf)] <- 1
@@ -703,10 +715,11 @@ bondMaturityFromTicker <- function(ticker){
 ##'
 ##' @param stocks The stocks data-frame
 ##' @param session The rdecaf session
+##' @param getUnderlying TODO:
 ##' @return Returns the inferred maturity
 ##' @import rdecaf
 ##' @export
-getResourcesByStock <- function(stocks, session){
+getResourcesByStock <- function(stocks, session, getUnderlying=TRUE){
 
     ## Construct the resource params:
     params <- list("page_size"=-1,
@@ -716,13 +729,19 @@ getResourcesByStock <- function(stocks, session){
     resources <- getResource("resources", params=params, session=session)
 
     ## Excluding tag information, safely combine and return:
-    resources <- safeRbind(lapply(resources, function(res) do.call(cbind, res[!names(res) == "tags"])))
+    resources <- safeRbind(resources)
+
+    ## resources <- safeRbind(lapply(resources, function(res) do.call(cbind, res[!names(res) == "tags"])))
 
     ## Indicate if it is a underlying:
     resources[, "is_underlying"] <- FALSE
 
     ## Get the underlying resources:
     resources[, "underlying"] <- safeColumn(resources, "underlying")
+
+    if (!getUnderlying) {
+        return(resources)
+    }
 
     ## Retrieve the underlying resources, if any:
     if (any(!is.na(resources[, "underlying"]))) {
@@ -782,6 +801,49 @@ getStocks <- function(container, session, zero=1, date=Sys.Date(), c="account") 
 
     ## Return stocks:
     as.data.frame(getResource("stocks", params=params, session=session))
+
+}
+
+
+##' A function to get stocks from container type and names.
+##'
+##' This is a description.
+##'
+##' @param session The rdecaf session:
+##' @param containerType The type of container, either 'portfolios' or 'accounts'.
+##' @param containerNames The names of the container.
+##' @param zero If 1, closed and open stocks are considered. If 0, only open stocks.
+##' @param date The date of the stocks.
+##' @return Returns the data frame with the stocks.
+##' @import rdecaf
+##' @export
+getStocksFromContainerNames <- function(session, containerType, containerNames, zero=1, date) {
+
+    if (containerType == "portfolios") {
+
+        ## Construct the portfolio params:
+        params <- list("page_size"=-1,
+                       "format"="csv",
+                       "name__in"=paste(containerNames, collapse=","))
+
+        ## Get the portfolios:
+        container <- as.data.frame(getResource(containerType, params=params, session=session))
+
+    }
+
+    if (containerType == "accounts") {
+
+        ## Construct the account params:
+        params <- list("page_size"=-1,
+                       "name__in"=paste(containerNames, collapse=","))
+
+        ## Get the portfolios:
+        container <- do.call(rbind, getResource(containerType, params=params, session=session))
+
+    }
+
+    ## Get the stocks and return:
+    getStocks(container, session, zero=zero, date=date, c=substr(containerType, 1, nchar(containerType) -1))
 
 }
 

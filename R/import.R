@@ -1,43 +1,104 @@
+##' A function to get trades from session using container names:
+##'
+##' This is the description
+##'
+##' @param containerNames A vector with container names:
+##' @param containerType The container type
+##' @param session The DECAF session info.
+##' @return A data-frame with DECAF trades for portfolio.
+##' @import rdecaf
+##' @export
+getContainer <- function(containerNames, containerType, session) {
+
+    ## If no container names, return NULL:
+    if (NROW(containerNames) == 0) {
+        return(NULL)
+    }
+
+    ## If container type is accounts, run:
+    if (containerType == "accounts") {
+
+        ## Construct the account params:
+        params <- list("page_size"=-1,
+                       "name__in"=paste(containerNames, collapse=","))
+
+        ## Get the portfolios:
+        container <- safeRbind(getResource(containerType, params=params, session=session))
+
+    }
+
+    ## If container type is portfolios, run:
+    if (containerType == "portfolios") {
+
+        ## Construct the portfolio params:
+        params <- list("page_size"=-1,
+                       "format"="csv",
+                       "name__in"=paste(containerNames, collapse=","))
+
+        ## Get the portfolios:
+        container <- as.data.frame(getResource(containerType, params=params, session=session))
+
+    }
+
+    ## Done, return:
+    container
+
+}
+
+
 ##' A function to provide the enriched trade data-frame from source session.
 ##'
 ##' This is the description
 ##'
 ##' @param sourceSession The rdecaf session for source instance.
 ##' @param targetSession The rdecaf session for target instance.
-##' @param portfolioMap A named character vector, such as c("[NAME of source portfolio]"="[NAME of target portfolio]")
+##' @param containerMap TODO:
+##' @param containerType TODO:
+##' @param gte The commitment date after which the trades should be considered. Default is NULL.
 ##' @return A trade data-frame with mapped/created accmains and auxiliary resource information.
 ##' @export
-xDecafPreemble <- function(sourceSession, targetSession, portfolioMap) {
+xDecafPreemble <- function(sourceSession, targetSession, containerMap, containerType, gte=NULL) {
 
     ## Print message:
-    print("Retrieving trades by portfolio names from source ...")
+    print(paste0("Retrieving trades by container names from source for ", containerType, " ..."))
 
     ## Get the trades by portfolio name:
-    tradesAndPortfolios <- getTradesFromPortfolioNames(names(portfolioMap), sourceSession)
+    tradesAndContainer <- getTradesFromContainerNames(names(containerMap),
+                                                      sourceSession,
+                                                      type=containerType,
+                                                      gte=gte)
 
     ## Get the vision portfolios:
-    sourcePortfolios <- tradesAndPortfolios[["portfolios"]]
+    sourceContainer <- tradesAndContainer[["container"]]
 
     ## Get the vision trades by portfolio:
-    sourceTrades <- tradesAndPortfolios[["trades"]]
+    sourceTrades <- tradesAndContainer[["trades"]]
 
     ## Get the portfolio account map:
-    portAccMap <- getAccountPortfolioMap(sourcePortfolios)
+    portAccMap <- as.data.frame(getAccountPortfolioMap(sourceContainer, containerType))
 
     ## Match and add the ucpbh names to the portAccMap
-    portAccMap[, "target"] <- portfolioMap[match(portAccMap[, "portfolio_name"], names(portfolioMap))]
+    portAccMap[, "target"] <- sapply(containerMap[match(portAccMap[, "container_name"], names(containerMap))], function(x) x[["tcontainername"]])
+
+    ## Add the container type information:
+    portAccMap[, "containerType"] <- rep(containerType, NROW(portAccMap))
 
     ## Print message:
-    print("Retrieving stocks and corresponding resources from source ...")
+    print(paste0("Retrieving stocks and corresponding resources from source for ", containerType, " ..."))
+
+    ## Get stocks:
+    sourceStocks <- getStocks(sourceContainer, sourceSession, zero = 1, date = Sys.Date(), c = substr(containerType, 1, nchar(containerType) -1))
 
     ## Get the vision resources by stock:
-    sourceResources <- getResourcesByStock(getStocks(sourcePortfolios, sourceSession, zero = 1, date = Sys.Date(), c = "portfolio"), sourceSession)
+    sourceResources <- getResourcesByStock(sourceStocks, sourceSession)
 
     ## Append the ucapbh portfolioNames to the vision trades:
-    sourceTrades <- data.frame(sourceTrades, "port_name_target"=portAccMap[match(sourceTrades[, "accmain"], portAccMap[, "account"]), "target"])
+    sourceTrades <- data.frame(sourceTrades, "port_name_target"=portAccMap[match(sourceTrades[, "accmain"], portAccMap[, "account"]), "target"],
+                               stringsAsFactors=FALSE)
 
     ## Append the instrument currencies to the vision trades:
-    sourceTrades <- data.frame(sourceTrades, "ccymain"=as.character(sourceResources[match(sourceTrades[, "resmain"], sourceResources[, "id"]), "ccymain"]))
+    sourceTrades <- data.frame(sourceTrades, "ccymain"=as.character(sourceResources[match(sourceTrades[, "resmain"], sourceResources[, "id"]), "ccymain"]),
+                               stringsAsFactors=FALSE)
 
     ## Print message:
     print("Mapping / Creating accounts ...")
@@ -46,13 +107,21 @@ xDecafPreemble <- function(sourceSession, targetSession, portfolioMap) {
     sourceTrades[, "accmain"] <- accountMapper(trimConcatenate(sourceTrades[, "port_name_target"]), as.character(sourceTrades[,"ccymain"]), targetSession)
 
     ## Map and append the resource quantity to vision trades:
-    sourceTrades <- data.frame(sourceTrades, "resmain_quantity_source"=as.character(sourceResources[match(sourceTrades[, "resmain"], sourceResources[, "id"]), "quantity"]))
+    sourceTrades <- data.frame(sourceTrades,
+                               "resmain_quantity_source"=as.character(sourceResources[match(sourceTrades[, "resmain"], sourceResources[, "id"]), "quantity"]),
+                               stringsAsFactors=FALSE)
 
     ## Map and append the resource isin to vision trades:
-    sourceTrades <- data.frame(sourceTrades, "isin"=sourceResources[match(sourceTrades[, "resmain"], sourceResources[, "id"]), "isin"])
+    sourceTrades <- data.frame(sourceTrades, "isin"=sourceResources[match(sourceTrades[, "resmain"], sourceResources[, "id"]), "isin"],
+                               stringsAsFactors=FALSE)
 
     ## Map and append the resource name to vision trades:
-    sourceTrades <- data.frame(sourceTrades, "name"=sourceResources[match(sourceTrades[, "resmain"], sourceResources[, "id"]), "name"])
+    sourceTrades <- data.frame(sourceTrades, "name"=sourceResources[match(sourceTrades[, "resmain"], sourceResources[, "id"]), "name"],
+                               stringsAsFactors=FALSE)
+
+    ## Map and append the resource name to vision trades:
+    sourceTrades <- data.frame(sourceTrades, "resmain_ccymain"=sourceResources[match(sourceTrades[, "resmain"], sourceResources[, "id"]), "ccymain"],
+                               stringsAsFactors=FALSE)
 
     ## Done, return:
     list("trades"=sourceTrades,
@@ -66,33 +135,48 @@ xDecafPreemble <- function(sourceSession, targetSession, portfolioMap) {
 ##'
 ##' This is the description
 ##'
-##' @param portfolios The rdecaf portfolio data-frame
+##' @param container The rdecaf portfolio data-frame
+##' @param containerType TODO:
 ##' @return A data-frame with the flat account to portfolio id's
 ##' @export
-getAccountPortfolioMap <- function(portfolios) {
+getAccountPortfolioMap <- function(container, containerType) {
 
-    ## Get the account indices in portfolio:
-    accountIdx <- grep("accounts.", colnames(portfolios))
+    ## If accounts, map according to accounts and return:
+    if (containerType == "accounts") {
+
+        ## Get the account/portfolio information
+        portAccMap <- cbind(container[, "id"], container[, "portfolio"], container[, "name"])
+
+        ## Name the column:
+        colnames(portAccMap) <- c("account", "portfolio", "container_name")
+
+        ## Done, return:
+        return(portAccMap)
+    }
 
     ## Initialse the portAccMap
     portAccMap <- data.frame()
 
+    ## Get the account indices in portfolio:
+    accountIdx <- grep("accounts.", colnames(container))
+
     ## Iterate over the accIdx:
     for (accIdx in accountIdx) {
 
-        portAccMap <- rbind(portAccMap, cbind(portfolios[, accIdx], portfolios[, "id"], portfolios[, "name"]))
+        portAccMap <- rbind(portAccMap, cbind(container[, accIdx], container[, "id"], container[, "name"]))
     }
 
     ## Get rid of NA accounts:
     portAccMap <- portAccMap[!is.na(portAccMap[,1]),]
 
     ## Name the column:
-    colnames(portAccMap) <- c("account", "portfolio", "portfolio_name")
+    colnames(portAccMap) <- c("account", "portfolio", "container_name")
 
     ## Done, return:
     portAccMap
 
 }
+
 
 ##' A function to push a payload to a decaf instance.
 ##'

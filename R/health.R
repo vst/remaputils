@@ -64,11 +64,15 @@ dubiousTradeDates <- function(trades, backdatedness) {
 ##'
 ##' @param ohlc A data-frame with the ohlc observations.
 ##' @param asof The date to compare ohlc observations to.
+##' @param lookBack The number of days to look back for the check.
 ##' @return A data-frame with state of ohlc series.
 ##' @export
-ohlcHealth <- function(ohlc, asof=Sys.Date()) {
+ohlcHealth <- function(ohlc, asof=Sys.Date(), lookBack=5) {
+
+    ohlc[, "close"] <- as.numeric(ohlc[, "close"])
+
     data.frame("Symbol"=ohlc[1, "symbol"],
-               "No PX in 5 days"=ifelse(NROW(ohlc) == 0, TRUE, all(asof - ohlc[, "date"] > 5)),
+               "No PX in N days"=ifelse(NROW(ohlc) == 0, TRUE, all(asof - ohlc[, "date"] > lookBack)),
                "No PX at all"=NROW(ohlc[[1]]) == 0,
                "No PX change"=ifelse(NROW(ohlc) == 0, TRUE, all(diff(ohlc[, "close"]) == 0)),
                check.names=FALSE,

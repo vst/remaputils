@@ -15,5 +15,5 @@ parseDate(str, origin = "1899-12-30")
 A date value.
 }
 \description{
-A function to transform arbitrary date formats into YYYY-MM-DD.
+This is a description.
 }

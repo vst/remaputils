@@ -13,5 +13,5 @@ dateOfPeriod(memnonic = "D-0")
 The specific date of the date memnonic.
 }
 \description{
-A function to get the date of a specific verbosely expressed date (expressed by memnonic).
+This is a description
 }

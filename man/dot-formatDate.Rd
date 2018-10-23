@@ -13,5 +13,5 @@
 European string date.
 }
 \description{
-Formats the given ISO string date to european style.
+This is a description.
 }

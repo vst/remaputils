@@ -15,5 +15,5 @@ assertit(condition, error)
 Nothing but exception!
 }
 \description{
-Stop with error if condition is FALSE.
+This is a description.
 }

@@ -13,5 +13,5 @@ cleanNA(data)
 Data-frame with no NA's.
 }
 \description{
-Replaces NA's with empty value
+This is a description.
 }

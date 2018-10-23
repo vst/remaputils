@@ -4,12 +4,14 @@
 \alias{ohlcHealth}
 \title{This function checks the health of the OHLC observations.}
 \usage{
-ohlcHealth(ohlc, asof = Sys.Date())
+ohlcHealth(ohlc, asof = Sys.Date(), lookBack = 5)
 }
 \arguments{
 \item{ohlc}{A data-frame with the ohlc observations.}
 
 \item{asof}{The date to compare ohlc observations to.}
+
+\item{lookBack}{The number of days to look back for the check.}
 }
 \value{
 A data-frame with state of ohlc series.

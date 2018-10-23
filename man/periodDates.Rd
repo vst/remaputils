@@ -17,5 +17,5 @@ periodDates(periodLetter, yearsOfHistory = 3, endOfWeek = "Friday")
 A sequence of dates for periodicity.
 }
 \description{
-A function to produce dates in requested periodicity.
+This is a description.
 }

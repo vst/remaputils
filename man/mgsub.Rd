@@ -17,5 +17,5 @@ mgsub(str, patterns, replace = "")
 The new string.
 }
 \description{
-A function to gsub multiple patterns.
+This is a description.
 }

@@ -14,6 +14,5 @@ numerize(str)
 A vector of numerical values.
 }
 \description{
-This function attempts to transform irregular number
-formats into numerical values.
+This is a description.
 }

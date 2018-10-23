@@ -20,5 +20,5 @@ extendFileName(str, customExt = NULL, randomStrN = NULL,
 The extended file name.
 }
 \description{
-A function to extend file name by random/date string.
+This is a description.
 }

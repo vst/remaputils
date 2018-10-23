@@ -18,6 +18,5 @@ excludeRowsWithKeys(data, field, keys)
 The data-frame with the excluded rows.
 }
 \description{
-A function to exclude rows in which a specified column
-has a key.
+This is a description.
 }

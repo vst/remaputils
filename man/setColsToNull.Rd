@@ -15,5 +15,5 @@ setColsToNull(df, cols)
 A data-frame.
 }
 \description{
-A function to set specific columns to NULL
+This is a description.
 }

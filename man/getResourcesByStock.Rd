@@ -4,12 +4,14 @@
 \alias{getResourcesByStock}
 \title{A function to retrieve the resources by stock for a rdecaf session:}
 \usage{
-getResourcesByStock(stocks, session)
+getResourcesByStock(stocks, session, getUnderlying = TRUE)
 }
 \arguments{
 \item{stocks}{The stocks data-frame}
 
 \item{session}{The rdecaf session}
+
+\item{getUnderlying}{TODO:}
 }
 \value{
 Returns the inferred maturity

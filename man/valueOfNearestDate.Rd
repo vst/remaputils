@@ -22,5 +22,5 @@ valueOfNearestDate(targetDate, data, tolerance, dateField = "date",
 A list with date and value.
 }
 \description{
-A function to give the value of the nearest date.
+This is a description.
 }

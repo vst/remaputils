@@ -15,5 +15,5 @@
 A vector with NA's removed.
 }
 \description{
-A function to grep the NA and replace with ""
+This is a description.
 }

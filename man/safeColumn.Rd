@@ -16,6 +16,5 @@ safeColumn(df, col)
 The column values or NA.
 }
 \description{
-A function to safely call a column in a data-frame whether column
-exists or not.
+This is a description.
 }

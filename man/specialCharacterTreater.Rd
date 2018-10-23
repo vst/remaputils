@@ -15,5 +15,5 @@ specialCharacterTreater(df, cols = NULL)
 A data-frame.
 }
 \description{
-A function to treat special characters:
+This is a description.
 }

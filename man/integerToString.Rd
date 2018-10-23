@@ -13,5 +13,5 @@ integerToString(int)
 A vector with strings.
 }
 \description{
-A function to convert integers to string deterministically.
+This is a description.
 }

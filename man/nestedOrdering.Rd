@@ -15,5 +15,5 @@ nestedOrdering(df, colNames)
 The ordered data-frame.
 }
 \description{
-A function to order a data-frame based on multiple columns:
+This is a description.
 }

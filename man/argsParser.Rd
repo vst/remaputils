@@ -13,5 +13,5 @@ argsParser(commandArgs)
 A list with the arguments:
 }
 \description{
-A function to parse command line arguments
+This is a description.
 }

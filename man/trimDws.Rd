@@ -13,5 +13,5 @@ trimDws(str)
 A vector of strings with double white space removed.
 }
 \description{
-A function to trim double white spaces.
+This is a description.
 }

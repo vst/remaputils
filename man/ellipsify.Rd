@@ -17,5 +17,5 @@ ellipsify(str, charLimit = 30, capitalise = TRUE)
 Ellipsified string.
 }
 \description{
-Shortens the string and attaches ellipsis.
+This is a description.
 }

@@ -4,14 +4,19 @@
 \alias{xDecafPreemble}
 \title{A function to provide the enriched trade data-frame from source session.}
 \usage{
-xDecafPreemble(sourceSession, targetSession, portfolioMap)
+xDecafPreemble(sourceSession, targetSession, containerMap, containerType,
+  gte = NULL)
 }
 \arguments{
 \item{sourceSession}{The rdecaf session for source instance.}
 
 \item{targetSession}{The rdecaf session for target instance.}
 
-\item{portfolioMap}{A named character vector, such as c("[NAME of source portfolio]"="[NAME of target portfolio]")}
+\item{containerMap}{TODO:}
+
+\item{containerType}{TODO:}
+
+\item{gte}{The commitment date after which the trades should be considered. Default is NULL.}
 }
 \value{
 A trade data-frame with mapped/created accmains and auxiliary resource information.

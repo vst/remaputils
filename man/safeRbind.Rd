@@ -13,5 +13,5 @@ safeRbind(x)
 A single data frame.
 }
 \description{
-A function to safely rbind a list with data frames.
+This is a description.
 }

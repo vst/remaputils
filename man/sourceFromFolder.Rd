@@ -15,5 +15,5 @@ sourceFromFolder(paths, pattern = "*.R")
 Source R scripts:
 }
 \description{
-A Wrapper function to source R scripts from specified paths.
+This is a description.
 }

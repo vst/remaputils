@@ -4,10 +4,12 @@
 \alias{getAccountPortfolioMap}
 \title{A function to return a flat account to portfolio mapping using the portfolio data-frame}
 \usage{
-getAccountPortfolioMap(portfolios)
+getAccountPortfolioMap(container, containerType)
 }
 \arguments{
-\item{portfolios}{The rdecaf portfolio data-frame}
+\item{container}{The rdecaf portfolio data-frame}
+
+\item{containerType}{TODO:}
 }
 \value{
 A data-frame with the flat account to portfolio id's

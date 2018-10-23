@@ -16,5 +16,5 @@ stringCleaner(string, cleaningMaps = c(`&#62;LINK&#60;/a&#62;` =
 The cleaned string,
 }
 \description{
-A function to gsub strings.
+This is a description.
 }

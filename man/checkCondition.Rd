@@ -17,5 +17,5 @@ checkCondition(vector, val, condition = "equal")
 Returns either NA, TRUE or FALSE.
 }
 \description{
-A function to check condition of numeric value:
+This is a description.
 }

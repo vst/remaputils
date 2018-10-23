@@ -13,5 +13,5 @@ trimConcatenate(str)
 Returns the transformed string.
 }
 \description{
-A function to trim string and transform to upper case.
+This is a description.
 }

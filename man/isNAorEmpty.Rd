@@ -13,5 +13,5 @@ isNAorEmpty(str)
 TRUE or FALSE.
 }
 \description{
-A function to check whether value is empty or NA:
+This is a description.
 }

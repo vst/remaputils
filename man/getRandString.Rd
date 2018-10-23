@@ -15,5 +15,5 @@ getRandString(n = 1, len = 12)
 A random string.
 }
 \description{
-A function to produce a random string.
+This is a description.
 }

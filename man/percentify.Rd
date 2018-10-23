@@ -4,14 +4,16 @@
 \alias{percentify}
 \title{A function for formatting percentages:}
 \usage{
-percentify(number)
+percentify(number, digit = 2)
 }
 \arguments{
 \item{number}{An array of numeric values.}
+
+\item{digit}{the number of digits. Default is 2.}
 }
 \value{
 A string of percentage:
 }
 \description{
-A function for formatting percentages:
+This is a description.
 }

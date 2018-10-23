@@ -15,5 +15,5 @@ cleanNARowsCols(df, ratio = 0.85)
 A data frame with cleaned NA rows and columns.
 }
 \description{
-A function clean to NA rows and columns.
+This is a description.
 }

@@ -15,5 +15,5 @@ safeGrep(str, key)
 A vector of counts.
 }
 \description{
-A function to count keys in strings.
+This is a description.
 }

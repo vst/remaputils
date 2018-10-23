@@ -15,5 +15,5 @@ createBatches(n, batchSize)
 A list with starting and ending indices
 }
 \description{
-A function to provide the start and end indices of desired batches.
+This is a description.
 }

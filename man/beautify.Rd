@@ -15,5 +15,5 @@ beautify(number, nsmall = 0)
 Formated number(s):
 }
 \description{
-A Wrapper function for formatting numbers:
+This is a description.
 }

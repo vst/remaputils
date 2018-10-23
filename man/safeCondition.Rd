@@ -18,6 +18,5 @@ safeCondition(df, col, condition)
 A vector with TRUE or FALSE
 }
 \description{
-A function to whether values in data frame column
-satisfies a condition.
+This is a description.
 }

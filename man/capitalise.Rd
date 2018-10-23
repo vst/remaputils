@@ -13,5 +13,5 @@ capitalise(str)
 Capitalised strings.
 }
 \description{
-A function to capitalise a string.
+This is a description.
 }

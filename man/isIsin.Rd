@@ -13,5 +13,5 @@ isIsin(str)
 A vector with either string or NA.
 }
 \description{
-A function to determine whether string resembles ISIN:
+This is a description.
 }

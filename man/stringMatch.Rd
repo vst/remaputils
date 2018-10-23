@@ -17,5 +17,5 @@ stringMatch(sourceStr, targetStr, jaccard = 0.15)
 A vector with matching target indices:
 }
 \description{
-A function to match a string with candidates:
+This is a description.
 }

@@ -17,5 +17,5 @@ nearesth(x, nearest = 0.1, dir = "up")
 Formated number(s):
 }
 \description{
-A function to round up/down to the the nearest value.
+This is a description.
 }

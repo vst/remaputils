@@ -15,5 +15,5 @@ safeTry(x, nullToNa = TRUE)
 NA or valid value.
 }
 \description{
-If try-error, return NA:
+This is a description.
 }

@@ -14,6 +14,5 @@ classify(df)
 The data frame with correct column classes.
 }
 \description{
-A function to transform each column in data frame to
-the correct class.
+This is a description.
 }

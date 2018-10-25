@@ -135,6 +135,34 @@ getHoldingsWrapper <- function(params, resources, session, charLimit=50, regions
 ##' @import rdecaf
 ##' @export
 getFlatHoldings <- function(x, charLimit=30){
+
+    ## The column names:
+    colNames <- c("Name",
+                  "Account",
+                  "Symbol",
+                  "ID",
+                  "CCY",
+                  "Type",
+                  "Subtype",
+                  "Country",
+                  "Sector",
+                  "QTY",
+                  "PX Cost",
+                  "PX Last",
+                  "Value",
+                  "Accrd",
+                  "Exposure",
+                  "PnL (Unreal)",
+                  "PnL (% Inv.)")
+
+    ## Initialse the holdings data-frame:
+    holdings <- .initDF(colNames)
+
+    ## If no holdings, return empty holdings:
+    if (NROW(x) == 0) {
+        return(holdings)
+    }
+
     holdings <- lapply(x, function(h) data.frame("Name"=.emptyToNA(as.character(ellipsify(h[["artifact"]][["name"]], charLimit=charLimit))),
                                                  "Account"=.emptyToNA(h[["accounts"]][[1]][["id"]]),
                                                  "Symbol"=.emptyToNA(as.character(h[["artifact"]][["symbol"]])),

@@ -156,7 +156,7 @@ getFlatHoldings <- function(x, charLimit=30){
                   "PnL (% Inv.)")
 
     ## Initialse the holdings data-frame:
-    holdings <- .initDF(colNames)
+    holdings <- initDF(colNames)
 
     ## If no holdings, return empty holdings:
     if (NROW(x) == 0) {

@@ -1,3 +1,25 @@
+##' A function initialises a data frame with desired colnames and rows.
+##'
+##' This is a description.
+##'
+##' @param colNames A vector with desired column names.
+##' @param nRow The desired number of rows. Default is 1.
+##' @return A data-frame with NA's
+##' @export
+.initDF <- function(colNames, nRow=1) {
+
+    ## Create the data-frame:
+    df <- as.data.frame(matrix(NA, nrow=nRow, ncol=length(colNames)),
+                        check.names=FALSE)
+
+    ## Assign the column names:
+    colnames(df) <- colNames
+
+    ## Done, return
+    df
+}
+
+
 ##' A function which tells whether now is desired day and/or time
 ##'
 ##' This is a description.

@@ -6,7 +6,7 @@
 ##' @param nRow The desired number of rows. Default is 1.
 ##' @return A data-frame with NA's
 ##' @export
-.initDF <- function(colNames, nRow=1) {
+initDF <- function(colNames, nRow=1) {
 
     ## Create the data-frame:
     df <- as.data.frame(matrix(NA, nrow=nRow, ncol=length(colNames)),

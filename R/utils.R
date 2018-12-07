@@ -1,3 +1,24 @@
+##' A function to parse offset date time object.
+##'
+##' This is a description.
+##'
+##' @param x  A vector with offset date.
+##' @param tz The desired time zone.
+##' @param format The format of the input.
+##' @return A list with the parsed date time.
+##' @export
+parseOffsetDateTime <- function (x, format="%Y-%m-%dT%H:%M:%OS%z", tz="Asia/Singapore") {
+
+    ## Apply strptime to the offset date time object:
+    datetime <- strptime(x, format=format, tz=tz)
+
+    ## Return the date time list:
+    list("datetime"=datetime,
+         "date"=strftime(datetime, "%Y-%m-%d"),
+         "time"=strftime(datetime, "%H:%M:%OS6"))
+}
+
+
 ##' A function initialises a data frame with desired colnames and rows.
 ##'
 ##' This is a description.
@@ -28,11 +49,12 @@ initDF <- function(colNames, nRow=1) {
 ##' @param gte Current time has to be greater than this to be TRUE. Expressed in \%H:\%M:\%S.
 ##' @param lte Current time has to be less than this to be TRUE. Expressed in H:M:S.
 ##' @param inWeekdays Current day has to match with any of these days. Expressed in c('MON', 'TUE', ...). Default are all weekdays.
+##' @param tDate The target date time object to check against. Default is Sys.time().
 ##' @return TRUE or FALSE.
 ##' @export
-itsTime <- function(tz="UTC", gte="00:00:01", lte="23:59:59", inWeekdays=c("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")) {
+itsTime <- function(tz="UTC", gte="00:00:01", lte="23:59:59", inWeekdays=c("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"), tDate=Sys.time()) {
     ## Get the current date time in desired time zone:
-    currentDateTime <- as.POSIXct((format(Sys.time(), "tz"=tz)))
+    currentDateTime <- as.POSIXct((format(tDate, "tz"=tz)))
     ## Get current time in desired time zone:
     currentTime <- format(currentDateTime, "%H:%M:%S")
     ## Get current weekday in desired time zone:
@@ -858,11 +880,16 @@ excludeRowsWithKeys <- function(data, field, keys){
 ##' @export
 isNAorEmpty <- function(str){
 
-    if (is.null(str)) {
-        str <- ""
+    aux <- function(x) {
+
+        if (is.null(x)) {
+            x <- ""
+        }
+
+        is.na(x) | nchar(x) == 0
     }
 
-    is.na(str) | nchar(str) == 0
+    sapply(str, aux)
 }
 
 

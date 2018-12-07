@@ -8,21 +8,27 @@
 ##' @param teamGUID The team GUID of the target instance.
 ##' @param exclude A vector with key words to exclude unwanted columns in source portfolios.
 ##' @param search A key word to search for. Default is NULL.
+##' @param customName A vector of strings to replace the names of source portfolios with.
+##' @param sourcePortfolios The rdecaf portfolio data frame from source.
 ##' @return The function creates the portfolios in the target instance and return the source portfolio data-frame.
 ##' @import rdecaf
 ##' @export
-syncPortfolios <- function(sourceSession, targetSession, accounts, teamGUID, exclude=NULL, search=NULL) {
+syncPortfolios <- function(sourceSession, targetSession, accounts, teamGUID, exclude=NULL, search=NULL, customName=NULL, sourcePortfolios=NULL) {
 
-    ## Construct the vision account params:
-    params <- list("page_size"=-1,
-                   "format"="csv",
-                   "search"=as.character(search))
+    if (is.null(sourcePortfolios)) {
 
-    ## Get the entire ucapbh accounts:
-    sourcePortfolios <- try(as.data.frame(getResource("portfolios", params=params, session=sourceSession)), silent=TRUE)
+        ## Construct the account params:
+        params <- list("page_size"=-1,
+                       "format"="csv",
+                       "search"=as.character(search))
 
-    ## Match, filter target portfolios:
-    sourcePortfolios <- sourcePortfolios[!is.na(stringMatch(trimConcatenate(sourcePortfolios[,"name"]), trimConcatenate(accounts))), ]
+        ## Get the entire accounts:
+        sourcePortfolios <- try(as.data.frame(getResource("portfolios", params=params, session=sourceSession)), silent=TRUE)
+
+        ## Match, filter target portfolios:
+        sourcePortfolios <- sourcePortfolios[!is.na(stringMatch(trimConcatenate(sourcePortfolios[,"name"]), trimConcatenate(accounts))), ]
+
+    }
 
     ## Retain the orginal source portfolio:
     sourcePortfoliosOriginal <- sourcePortfolios
@@ -42,6 +48,10 @@ syncPortfolios <- function(sourceSession, targetSession, accounts, teamGUID, exc
     ## Overwrite resource fields:
     for (fld in c("id", "created", "creator", "updated", "updater", "team_name")) {
         sourcePortfolios[, fld] <- NULL
+    }
+
+    if (!is.null(customName)) {
+        sourcePortfolios[, "name"] <- customName
     }
 
     ## Create the payload:

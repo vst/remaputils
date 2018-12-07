@@ -881,12 +881,11 @@ excludeRowsWithKeys <- function(data, field, keys){
 isNAorEmpty <- function(str){
 
     aux <- function(x) {
-
-        if (is.null(x)) {
-            x <- ""
-        }
-
         is.na(x) | nchar(x) == 0
+    }
+
+    if (is.null(str)) {
+        str <- ""
     }
 
     sapply(str, aux)

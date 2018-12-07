@@ -8,12 +8,13 @@
 ##' @param body The body of the email.
 ##' @param isLocal Boolean to indicate whether it is a test environment. Default is FALSE.
 ##' @param html Boolean to indicate whether body is html. Defaul is TRUE.
+##' @param attachments The paths to attachments.
 ##' @import mailR
 ##' @import jsonlite
 ##' @import httr
 ##' @return A java-object of class org.apache.commons.mail.SimpleEmail
 ##' @export
-emailReport <- function(from, emailList, subject, body, isLocal=FALSE, html=TRUE){
+emailReport <- function(from, emailList, subject, body, isLocal=FALSE, html=TRUE, attachments=NULL){
 
     ## All settings:
     globalSettings <- jsonlite::fromJSON("~/.decaf.json")[["settings"]]
@@ -46,6 +47,7 @@ emailReport <- function(from, emailList, subject, body, isLocal=FALSE, html=TRUE
               subject=subject,
               body=body,
               smtp=smtp,
+              attach.files=attachments,
               html=html,
               authenticate=TRUE)
 }
@@ -61,9 +63,10 @@ emailReport <- function(from, emailList, subject, body, isLocal=FALSE, html=TRUE
 ##' @param emailParams The parameter list for the email report function.
 ##' @param timezone The timezone to be used. Default is CET.
 ##' @param subject The subject of the email.
+##' @param attachments The paths to attachments.
 ##' @return A java-object of class org.apache.commons.mail.SimpleEmail
 ##' @export
-syncUpdateEmail <- function(template, updateText, emailParams, timezone="CET", subject=" DECAF Data Update: ") {
+syncUpdateEmail <- function(template, updateText, emailParams, timezone="CET", subject=" DECAF Data Update: ", attachments=NULL) {
 
     ## Get the system time:
     sysTime <- format(Sys.time(), "tz"=timezone)
@@ -92,7 +95,8 @@ syncUpdateEmail <- function(template, updateText, emailParams, timezone="CET", s
                 emailParams[["emailList"]],
                 subject=subject,
                 body=paste(template, collapse=""),
-                emailParams[["isLocal"]])
+                isLocal=emailParams[["isLocal"]],
+                attachments=attachments)
 }
 
 

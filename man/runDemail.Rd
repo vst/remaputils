@@ -4,7 +4,8 @@
 \alias{runDemail}
 \title{A function runs the java demail.}
 \usage{
-runDemail(address, jarPath, host, port, folder, directory, archive)
+runDemail(address, jarPath, host, port, folder, directory, archive,
+  exclude = NULL, since = Sys.Date(), until = Sys.Date())
 }
 \arguments{
 \item{address}{The address of the email server.}
@@ -20,6 +21,12 @@ runDemail(address, jarPath, host, port, folder, directory, archive)
 \item{directory}{The local directory to sync to.}
 
 \item{archive}{The name of the archive folder on server.}
+
+\item{exclude}{TODO}
+
+\item{since}{TODO}
+
+\item{until}{TODO}
 }
 \value{
 A message to show the log of the demail process.

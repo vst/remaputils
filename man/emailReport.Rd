@@ -5,7 +5,7 @@
 \title{A function to send email with a custom email body.}
 \usage{
 emailReport(from, emailList, subject, body, isLocal = FALSE,
-  html = TRUE)
+  html = TRUE, attachments = NULL)
 }
 \arguments{
 \item{from}{The sender information.}
@@ -19,6 +19,8 @@ emailReport(from, emailList, subject, body, isLocal = FALSE,
 \item{isLocal}{Boolean to indicate whether it is a test environment. Default is FALSE.}
 
 \item{html}{Boolean to indicate whether body is html. Defaul is TRUE.}
+
+\item{attachments}{The paths to attachments.}
 }
 \value{
 A java-object of class org.apache.commons.mail.SimpleEmail

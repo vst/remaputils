@@ -5,7 +5,8 @@
 \title{A function which tells whether now is desired day and/or time}
 \usage{
 itsTime(tz = "UTC", gte = "00:00:01", lte = "23:59:59",
-  inWeekdays = c("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"))
+  inWeekdays = c("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"),
+  tDate = Sys.time())
 }
 \arguments{
 \item{tz}{The time zone}
@@ -15,6 +16,8 @@ itsTime(tz = "UTC", gte = "00:00:01", lte = "23:59:59",
 \item{lte}{Current time has to be less than this to be TRUE. Expressed in H:M:S.}
 
 \item{inWeekdays}{Current day has to match with any of these days. Expressed in c('MON', 'TUE', ...). Default are all weekdays.}
+
+\item{tDate}{The target date time object to check against. Default is Sys.time().}
 }
 \value{
 TRUE or FALSE.

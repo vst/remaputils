@@ -295,7 +295,7 @@ getPipeline <- function(isLocal,
     ## Ignore zips:
     ignoreIdx <- unique(do.call(c, lapply(ignores, function(x) grep(x, files))))
 
-    if (length(ignoreIdx) > 0){
+    if (length(ignoreIdx) > 0) {
         files <- files[-ignoreIdx]
     }
 
@@ -303,7 +303,7 @@ getPipeline <- function(isLocal,
     tempFiles <- grep("\\~", files)
 
     ## Exclude temporary files, if any:
-    if (length(tempFiles) > 0){
+    if (length(tempFiles) > 0) {
         files <- files[-grep("\\~", files)]
     }
 
@@ -311,7 +311,7 @@ getPipeline <- function(isLocal,
     processed <- as.character(read.csv("files/processed.csv", header=FALSE)[,1])
 
     ## If processed files should be returned as well overwrite processed file names:
-    if (processedFiles){
+    if (processedFiles) {
         processed <- getRandString(12)
     }
 
@@ -325,8 +325,34 @@ getPipeline <- function(isLocal,
     files <- files[is.na(matchedFiles)]
 
     ## If only single provider should be returned, filter:
-    if (!isNAorEmpty(providers)) {
+    ## if (!isNAorEmpty(providers)) {
+    if (!is.null(providers)) {
         files <- files[sapply(strsplit(files, "/"), function(x) !all(is.na(match(providers, x[2]))))]
+    }
+
+    ## Check if any file is zip:
+    isZip <- safeGrep(files, ".zip") == "1"
+
+    if (any(isZip)) {
+
+        zipFiles <- files[isZip]
+
+        extDirs <- sapply(strsplit(zipFiles, "/"), function(x) paste(x[-length(x)], collapse="/"))
+
+        unzip(zipFiles, exdir=extDirs)
+
+        file.remove(zipFiles)
+
+        unzippedFiles <- list.files(extDirs, recursive=TRUE)
+
+        fileNames <- do.call(c, lapply(strsplit(unzippedFiles, "/"), function(f) f[length(f)]))
+
+        matchedFiles <- match(fileNames, processed)
+
+        unzippedFiles <- unzippedFiles[is.na(matchedFiles)]
+
+        files <- c(files, unzippedFiles)
+
     }
 
     ## Append the api providers:
@@ -470,9 +496,12 @@ queueIncoming <- function(mapper){
 ##' @param folder The name of the folder on the email server.
 ##' @param directory The local directory to sync to.
 ##' @param archive The name of the archive folder on server.
+##' @param exclude TODO
+##' @param since TODO
+##' @param until TODO
 ##' @return A message to show the log of the demail process.
 ##' @export
-runDemail <- function(address, jarPath, host, port, folder, directory, archive){
+runDemail <- function(address, jarPath, host, port, folder, directory, archive, exclude=NULL, since=Sys.Date(), until=Sys.Date()){
 
     ## Get user name of email:
     user <- strsplit(address, "@")[[1]][1]
@@ -485,6 +514,8 @@ runDemail <- function(address, jarPath, host, port, folder, directory, archive){
 
     ## Construct the java jar command argument:
     jarsArg <- sprintf("java -jar %s", jarPath)
+    ## jarsArg <- sprintf("java -Dmail.imap.fetchsize=1048576 -jar %s", jarPath)
+    jarsArg <- "demail"
 
     ## Construct the host command argument:
     hostArg <- sprintf("--host %s", host)
@@ -507,17 +538,31 @@ runDemail <- function(address, jarPath, host, port, folder, directory, archive){
     ## Construct the archive command argument:
     archArg <- sprintf("--archive %s", archive)
 
+    ##sincArg <- sprintf("--since %s", "2018-11-08")
+    sincArg <- sprintf("--since %s", since)
+
+    ##untlArg <- sprintf("--until %s", "2018-11-08")
+    untlArg <- sprintf("--until %s", until)
+
+    ## Construct the command:
+    runCmd <- paste(jarsArg,
+                    "download-attachments",
+                    hostArg,
+                    portArg,
+                    "--ssl",
+                    userArg,
+                    passArg,
+                    fldrArg,
+                    dirsArg,
+                    archArg,
+                    sincArg,
+                    untlArg)
+
+    print(runCmd)
+
     ## Run demail:
-    result <- try(system(paste(jarsArg,
-                               "download-attachments",
-                               hostArg,
-                               portArg,
-                               "--ssl",
-                               userArg,
-                               passArg,
-                               fldrArg,
-                               dirsArg,
-                               archArg)), silent=TRUE)
+    result <- try(system(runCmd), silent=TRUE)
+
     ## Handle message:
     messageHandler(result, 1, errortext=" Couldn't run demail command.")
  }

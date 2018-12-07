@@ -325,8 +325,7 @@ getPipeline <- function(isLocal,
     files <- files[is.na(matchedFiles)]
 
     ## If only single provider should be returned, filter:
-    ## if (!isNAorEmpty(providers)) {
-    if (!is.null(providers)) {
+    if (!isNAorEmpty(providers)) {
         files <- files[sapply(strsplit(files, "/"), function(x) !all(is.na(match(providers, x[2]))))]
     }
 

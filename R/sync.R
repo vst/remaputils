@@ -395,6 +395,54 @@ syncAccounts <- function(sourceSession, targetSession, atypes, institutions, por
 }
 
 
+##' A function to sync external valuations between 2 DECAF instances:
+##'
+##' This is the description
+##'
+##' @param sourceSession The session info for the DECAF instance to sync from.
+##' @param targetSession The session info for the DECAF instance to sync to.
+##' @param targetPortfolios The data-frame with target portfolios data frame.
+##' @param targetShareclasses The data-frame with target share classes data frame.
+##' @param accounts The data-frame with the source accounts.
+##' @return The function creates the accounts in the target instance and returns a accounts data-frame.
+##' @import rdecaf
+##' @export
+syncExtValuation <- function(sourceSession, targetSession, targetPortfolios, targetShareclasses, accounts) {
+
+    ## Get the source portfolio id's:
+    sourcePortIds <- unique(accounts[, "portfolio"])
+
+    ## Initialise the variable:
+    extValuations <- NULL
+
+    ## Iterate over source  portfolio id's and get external valuations:
+    for (id in sourcePortIds) {
+        ## Get the valuation and combine:
+        extValuations <- rbind(extValuations, as.data.frame(getResource("passivevaluations", params=list("format"="csv", "page_size"=-1, "portfolio"=id), session=sourceSession)))
+    }
+
+    for (fld in c("id", "creator", "updated", "updater")) {
+        extValuations[, fld] <- NULL
+    }
+
+    ## Overwrite the target share class id:
+    extValuations[, "shareclass"] <- targetShareclasses[match(extValuations[, "shareclass"], targetShareclasses[, "source_id"]), "id"]
+
+    ## Overwrite the portfolio id:
+    extValuations[, "portfolio"] <- paste0("dcf:portfolio?guid=", targetPortfolios[match(extValuations[, "portfolio"], targetPortfolios[, "id"]), "guid"])
+
+    ## Prepare the payload:
+    payload <- toJSON(list(passivevaluations = extValuations), auto_unbox = TRUE, na = "null", digits = 10)
+
+    ## Push and get the response:
+    response <- pushPayload(payload = payload, endpoint = NULL, session = targetSession, import = FALSE, inbulk = TRUE, params = list(sync = "True"))
+
+    ## Done, return the external valuations:
+    extValuations
+
+}
+
+
 ##' A function to sync trades between 2 DECAF instances:
 ##'
 ##' This is the description

@@ -373,10 +373,10 @@ getPipeline <- function(isLocal,
 queueIncoming <- function(mapper){
 
     ## Get the incoming files:
-    incoming <- list.files("files/_incoming")
+    incoming <- list.files("files/_incoming", recursive=TRUE)
 
     ## Get the incoming files full path:
-    incomingFull <- list.files("files/_incoming", full.names=TRUE)
+    incomingFull <- list.files("files/_incoming", full.names=TRUE, recursive=TRUE)
 
     ## Assign files to the folders in list:
     folderAssignment <- lapply(names(mapper), function(m) incoming[grep(m, trimConcatenate(incoming))])
@@ -399,6 +399,14 @@ queueIncoming <- function(mapper){
         ## Ingore, if not file:
         if (length(files) == 0){
             next
+        }
+
+        ## Is folder?
+        isFolder <- safeGrep(files, "/") == "1"
+
+        ## If any is folder, reassign file name:
+        if (any(isFolder)) {
+            files[isFolder] <- sapply(strsplit(files[isFolder], "/"), function(x) tail(x, 1))
         }
 
         ## Gauge if it already has file name extension:

@@ -572,7 +572,7 @@ extendFileName <- function(str, customExt=NULL, randomStrN=NULL, addTime=TRUE){
 
     ## Add random string:
     if (!is.null(randomStrN)){
-        prefix <- paste0(prefix, "_", getRandString(randomStrN))
+        prefix <- paste0(prefix, "_", getRandString(len=randomStrN))
     }
 
     ## Add time:

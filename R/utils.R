@@ -1,3 +1,51 @@
+##' This function greps single key in all columns of a data-frame.
+##'
+##' This is a description.
+##'
+##' @param df A data-frame.
+##' @param key The key to be grepped.
+##' @return Returns a data-frame with the grepped key.
+##' @export
+mxgrep <- function(df, key) {
+
+    ## Get the key list:
+    kList <- lapply(colnames(df), function(x) ifelse(safeGrep(df[, x], key) == "1", df[, x], NA))
+
+    ## Get the avaloq identifiers:
+    apply(do.call(cbind, kList), MARGIN=1, function(x) ifelse(all(is.na(x)), NA, x[!is.na(x)]))
+}
+
+
+##' A function to grep multiple keys in vector.
+##'
+##' This is a description.
+##'
+##' @param x  A vector with strings.
+##' @param keys A vector with keys to grep in x.
+##' @return A 'x' by 'keys' size data frame with the grepped keys.
+##' @export
+mgrep <- function(x, keys) {
+
+    ## For each key in keys, safely grep in vector x:
+    kList <- lapply(keys, function(key) safeGrep(x, key))
+
+    ## In each key list, replace the "1" (matched key) with the key itself:
+    ## And combine to matrix:
+    kMatrix <- do.call(cbind, lapply(1:length(kList), function(m) {
+        kList[[m]][kList[[m]] == "1"] <- keys[m]
+        kList[[m]]
+    }))
+
+    ## Assign row names:
+    rownames(kMatrix) <- x
+
+    ## Assign column names:
+    colnames(kMatrix) <- keys
+
+    return(kMatrix)
+}
+
+
 ##' A function to parse offset date time object.
 ##'
 ##' This is a description.
@@ -1126,8 +1174,12 @@ capitalise <- function(str){
         return(str)
     }
 
-    ## Capitalise string and return:
-    paste0(toupper(substr(str, 1, 1)), tolower(substr(str, 2, nchar(str))))
+    ## Capitalise each word in each string:
+    capitalised <- lapply(strsplit(str, " "), function(x) sapply(x, function(y) paste0(toupper(substr(y, 1, 1)), tolower(substr(y, 2, nchar(y))))))
+
+    ## Recombine words in each string and return:
+    sapply(capitalised, function(x) paste0(x, collapse=" "))
+
 }
 
 

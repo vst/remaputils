@@ -1,3 +1,32 @@
+##' This function checks if value is a whole number:
+##'
+##' This is a description.
+##'
+##' @param x A vector with values.
+##' @param tol The tolerance.
+##' @return Returns a boolean vector.
+##' @export
+isWholenumber <- function(x, tol=.Machine$double.eps^0.5)  {
+
+    ## Initialise the return value:
+    retval <- rep(FALSE, length(x))
+
+    ## Are the values numeric?
+    isNumeric <- !is.na(suppressWarnings(sapply(x, function(z) try(as.numeric(z), silent=TRUE))))
+
+    ## Set non-numeric values to FALSE:
+    retval[!isNumeric] <- FALSE
+
+    ## For any numeric value, check if it is integer:
+    if (any(isNumeric)) {
+        retval[ isNumeric] <- abs(as.numeric(x[isNumeric]) - round(as.numeric(x[isNumeric]))) < tol
+    }
+
+    ## Return boolean:
+    retval
+}
+
+
 ##' This function greps single key in all columns of a data-frame.
 ##'
 ##' This is a description.

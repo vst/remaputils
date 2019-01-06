@@ -164,7 +164,7 @@ dbRemapPrepareResources <- function(resources,
     }
 
     ## Third, we will treat the tickers:
-    resources[, tickerField] <- remapTickerTreater(resources[, tickerField], provider=tickerProvider)
+    resources[, tickerField] <- do.call(switch(provider, "BBG"="remapBBGTickerCleaner"), list(resources[, tickerField]))
 
     ## Do we have the right ticker formats:
     isTicker <- do.call(switch(tickerProvider, "BBG"=isBBGTicker), list(resources[, tickerField]))

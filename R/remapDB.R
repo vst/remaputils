@@ -187,6 +187,17 @@ dbRemapPrepareResources <- function(resources,
     ## Treat the countries:
     resources[, "country"] <- dbRemapCountryTreater(resources[, "country"], "countrymaps")
 
+    ## SHRE ctype cannot have expiry:
+    resources[resources[, "ctype"] == "SHRE", "expiry"] <- NA
+
+    ## Get rid of all NOTAVAILABLE strings:
+    ## !!TODO
+    for (i in 1:NCOL(resources)) {
+        isNA <- toupper(resources[, i]) == "NOTAVAILABLE"
+        isNA <- ifelse(is.na(isNA), FALSE, isNA)
+        resources[isNA, i] <- NA
+    }
+
     ## Done, return:
     resources
 

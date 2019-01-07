@@ -74,6 +74,26 @@ dbRemapCountryTreater <- function(countries, countrymaps) {
 
 }
 
+##' This function tries to identify if string is a telekurs id.
+##'
+##' This is a description.
+##'
+##' @param str A vector with strings.
+##' @return Returns a TRUE | FALSE vector.
+##' @export
+isTelekursID <- function(str) {
+
+    ## Is the id an integer?
+    isInteger <- isWholenumber(str)
+
+    ## Is the number of characters of the str between 5 and 10?
+    isLength <- nchar(str) > 5 & nchar(str) < 10
+
+    ## Done, return:
+    isInteger & isLength
+
+}
+
 
 ##' This function tries to identify if string is a bloomberg ticker.
 ##'
@@ -201,4 +221,71 @@ dbRemapPrepareResources <- function(resources,
     ## Done, return:
     resources
 
+}
+
+
+##' This function checks if the incoming resource identifer is new and valid
+##'
+##' This is a description.
+##'
+##' @param remapDB The remap database as data-frame.
+##' @param sourceDB The source database as data-frame.
+##' @param isinFlds The isin field mapper for source database.
+##' @param idFlds The field mapper for identifier in source database.
+##' @return Returns list of list. 1: Are identifiers new? 2: Are identifiers valid?
+##' @export
+dbRemapNewResource <- function(remapDB, sourceDB, isinFlds=NULL, idFlds=NULL) {
+
+    ## Initialise the lists:
+    isNewID <- list()
+    isValidID <- list()
+
+    if (!is.null(idFlds)) {
+
+        ## Get the id fields:
+        idFlds <- idFlds[!sapply(idFlds, is.na)]
+
+        ## Determine if fields are new:
+        isNewID <- lapply(1:length(idFlds), function(i) {
+            is.na(match(sourceDB[, idFlds[[i]]], remapDB[, names(idFlds)[i]], incomparables=NA))
+        })
+
+        ## Get the validation functions corresponding to the id fields:
+        validationFun <- sapply(names(idFlds), function(x) switch(x,
+                                                                  "ticker"="isBBGTicker",
+                                                                  "telekurs"="isTelekursID"))
+        ## Validate the ID's:
+        isValidID <- lapply(1:length(idFlds), function(i) {
+            do.call(validationFun[i], list(sourceDB[, idFlds[[i]]]))
+        })
+
+        ## Assign the names:
+        names(isValidID) <- names(idFlds)
+        names(isNewID) <- names(idFlds)
+    }
+
+    if (!is.null(isinFlds)) {
+
+        ## Get the incomparable isins:
+        incomparables <- paste0(NA, unique(na.omit(sourceDB[, isinFlds[["ccymain"]]])))
+
+        ## Generate composite isin+ccy for remap db:
+        isinRemap <- as.character(apply(remapDB[, c("isin", "ccymain")], MARGIN=1, function(x) paste0(x, collapse="")))
+
+        ## Generate composite isin+ccy for resources:
+        isinSource <- as.character(apply(sourceDB[, c(isinFlds[["isin"]], isinFlds[["ccymain"]])], MARGIN=1, function(x) paste0(x, collapse="")))
+
+        ## Match the symbols:
+        isNewID <- c(list(is.na(match(isinSource, isinRemap, incomparables=incomparables))), isNewID)
+
+        isValidID <- c(list(isIsin(sourceDB[, isinFlds[["isin"]]])), isValidID)
+        names(isValidID) <- c("isin", tail(names(isValidID), -1))
+
+        ## Reassign names:
+        names(isNewID) <- c("isin", tail(names(isNewID), -1))
+
+    }
+
+    return(list("newIDs"=isNewID,
+                "validIDs"=isValidID))
 }

@@ -1,53 +1,3 @@
-##' A function to provide the figi type mapping:
-##'
-##' This is a description.
-##'
-##' @return Returns a matrix with the figi type mapping.
-##' @export
-figiCtype <- function() {
-    c("EURO-DOLLAR"="BOND",
-      "EURO MTN"="BOND",
-      "EURO NON-DOLLAR"="BOND",
-      "EURO-ZONE"="BOND",
-      "GLOBAL"="BOND",
-      "Equity WRT"="SHRE",
-      "Equity Index"="OTHER",
-      "Right"="SHRE",
-      "Closed-End Fund"="SHRE",
-      "Index WRT"="SHRE",
-      "Stapled Security"="SHRE",
-      "ETP"="SHRE",
-      "Common Stock"="SHRE",
-      "Dutch Cert"="SHRE",
-      "Open-End Fund"="SHRE",
-      "NVDR"="SHRE",
-      "Depositary Receipt"="SHRE",
-      "DOMESTIC MTN"="BOND",
-      "DOMESTIC"="BOND",
-      "Unit"="SHRE",
-      "Open-End Fund"="SHRE",
-      "ADR"="SHRE",
-      "REIT"="SHRE",
-      "Fund of Funds"="SHRE",
-      "DOMESTIC"="SP")
-}
-
-##' A function to provide the figi type currency mapping:
-##'
-##' This is a description.
-##'
-##' @return Returns a matrix with the figi type currency mapping.
-##' @export
-securityTypeCurrency <- function() {
-    c("EURO-DOLLAR"="USD",
-      "EURO-ZONE"="EUR",
-      "GLOBAL"="USD",
-      "EURO MTN"="EUR",
-      "EURO NON-DOLLAR"="EUR")
-}
-
-
-
 ##' A wrapper function call figi for instruments without resmains in data frame:
 ##'
 ##' This is a description.
@@ -155,9 +105,16 @@ figi <- function(data, idType="ID_ISIN", fld="isin", ccy="ccymain", figiApi){
 ##' This is a description.
 ##'
 ##' @param figiResult A data-frame from function figiCall.
+##' @param contentName The name of the content on db.remap.
 ##' @return Returns a enriched/treated version of the data-frame from figiCall function.
 ##' @export
-figiResultTreater <- function(figiResult){
+figiResultTreater <- function(figiResult, contentName="figictypes"){
+
+    ## Get the figi type mapper:
+    figictypes <- getRemapContent(contentName="figictypes")[[1]]
+
+    ## Get the ctype mapper:
+    fctypes <- figictypes[["figictypes"]]
 
     ## Get rid of no isin's:
     figiResult <- figiResult[!nchar(as.character(figiResult[,"idValue"])) == 0,]
@@ -165,11 +122,14 @@ figiResultTreater <- function(figiResult){
     ## Get rid of no market sectors:
     figiResult <- figiResult[!is.na(figiResult[,"marketSector"]),]
 
-    ## Hebele:
-    figiResult <- data.frame(figiResult, "ctype"=figiCtype()[match(figiResult[,"securityType"], names(figiCtype()))])
+    ## Map and add the ctypes:
+    figiTypeMatch <- match(trimConcatenate(figiResult[, "securityType"]), trimConcatenate(names(fctypes)))
 
-    ## Hebele:
-    figiResult <- data.frame(figiResult, "stype"=figiResult[,"securityType"])
+    ## Append the ctype:
+    figiResult <- data.frame(figiResult, "ctype"= as.character(sapply(fctypes[figiTypeMatch], function(x) x[["ctype"]])))
+
+    ## Append the stype:
+    figiResult <- data.frame(figiResult, "stype"= as.character(sapply(fctypes[figiTypeMatch], function(x) x[["stype"]])))
 
     ## Construct the exchange code for symbol:
     exchCode <- ifelse(figiResult[,"ctype"] == "SHRE", as.character(figiResult[,"exchCode"]), "")
@@ -207,17 +167,8 @@ figiResultTreater <- function(figiResult){
         figiResult[, "symbol"] <- gsub(paste0("V", cp), cp, figiResult[, "symbol"])
     }
 
-    replaceStringsinBonds <- c("EMTN",
-                               "REGS",
-                               "ENFZ",
-                               "EMXT",
-                               "EMTO",
-                               "$GDP",
-                               "EMIn",
-                               ".Mtn")
-
-    ## Treat the symbol:
-    figiResult[isBond, "symbol"] <- mgsub(toupper(figiResult[isBond, "symbol"]), replaceStringsinBonds)
+    ## Treat the bond tickers:
+    figiResult[isBond, "symbol"] <- figiBondTicker(figiResult[isBond, "symbol"])
 
     ## Get rid of NA's, duplicate words and double white spaces:
     figiResult[, "symbol"] <- sapply(strsplit(gsub("NA", "", figiResult[,"symbol"]), " "), function(x) trimDws(paste0(unique(x), collapse=" ")))
@@ -389,4 +340,41 @@ prepareOpenFigiData <- function(df, idType, fld, ccy){
     ## Only select non-duplicated ISIN's:
     data[!duplicated(data[,"idValue"]),]
 
+}
+
+
+##' This function treats the ticker from figi results:
+##'
+##' This is a description.
+##'
+##' @param str A vector with ticker strings.
+##' @return A vector with trated figi bond tickers.
+##' @export
+figiBondTicker <- function(str) {
+
+    ## If the length of the string is 0, return NULL:
+    if (length(str) == 0) {
+        return(NULL)
+    }
+
+    ## Split each string by space:
+    splitStr <- strsplit(str, " ")
+
+    ## Get the word before the ticker suffix (second last word):
+    preSuffix <- lapply(splitStr, function(x) x[length(x) - 1])
+
+    ## Check if pre-suffix is a date:
+    isDate <- sapply(preSuffix, function(x) !is.na(as.Date(x, format="%m/%d/%y")))
+
+    ## Check fi the pre-suffix is the word "Perp":
+    isPerp <- sapply(preSuffix, function(x) x == "PERP")
+
+    ## If it is either date or 'perp', it is valid:
+    isValid <- isDate | isPerp
+
+    ## Parse the non-valid:
+    str[!isValid] <- sapply(strsplit(str[!isValid], " "), function(x) paste0(x[-(length(x) - 1)], collapse=" "))
+
+    ## Return:
+    str
 }

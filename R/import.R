@@ -595,7 +595,9 @@ rSync <- function(server, location, target, folderNames, exclude=""){
 
     ## Run the rsync commands:
     for (f in 1:length(folderNames)) {
-        result <- try(system(trimDws(sprintf("rsync -auzvP %s %s:%s%s/ %s%s/", exclude, server, location, names(folderNames)[f], target, folderNames[f]))), silent=TRUE)
+        server <- ifelse(server=="local", "", paste0(server, ":"))
+        cmd <- trimDws(sprintf("rsync -auzvP %s %s%s%s/ %s%s/", exclude, server, location, names(folderNames)[f], target, folderNames[f]))
+        result <- try(system(cmd), silent = TRUE)
     }
 
     ## Message:

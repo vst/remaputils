@@ -289,3 +289,201 @@ dbRemapNewResource <- function(remapDB, sourceDB, isinFlds=NULL, idFlds=NULL) {
     return(list("newIDs"=isNewID,
                 "validIDs"=isValidID))
 }
+
+
+patchDataframe <- function(targetDF,
+                           sourceDF,
+                           mField,
+                           putMap,
+                           patchMap) {
+
+    ## Match the 2 data-frames:
+    matchIdx <- match(targetDF[, names(mField)], sourceDF[, mField[[1]]], incomparables=NA)
+
+    ## Rearrange the 2 data-frames:
+    newTargetDF <- targetDF[!is.na(matchIdx), ]
+    newSourceDF <- sourceDF[matchIdx[!is.na(matchIdx)], ]
+
+    ## Iterate over the patch map:
+    for (i in 1:length(patchMap)) {
+
+        ## Get the target field:
+        targetField <- names(patchMap)[i]
+
+        ## Get the source field:
+        sourceField <- patchMap[[i]]
+
+        ## Which rows should be overwritten?
+        overwrite <- is.na(newTargetDF[, targetField]) & !is.na(newSourceDF[, sourceField])
+
+        ## Overwrite the field:
+        newTargetDF[overwrite, targetField] <- as.character(newSourceDF[overwrite, sourceField])
+    }
+
+    ## Iterate over the put map:
+    for (i in 1:length(putMap)) {
+
+        ## Get the target field:
+        targetField <- names(putMap)[i]
+
+        ## Get the source field:
+        sourceField <- putMap[[i]]
+
+        ## Which rows should be overwritten?
+        overwrite <- !is.na(newSourceDF[, sourceField])
+
+        ## Overwrite the field:
+        newTargetDF[overwrite, targetField] <- as.character(newSourceDF[overwrite, sourceField])
+
+    }
+
+    ## Reassing the treated data to the original data-frame:
+    targetDF[!is.na(matchIdx), ] <- newTargetDF
+
+    ## Done, return:
+    targetDF
+
+}
+
+
+##' This TODO
+##'
+##' This is a description.
+##'
+##' @param resources TODO
+##' @param mktProvider TODO
+##' @param tickerField TODO
+##' @param dbRemapName TODO
+##' @param isinFlds TODO
+##' @param idFlds TODO
+##' @param figiApiKey TODO
+##' @param figiMField TODO
+##' @param figiPutMap TODO
+##' @param figiPatchMap TODO
+##' @return TODO
+##' @export
+dbRemapCheckUpdate <- function(resources,
+                               mktProvider,
+                               tickerField,
+                               dbRemapName,
+                               isinFlds,
+                               idFlds,
+                               figiApiKey,
+                               figiMField,
+                               figiPutMap,
+                               figiPatchMap) {
+
+    ## 1. Get the dbRemap
+    ## 2. Check which identifiers are new and valid
+    ## 3. Check new isins on Figi
+    ## 4. Post new identifiers
+    ## 5. Check old identifiers for changes???
+
+    ## Get the remap fields:
+    remapFields <- as.character(unlist(getRemapContent(contentName="resourcemetas")[[1]][["fields"]]))
+
+    ## Get the Remap db:
+    remapDB <- getRemapContent(contentName=dbRemapName)
+
+    ## If remapDB is empty, create ficticious row:
+    if (NROW(remapDB) == 0) {
+        remapDB <- as.data.frame(matrix(NA, 1, length(remapFields)))
+        colnames(remapDB) <- remapFields
+    } else {
+            remapDB <- safeRbind(remapDB)
+    }
+
+    ## Prepare the source resources:
+    resources <- dbRemapPrepareResources(resources,
+                                         tickerField=tickerField,
+                                         tickerProvider=mktProvider)
+
+    ## Identify new and valid identifiers:
+    newRes <- dbRemapNewResource(remapDB,
+                                 resources,
+                                 isinFlds=isinFlds,
+                                 idFlds=idFlds)
+
+    ## Hebele:
+    if (any(names(newRes[["newIDs"]]) == "isin")) {
+
+        isNewIsin <- newRes[["newIDs"]][["isin"]] & newRes[["validIDs"]][["isin"]]
+
+        checkFigi <- isNewIsin & apply(do.call(cbind, lapply(c("SHRE", "BOND", "FUT", "OPT"), function(x) safeGrep(resources[, "ctype"], x) == "1")), MARGIN=1, any)
+
+        if (any(checkFigi)) {
+            ## Run Figi:
+            figiResult <- figi(resources[checkFigi, ], figiApi=figiApiKey)
+
+            ## Patch the data-frame:
+            resources <- patchDataframe(targetDF=resources,
+                                        sourceDF=figiResult,
+                                        mField=figiMField,
+                                        putMap=figiPutMap,
+                                        patchMap=figiPatchMap)
+        }
+    }
+
+    newIDs   <- newRes[["newIDs"]]
+    validIDs <- newRes[["validIDs"]]
+
+    ## Which ones to post:
+    posts <- apply(do.call(cbind, lapply(1:length(newIDs), function(i) {
+
+        idx <- 1:length(newIDs)
+
+        isNew <- newIDs[[i]] & validIDs[[i]]
+        for (num in idx[-i]) {
+            isNew <- isNew & (newIDs[[num]] | !validIDs[[num]])
+        }
+
+        isNew
+    })), MARGIN=1, any)
+
+
+    if (any(posts)) {
+        postRecords <- as.data.frame(lapply(remapFields, function(x) safeColumn(resources[posts, ], x)), stringsAsFactors=FALSE)
+        colnames(postRecords) <- remapFields
+    } else {
+        postRecords <- NULL
+    }
+
+    return(list("resources"=resources,
+                "isNewID"=newRes[["newIDs"]],
+                "isValidID"=newRes[["validIDs"]],
+                "remapFields"=remapFields,
+                "posts"=postRecords))
+
+    ## exResources <- resources[!posts, ]
+    ## exTickerMatch <- match(exResources[, "ticker"], remapDB[, "ticker"], incomparables=NA)
+    ## exIsinMatch <- match(compIsinResrc[!posts], compIsinRemap, incomparables=incomparables)
+    ## exMatches <- ifelse(is.na(exTickerMatch), exIsinMatch, exTickerMatch)
+    ## exResources <- exResources[!is.na(exMatches), ]
+    ## exMatches <- exMatches[!is.na(exMatches)]
+    ## remapDB <- remapDB[exMatches,]
+    ## remapFields <- as.character(unlist(getRemapContent(contentName="resourcemetas")[[1]][["fields"]]))
+    ## exResources <- as.data.frame(lapply(remapFields, function(x) safeColumn(exResources, x)), stringsAsFactors=FALSE)
+    ## colnames(exResources) <- remapFields
+    ## remapIDs <- remapDB[, "id"]
+    ## remapDB <- as.data.frame(lapply(remapFields, function(x) safeColumn(remapDB, x)), stringsAsFactors=FALSE)
+    ## colnames(remapDB) <- remapFields
+    ## ## naFieldsRemapDB <- t(apply(remapDB, MARGIN=1, function(x) is.na(x) | x == "NA"))
+    ## ## naFieldsResrcDB <- t(apply(exResources, MARGIN=1, function(x) is.na(x) | x == "NA"))
+    ## ## aa <- naFieldsResrcDB - naFieldsRemapDB
+
+}
+
+
+dbRemapPost <- function(records, baseUrl, content) {
+
+    for (row in 1:NROW(records)) {
+
+        print(row)
+
+        payload <- as.list(records[row,])
+
+        response <- httr::POST(paste0(baseUrl, content), body=payload, encode="json")
+
+    }
+
+}

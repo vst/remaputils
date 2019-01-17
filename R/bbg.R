@@ -8,6 +8,7 @@
 ##' @param tcks The tickers.
 ##' @param exe Path to or name of `bdlhs` executable.
 ##' @return A data frame
+##' @export
 bdlhs <- function (host, port, user, pass, flds, tcks, exe="bdlhs") {
     ## Check if the bdlhs executable is installed:
     if (Sys.which(exe) == "") {
@@ -36,6 +37,7 @@ bdlhs <- function (host, port, user, pass, flds, tcks, exe="bdlhs") {
 ##' @param underlying Should underlying instruments be included?
 ##' @param fldsByCtype The list with fields to be considered for each ctype.
 ##' @return A vector with bloomberg tickers.
+##' @export
 requestableTickers <- function(session, date, zero, underlying, fldsByCtype) {
 
     ## Prepare the params for the stock request:

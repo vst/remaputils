@@ -95,6 +95,18 @@ isTelekursID <- function(str) {
 }
 
 
+##' This function tries to identify if string is a creditsuisse security code.
+##'
+##' This is a description.
+##'
+##' @param str A vector with strings.
+##' @return Returns a TRUE | FALSE vector.
+##' @export
+isCreditSuisseID <- function(str) {
+    sapply(strsplit(as.character(str), "-"), function(x) {length(x) == 2 & nchar(x[1]) == 6 & nchar(x[2]) == 3})
+}
+
+
 ##' This function tries to identify if string is a bloomberg ticker.
 ##'
 ##' This is a description.
@@ -247,13 +259,15 @@ dbRemapNewResource <- function(remapDB, sourceDB, isinFlds=NULL, idFlds=NULL) {
 
         ## Determine if fields are new:
         isNewID <- lapply(1:length(idFlds), function(i) {
-            is.na(match(sourceDB[, idFlds[[i]]], remapDB[, names(idFlds)[i]], incomparables=NA))
+            ## Get the match index:
+            match(sourceDB[, idFlds[[i]]], remapDB[, names(idFlds)[i]], incomparables=NA)
         })
 
         ## Get the validation functions corresponding to the id fields:
         validationFun <- sapply(names(idFlds), function(x) switch(x,
                                                                   "ticker"="isBBGTicker",
-                                                                  "telekurs"="isTelekursID"))
+                                                                  "telekurs"="isTelekursID",
+                                                                  "creditsuisse"="isCreditSuisseID"))
         ## Validate the ID's:
         isValidID <- lapply(1:length(idFlds), function(i) {
             do.call(validationFun[i], list(sourceDB[, idFlds[[i]]]))
@@ -276,7 +290,7 @@ dbRemapNewResource <- function(remapDB, sourceDB, isinFlds=NULL, idFlds=NULL) {
         isinSource <- as.character(apply(sourceDB[, c(isinFlds[["isin"]], isinFlds[["ccymain"]])], MARGIN=1, function(x) paste0(x, collapse="")))
 
         ## Match the symbols:
-        isNewID <- c(list(is.na(match(isinSource, isinRemap, incomparables=incomparables))), isNewID)
+        isNewID <- c(list(match(isinSource, isinRemap, incomparables=incomparables)), isNewID)
 
         isValidID <- c(list(isIsin(sourceDB[, isinFlds[["isin"]]])), isValidID)
         names(isValidID) <- c("isin", tail(names(isValidID), -1))
@@ -286,8 +300,9 @@ dbRemapNewResource <- function(remapDB, sourceDB, isinFlds=NULL, idFlds=NULL) {
 
     }
 
-    return(list("newIDs"=isNewID,
-                "validIDs"=isValidID))
+    return(list("newIDs"=lapply(isNewID, is.na),
+                "validIDs"=isValidID,
+                "remapDBIdx"=isNewID))
 }
 
 
@@ -403,7 +418,6 @@ dbRemapCheckUpdate <- function(resources,
                                  resources,
                                  isinFlds=isinFlds,
                                  idFlds=idFlds)
-
     ## Hebele:
     if (any(names(newRes[["newIDs"]]) == "isin")) {
 

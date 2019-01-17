@@ -797,6 +797,10 @@ dateOfPeriod <- function(memnonic="D-0"){
 ##' @export
 safeRbind <- function(x){
 
+    if (length(x) == 0) {
+        return(NULL)
+    }
+
     if (is.list(x[[1]])) {
         colNames <- unique(do.call(c, lapply(x, names)))
         df <- as.data.frame(matrix(NA, ncol=length(colNames), nrow=length(x)))

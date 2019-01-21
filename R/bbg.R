@@ -36,7 +36,7 @@ bdlhs <- function (host, port, user, pass, flds, tcks, exe="bdlhs") {
 ##' @param zero Should closed stocks be included? 1 = yes, - = no.
 ##' @param underlying Should underlying instruments be included?
 ##' @param fldsByCtype The list with fields to be considered for each ctype.
-##' @return A vector with bloomberg tickers.
+##' @return A list with a) tickers for price, b) tickers for reference, c) the resource data frame
 ##' @export
 requestableTickers <- function(session, date, zero, underlying, fldsByCtype) {
 
@@ -74,6 +74,8 @@ requestableTickers <- function(session, date, zero, underlying, fldsByCtype) {
     })), MARGIN=1, any)
 
     ## Return ohlc id's with missing information:
-    as.character(resources[missingBaseInfo | missingSpecificInfo, "priceIds"])
+    list("reference"=as.character(resources[missingBaseInfo | missingSpecificInfo, "priceIds"]),
+         "prices"=as.character(resources[, "priceIds"]),
+         "resources"=resources)
 
 }

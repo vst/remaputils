@@ -18,7 +18,7 @@ requestableTickers(session, date, zero, underlying, fldsByCtype)
 \item{fldsByCtype}{The list with fields to be considered for each ctype.}
 }
 \value{
-A vector with bloomberg tickers.
+A list with a) tickers for price, b) tickers for reference, c) the resource data frame
 }
 \description{
 Function to prepare ticker for request.

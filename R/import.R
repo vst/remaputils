@@ -1,3 +1,41 @@
+##' A function to post resources in batches.
+##'
+##' This is the description
+##'
+##' @param resources The resource data frame.
+##' @param batchSize The size of the batches.
+##' @param session The DECAF session info.
+##' @return Returns NULL
+##' @export
+postResourcesByBatch <- function(resources, batchSize=1000, session) {
+
+    ## Initialise the ending index:
+    endingIdx <- seq(0, NROW(resources), batchSize)
+
+    ## Create the starting index:
+    startingIdx <- endingIdx + 1
+
+    ## Update the ending index:
+    endingIdx <- c(tail(endingIdx, -1), NROW(resources) - tail(endingIdx, 1) + tail(endingIdx, 1))
+
+    ## Push the resources:
+    for (i in 1:length(endingIdx)) {
+
+        ## Batch:
+        batch <- resources[startingIdx[i]:endingIdx[i], ]
+
+        print(paste0("Posting batch: ", startingIdx[i], ":", endingIdx[i]))
+
+        ## Push the resources:
+        result <- rdecaf::postResource("resources", "imports", payload=jsonlite::toJSON(batch, auto_unbox=TRUE), session=session)
+
+    }
+
+    return(NULL)
+
+}
+
+
 ##' A function to get trades from session using container names:
 ##'
 ##' This is the description

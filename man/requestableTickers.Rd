@@ -4,7 +4,8 @@
 \alias{requestableTickers}
 \title{Function to prepare ticker for request.}
 \usage{
-requestableTickers(session, date, zero, underlying, fldsByCtype)
+requestableTickers(session, date, zero, underlying, fldsByCtype,
+  other = FALSE)
 }
 \arguments{
 \item{session}{The decaf session.}
@@ -16,6 +17,8 @@ requestableTickers(session, date, zero, underlying, fldsByCtype)
 \item{underlying}{Should underlying instruments be included?}
 
 \item{fldsByCtype}{The list with fields to be considered for each ctype.}
+
+\item{other}{Shall OTHER assets be considered as well?}
 }
 \value{
 A list with a) tickers for price, b) tickers for reference, c) the resource data frame

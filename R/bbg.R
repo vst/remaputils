@@ -36,9 +36,10 @@ bdlhs <- function (host, port, user, pass, flds, tcks, exe="bdlhs") {
 ##' @param zero Should closed stocks be included? 1 = yes, - = no.
 ##' @param underlying Should underlying instruments be included?
 ##' @param fldsByCtype The list with fields to be considered for each ctype.
+##' @param other Shall OTHER assets be considered as well?
 ##' @return A list with a) tickers for price, b) tickers for reference, c) the resource data frame
 ##' @export
-requestableTickers <- function(session, date, zero, underlying, fldsByCtype) {
+requestableTickers <- function(session, date, zero, underlying, fldsByCtype, other=FALSE) {
 
     ## Prepare the params for the stock request:
     params <- list(page_size=-1, format="csv", date=date, zero=zero)
@@ -48,6 +49,15 @@ requestableTickers <- function(session, date, zero, underlying, fldsByCtype) {
 
     ## Get the resources by stocks:
     resources <- remaputils::getResourcesByStock(stocks, session, getUnderlying=TRUE)
+
+    ## Consider other assets if required:
+    if (other) {
+        othersRes <- as.data.frame(rdecaf::getResource("resources", params=list(page_size=-1, format="csv", ctype="OTHER"), session=session))
+        othersRes <- othersRes[apply(mgrep(othersRes[, c("symbol")], c("Index", "Curncy")), MARGIN=1, function(x) any(x!="0")), ]
+        expired <- othersRes[, "expiry"] < Sys.Date() - 1
+        expired <- ifelse(is.na(expired), FALSE, expired)
+        resources <- safeRbind(list(resources, othersRes[!expired, ]))
+    }
 
     ## Get ohlc identifiers:
     resources <- data.frame(resources, "priceIds"=ifelse(!is.na(resources[, "ohlccode"]), resources[, "ohlccode"], resources[, "symbol"]))

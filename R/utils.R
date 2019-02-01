@@ -803,11 +803,11 @@ safeRbind <- function(x){
 
     if (is.list(x[[1]])) {
         colNames <- unique(do.call(c, lapply(x, names)))
-        df <- as.data.frame(matrix(NA, ncol=length(colNames), nrow=length(x)))
+        df <- as.data.frame(matrix(NA, ncol=length(colNames), nrow=length(x)), check.names=FALSE)
     } else {
         ## Ge the unique column names of all ucapbh resources:
         colNames <- unique(do.call(c, lapply(x, colnames)))
-        df <- as.data.frame(matrix(NA, ncol=length(colNames), nrow=sum(sapply(x, NROW))))
+        df <- as.data.frame(matrix(NA, ncol=length(colNames), nrow=sum(sapply(x, NROW))), check.names=FALSE)
     }
 
     ## Reassign the column names:
@@ -823,7 +823,7 @@ safeRbind <- function(x){
         ca <- x[[i]]
 
         if (class(ca) == "list") {
-            ca <- data.frame(do.call(cbind, .removeList(ca)), stringsAsFactors=FALSE)
+            ca <- data.frame(do.call(cbind, .removeList(ca)), stringsAsFactors=FALSE, check.names=FALSE)
         }
 
         ## Compute the ending row given current data-frames dimension:
@@ -837,7 +837,7 @@ safeRbind <- function(x){
     }
 
     ## Return:
-    data.frame(df, stringsAsFactors=FALSE)
+    data.frame(df, stringsAsFactors=FALSE, check.names=FALSE)
 }
 
 

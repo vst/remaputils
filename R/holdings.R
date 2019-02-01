@@ -473,7 +473,7 @@ getPrintableHoldings <- function(portfolio, ccy, date, dtype, toplevel, sublevel
     isin <- gsub(" ", ", ", trimws(isin))
 
     ## Get the passive table:
-    passive <- as.data.frame(rdecaf::getResource("passivevaluations",
+    passive <- as.data.frame(rdecaf::getResource("externalvaluations",
                                                  params=list("portfolio"=portfolio,"account__isnull"=TRUE, "format"="csv", "page_size"=-1), session=session))
 
     ## If no passive entries, set validated NAV's to NA:

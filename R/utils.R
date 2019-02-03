@@ -261,35 +261,40 @@ specialCharacterTreater <- function(df, cols=NULL) {
 ##' @param tolerance The maximum allowed distance in days.
 ##' @param dateField The column name of the date in data.
 ##' @param valueField The column name of the value field.
+##' @param nameField The column name of the name field.
 ##' @return A list with date and value.
 ##' @export
-valueOfNearestDate <- function(targetDate, data, tolerance, dateField="date", valueField="price") {
+valueOfNearestDate <- function(targetDate, data, tolerance, dateField="date", valueField="price", nameField="name") {
 
     ## Compute the date difference:
     dateDist <- data[, dateField] - targetDate
 
     ## Filter the data for negative distances:
-    data <- data[dateDist < 0,]
-    dateDist <- dateDist[dateDist < 0]
+    data <- data[dateDist <= 0,]
+    dateDist <- dateDist[dateDist <= 0]
 
     ## If empty, return NA:
     if (length(dateDist) == 0) {
         return(list("date"=NA,
-                    "value"=NA))
+                    "value"=NA,
+                    "name"=NA))
     }
 
     ## Get the minimum absolute distance:
-    minDistIdx <- which(abs(dateDist) == min(abs(dateDist)))
+    minDistIdx <- suppressWarnings(which(abs(dateDist) == min(abs(dateDist))))
 
     ## If distance is higher than tolerance, return NA
-    if (abs(dateDist)[minDistIdx] > tolerance) {
+    if (all(abs(dateDist)[minDistIdx] > tolerance)) {
         return(list("date"=NA,
-                    "value"=NA))
+                    "value"=NA,
+                    "name"=NA))
     }
 
     ## Done, return the value and corresponding date:
     return(list("date"=data[, dateField][minDistIdx],
-                "value"=data[, valueField][minDistIdx]))
+                "value"=data[, valueField][minDistIdx],
+                "name"=data[, nameField][minDistIdx]))
+
 
 }
 

@@ -2,6 +2,108 @@
 ##'
 ##' This is the description
 ##'
+##' @param resources rdecaf resources.
+##' @return A vector with asset class strings.
+##' @export
+getAssetClass <- function(resources) {
+
+    resources[, "underlying_symbol"] <- safeColumn(resources, "underlying_symbol")
+
+    if (NROW(resources) == 1) {
+        resources <- rbind(resources, resources)
+    }
+
+    indexFX <- getIndex(df=resources,
+                        inCols=list("ctype"=c("CCY", "FXFWD")),
+                        candCols=list("ctype"=c("FUT", "OPT", "DCIP", "FXOPT", "FXMF", "OTHER")),
+                        inKeys=list("symbol"="Curncy",
+                                    "name"="Curncy",
+                                    "stype"="Option - Currency"),
+                        exKeys=list("stype"="ALTN",
+                                    "stype"="Alternative"),
+                        inclToIns=list("ctype"="FXMF"))
+
+    resources[indexFX, "assetclass"] <- "FX"
+
+    indexMM <- getIndex(df=resources,
+                        inCols=list("ctype"=c("LOAN", "DEPO")),
+                        candCols=list("ctype"=c("OTHER")),
+                        inKeys=list("name"="margin",
+                                    "name"="special limit",
+                                    "name"="guarantee limit",
+                                    "name"="standing order",
+                                    "name"="passive credit"),
+                        exKeys=list("stype"="ALTN"))
+
+    resources[indexMM, "assetclass"] <- "Money Market"
+
+    indexComm <- getIndex(df=resources,
+                          inCols=list("ctype"="COMM"),
+                          candCols=list("ctype"=c("FUT", "OPT", "SPMF", "SHRE")),
+                          inKeys=list("symbol"="Comdty",
+                                      "underlying_symbol"="Comdty",
+                                      "stype"="Commodity",
+                                      "name"="Comdty",
+                                      "name"="Gold",
+                                      "name"="Orange",
+                                      "name"="Crude Oil",
+                                      "name"="Commodity",
+                                      "name"="Metal"),
+                          exKeys=list("stype"="ALTN",
+                                      "stype"="Alternative"),
+                          inclToIns=NULL)
+
+    resources[indexComm, "assetclass"] <- "Commodity"
+
+    indexFI <- getIndex(df=resources,
+                        inCols=list("ctype"="BOND"),
+                        candCols=list("ctype"=c("FUT", "SHRE")),
+                        inKeys=list("name"="BOND",
+                                    "name"="INTEREST",
+                                    "name"="FIXED INCOME",
+                                    "name"="TREASURY",
+                                    "stype"="BOND"),
+                        exKeys=list("stype"="ALTN",
+                                    "stype"="Alternative"),
+                        inclToIns=NULL)
+
+    resources[indexFI, "assetclass"] <- "Fixed Income"
+
+    indexEQ <- getIndex(df=resources,
+                        inCols=list("ctype"=getRandString()),
+                        candCols=list("ctype"=c("FUT", "SHRE", "OPT", "SPMF", "SP")),
+                        inKeys=list("name"="Equity",
+                                    "symbol"="Equity",
+                                    "symbol"="Index",
+                                    "stype"="Share - Registered",
+                                    "stype"="EQY",
+                                    "stype"="Option - Share",
+                                    "stype"="Share - Bearer",
+                                    "stype"="Common",
+                                    "stype"="ordinary",
+                                    "underlying_symbol"="Equity",
+                                    "underlying_symbol"="Index"),
+                        exKeys=list("stype"="ALTN",
+                                    "stype"="Alternative",
+                                    "name"="Bond",
+                                    "name"="Fixed Income",
+                                    "name"="treasury",
+                                    "name"="interest"),
+                        inclToIns=NULL)
+
+    resources[indexEQ, "assetclass"] <- "Equity"
+
+    resources[is.na(resources[, "assetclass"]), "assetclass"] <- "Alternative"
+
+    return(resources[!duplicated(resources[, "id"]), ])
+
+}
+
+
+##' TODO:
+##'
+##' This is the description
+##'
 ##' @param session The rdecaf session
 ##' @param containerType The container type
 ##' @param containerId The container id
@@ -69,6 +171,9 @@ getConsolidationFromContainerName <- function(containerNames, containerType, ccy
 ##' @export
 getEnrichedHoldings <- function(holdings, nav, gav, regions, resources){
 
+    ## Treat the country names:
+    holdings[, "Country"] <- dbRemapCountryTreater(holdings[, "Country"], "countrymaps")
+
     ## If regions mapper is supplied, append to the data-frame:
     if (!is.null(regions)) {
         regions <- toupper(unlist(regions))
@@ -92,8 +197,9 @@ getEnrichedHoldings <- function(holdings, nav, gav, regions, resources){
                "Exp (%)"=safeTry(try(holdings[,"Exposure"] / nav, silent=TRUE)),
                "Expiry"=as.character(resources[matchIdx, "expiry"]),
                "Call/Put"=safeCondition(resources[matchIdx, ], "callput", "True"),
-               "Rate"= ifelse(sapply(resources[matchIdx, "pxmain"], is.null), NA, resources[matchIdx, "pxmain"]),
-               "Underlying"=ifelse(sapply(resources[matchIdx, "underlying"], is.null), NA, resources[matchIdx, "underlying"]),
+               "Rate"= as.character(ifelse(sapply(resources[matchIdx, "pxmain"], is.null), NA, resources[matchIdx, "pxmain"])),
+               "Underlying"=as.character(ifelse(sapply(resources[matchIdx, "underlying"], is.null), NA, resources[matchIdx, "underlying"])),
+               "Asset Class"=as.character(ifelse(sapply(resources[matchIdx, "underlying"], is.null), NA, resources[matchIdx, "assetclass"])),
                check.names=FALSE,
                stringsAsFactors=FALSE)
 
@@ -152,8 +258,8 @@ getFlatHoldings <- function(x, charLimit=30){
                   "Value",
                   "Accrd",
                   "Exposure",
-                  "PnL (Unreal)",
-                  "PnL (% Inv.)")
+                  "PnL (Unrl)",
+                  "PnL (%Inv)")
 
     ## Initialse the holdings data-frame:
     holdings <- initDF(colNames)
@@ -177,9 +283,9 @@ getFlatHoldings <- function(x, charLimit=30){
                                                  "PX Last"=.emptyToNA(as.numeric(h[["valuation"]][["px"]][["org"]])),
                                                  "Value"=.emptyToNA(safeNull(as.numeric(h[["valuation"]][["value"]][["net"]][["ref"]]))),
                                                  "Accrd"=.emptyToNA(as.numeric(h[["valuation"]][["accrued"]][["org"]])),
-                                                 "Exposure"=.emptyToNA(safeNull(as.numeric(h[["valuation"]][["exposure"]][["abs"]][["ref"]]))),
-                                                 "PnL (Unreal)"=.emptyToNA(safeNull(as.numeric(h[["pnl"]]))),
-                                                 "PnL (% Inv.)"=.emptyToNA(safeNull(as.numeric(h[["pnl_to_investment"]]))),
+                                                 "Exposure"=.emptyToNA(safeNull(as.numeric(h[["valuation"]][["exposure"]][["net"]][["ref"]]))),
+                                                 "PnL (Unrl)"=.emptyToNA(safeNull(as.numeric(h[["pnl"]]))),
+                                                 "PnL (%Inv)"=.emptyToNA(safeNull(as.numeric(h[["pnl_to_investment"]]))),
                                                  check.names=FALSE))
 
     ## Get the holdings:
@@ -287,6 +393,11 @@ getOrderedHoldings <- function(holdings, toplevel="Subtype", sublevels=c("CCY", 
 ##' @return Returns the nested holdings data-frame.
 ##' @export
 getNestedHoldings <- function(holdings, levels, toplevel="Subtype", sublevels=c("CCY", "Country")){
+
+    ## If no security holdings, return NULL:
+    if (is.null(holdings)) {
+        return(NULL)
+    }
 
     ## Combine all keys:
     levels <- c(toplevel, sublevels)
@@ -472,32 +583,32 @@ getPrintableHoldings <- function(portfolio, ccy, date, dtype, toplevel, sublevel
 
     isin <- gsub(" ", ", ", trimws(isin))
 
-    ## Get the passive table:
-    passive <- as.data.frame(rdecaf::getResource("externalvaluations",
-                                                 params=list("portfolio"=portfolio,"account__isnull"=TRUE, "format"="csv", "page_size"=-1), session=session))
-
-    ## If no passive entries, set validated NAV's to NA:
-    if (NROW(passive) == 0) {
-        startingNAV <- list("date"=NA, "value"=NA)
-    } else {
-        ## Get the starting passive NAV:
-        startingNAV <- valueOfNearestDate(dateOfPeriod("Y-0"), passive, 5)
-    }
-
     ## Get the inception:
     inception <- safeTry(try(portfolioDetails[,"inception"], silent=TRUE))
-
-    ## Get the portfolios:
-    resources <- as.data.frame(rdecaf::getResource("resources",  params=list("format"="csv", "page_size"=-1), session=session))
 
     ## Get the consolidation:
     consolidation <- rdecaf::getResource("fundreport", params=list("fund"=portfolio, ccy=ccy, date=date, type=dtype), session=session)
 
-    endingNAV <- list("value"=safeTry(try(consolidation[["nav"]] / consolidation[["shares"]], silent=TRUE)),
-                      "date"=date)
-
     ## Get the flat holdings:
     holdings <- getFlatHoldings(consolidation[["holdings"]])
+
+    ## Check if we have any holdings:
+    noHoldings <- all(apply(holdings, MARGIN=1, function(x) all(is.na(x))))
+
+    ## If no holdings, return empty holdings:
+    if (noHoldings) {
+        return(list("holdings"=NULL,
+                    "consolidation"=consolidation))
+    }
+
+    ## Get the stocks:
+    stocks <- getStocksFromContainerNames(session, "portfolios", portfolioDetails[, "name"], zero=1, date)
+
+    ## Get the resources:
+    resources <- getResourcesByStock(stocks, session)
+
+    ## Enriched resources with asset class:
+    resources <- getAssetClass(resources)
 
     ## Get the enriched holdings:
     enrichedHoldings <- getEnrichedHoldings(holdings, consolidation[["nav"]], consolidation[["gav"]], regions, resources)
@@ -520,9 +631,9 @@ getPrintableHoldings <- function(portfolio, ccy, date, dtype, toplevel, sublevel
     ## Append the isin & inception:
     consolidation[["isin"]] <- isin
     consolidation[["inception"]] <- inception
-    consolidation[["passiveYTD"]] <- percentify((endingNAV$value / startingNAV$value) - 1)
 
     ## Return:
     list("holdings"=formattedHoldings[,colselect],
-         "consolidation"=consolidation)
+         "consolidation"=consolidation,
+         "rawHoldings"=enrichedHoldings)
 }

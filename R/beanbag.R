@@ -407,13 +407,13 @@ writeFundReport <- function (report, file) {
                          "QTY"         =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=12L * 256L),
                          "CCY"         =list("align"="l", "rowStyle"="sGlobalRowFillRowFont2", "width"= 4L * 256L),
                          "Expiry"      =list("align"="l", "rowStyle"="sGlobalRowFillRowFont2", "width"=12L * 256L),
-                         "Rate"        =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=11L * 256L),
-                         "PX Cost"     =list("align"="l", "rowStyle"="sGlobalRowFillRowFont3", "width"=11L * 256L),
-                         "PX Last"     =list("align"="l", "rowStyle"="sGlobalRowFillRowFont3", "width"=11L * 256L),
-                         "Value"       =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=12L * 256L),
+                         "Rate"        =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=12L * 256L),
+                         "PX Cost"     =list("align"="l", "rowStyle"="sGlobalRowFillRowFont3", "width"=12L * 256L),
+                         "PX Last"     =list("align"="l", "rowStyle"="sGlobalRowFillRowFont3", "width"=12L * 256L),
+                         "Value"       =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=13L * 256L),
                          "Accrd"       =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"= 8L * 256L),
-                         "Value (%)"   =list("align"="l", "rowStyle"="sGlobalWgtFillRowFont0", "width"= 8L * 256L),
-                         "Exposure"    =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=12L * 256L),
+                         "Value (%)"   =list("align"="l", "rowStyle"="sGlobalWgtFillRowFont0", "width"= 9L * 256L),
+                         "Exposure"    =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=13L * 256L),
                          "Exp (%)"     =list("align"="l", "rowStyle"="sGlobalRowFillRowFont4", "width"= 8L * 256L),
                          "PnL (Unrl)"  =list("align"="l", "rowStyle"="sGlobalRowFillPnlFont0", "width"=10L * 256L),
                          "PnL (%Inv)"  =list("align"="l", "rowStyle"="sGlobalRowFillPnlFont1", "width"= 8L * 256L))
@@ -485,7 +485,7 @@ writeFundReport <- function (report, file) {
         sGlobalRowFillRowFont0 <- function () {styleGlobal + rowFill + rowFont}
         sGlobalRowFillRowFont1 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.00") + globalAlignment}
         sGlobalRowFillRowFont2 <- function () {styleGlobal + rowFill + rowFont + DataFormat("@") + globalAlignment}
-        sGlobalRowFillRowFont3 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.00") + globalAlignment}
+        sGlobalRowFillRowFont3 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.00") + Alignment(h="ALIGN_CENTER"}
         sGlobalRowFillRowFont4 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.00 %")+ globalAlignment}
         sGlobalWgtFillRowFont0 <- function () {styleGlobal + wgtFill + rowFont + DataFormat("#,##0.00 %")+ globalAlignment}
         sGlobalRowFillPnlFont0 <- function () {styleGlobal + rowFill + pnlFont + DataFormat("#,##0.00")+ globalAlignment}
@@ -581,7 +581,7 @@ writeFundReport <- function (report, file) {
     sheet$getPrintSetup()$setFitWidth(.jshort(1L))
 
     ## Compute the scale to be used:
-    scale <- as.integer((37500 / sum(sapply(columnStyles[tableHeader], function(x) x[["width"]]))) * 100)
+    scale <- as.integer((35000 / sum(sapply(columnStyles[tableHeader], function(x) x[["width"]]))) * 100)
 
     ## Dynamically set scale:
     sheet$getPrintSetup()$setScale(.jshort(scale))

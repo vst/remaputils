@@ -581,7 +581,7 @@ writeFundReport <- function (report, file) {
     sheet$getPrintSetup()$setFitWidth(.jshort(1L))
 
     ## Compute the scale to be used:
-    scale <- as.integer((35500 / sum(sapply(columnStyles[tableHeader], function(x) x[["width"]]))) * 100)
+    scale <- as.integer((36000 / sum(sapply(columnStyles[tableHeader], function(x) x[["width"]]))) * 100)
 
     ## Dynamically set scale:
     sheet$getPrintSetup()$setScale(.jshort(scale))

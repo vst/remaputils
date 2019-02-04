@@ -4,14 +4,12 @@
 \alias{indexCompiler}
 \title{TODO:}
 \usage{
-indexCompiler(df, inCols, exCols, idCols, addConditions)
+indexCompiler(df, inCols, idCols = NULL, addConditions = NULL)
 }
 \arguments{
 \item{df}{A data-frame.}
 
 \item{inCols}{TODO}
-
-\item{exCols}{TODO}
 
 \item{idCols}{TODO}
 

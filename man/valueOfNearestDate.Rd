@@ -5,7 +5,7 @@
 \title{A function to give the value of the nearest date.}
 \usage{
 valueOfNearestDate(targetDate, data, tolerance, dateField = "date",
-  valueField = "price", nameField = "name")
+  valueField = "price", nameField = NULL)
 }
 \arguments{
 \item{targetDate}{The target date}

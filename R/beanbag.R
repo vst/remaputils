@@ -485,7 +485,7 @@ writeFundReport <- function (report, file) {
         sGlobalRowFillRowFont0 <- function () {styleGlobal + rowFill + rowFont}
         sGlobalRowFillRowFont1 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.00") + globalAlignment}
         sGlobalRowFillRowFont2 <- function () {styleGlobal + rowFill + rowFont + DataFormat("@") + globalAlignment}
-        sGlobalRowFillRowFont3 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.00") + Alignment(h="ALIGN_CENTER"}
+        sGlobalRowFillRowFont3 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.00") + Alignment(h="ALIGN_CENTER")}
         sGlobalRowFillRowFont4 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.00 %")+ globalAlignment}
         sGlobalWgtFillRowFont0 <- function () {styleGlobal + wgtFill + rowFont + DataFormat("#,##0.00 %")+ globalAlignment}
         sGlobalRowFillPnlFont0 <- function () {styleGlobal + rowFill + pnlFont + DataFormat("#,##0.00")+ globalAlignment}

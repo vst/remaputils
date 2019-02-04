@@ -404,19 +404,19 @@ writeFundReport <- function (report, file) {
 
 
     columnStyles <- list("Name"        =list("align"="c", "rowStyle"="sGlobalRowFillRowFont0", "width"=32L * 256L),
-                         "QTY"         =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=14L * 256L),
-                         "CCY"         =list("align"="l", "rowStyle"="sGlobalRowFillRowFont2", "width"= 4L * 256L),
-                         "Expiry"      =list("align"="l", "rowStyle"="sGlobalRowFillRowFont2", "width"=12L * 256L),
-                         "Rate"        =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=12L * 256L),
-                         "PX Cost"     =list("align"="l", "rowStyle"="sGlobalRowFillRowFont3", "width"=13L * 256L),
-                         "PX Last"     =list("align"="l", "rowStyle"="sGlobalRowFillRowFont3", "width"=13L * 256L),
-                         "Value"       =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=14L * 256L),
-                         "Accrd"       =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=10L * 256L),
-                         "Value (%)"   =list("align"="l", "rowStyle"="sGlobalWgtFillRowFont0", "width"=10L * 256L),
-                         "Exposure"    =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=14L * 256L),
-                         "Exp (%)"     =list("align"="l", "rowStyle"="sGlobalRowFillRowFont4", "width"=10L * 256L),
-                         "PnL (Unrl)"  =list("align"="l", "rowStyle"="sGlobalRowFillPnlFont0", "width"=12L * 256L),
-                         "PnL (%Inv)"  =list("align"="l", "rowStyle"="sGlobalRowFillPnlFont1", "width"=10L * 256L))
+                         "QTY"         =list("align"="c", "rowStyle"="sGlobalRowFillRowFont1", "width"=14L * 256L),
+                         "CCY"         =list("align"="c", "rowStyle"="sGlobalRowFillRowFont2", "width"= 4L * 256L),
+                         "Expiry"      =list("align"="c", "rowStyle"="sGlobalRowFillRowFont2", "width"=12L * 256L),
+                         "Rate"        =list("align"="c", "rowStyle"="sGlobalRowFillRowFont1", "width"=12L * 256L),
+                         "PX Cost"     =list("align"="c", "rowStyle"="sGlobalRowFillRowFont3", "width"=13L * 256L),
+                         "PX Last"     =list("align"="c", "rowStyle"="sGlobalRowFillRowFont3", "width"=13L * 256L),
+                         "Value"       =list("align"="c", "rowStyle"="sGlobalRowFillRowFontX1","width"=14L * 256L),
+                         "Accrd"       =list("align"="c", "rowStyle"="sGlobalRowFillRowFont1", "width"=10L * 256L),
+                         "Value (%)"   =list("align"="c", "rowStyle"="sGlobalWgtFillRowFont0", "width"=10L * 256L),
+                         "Exposure"    =list("align"="c", "rowStyle"="sGlobalRowFillRowFontX1","width"=14L * 256L),
+                         "Exp (%)"     =list("align"="c", "rowStyle"="sGlobalRowFillRowFont4", "width"=10L * 256L),
+                         "PnL (Unrl)"  =list("align"="c", "rowStyle"="sGlobalRowFillPnlFont0", "width"=12L * 256L),
+                         "PnL (%Inv)"  =list("align"="c", "rowStyle"="sGlobalRowFillPnlFont1", "width"=10L * 256L))
 
     ## Define the table headers:
     tableHeader <- colnames(holdings)
@@ -480,16 +480,18 @@ writeFundReport <- function (report, file) {
         }
 
         globalAlignment <- Alignment(h="ALIGN_LEFT", indent=30)
+        globalAlignment <- Alignment(h="ALIGN_LEFT", indent=30)
         sGlobalRowFont0 <- function() {styleGlobal + rowFont + DataFormat("#,##0.00")}
         styleShrclass0 <- function () {styleShrcls + Alignment(h="ALIGN_CENTER")}
         sGlobalRowFillRowFont0 <- function () {styleGlobal + rowFill + rowFont}
-        sGlobalRowFillRowFont1 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.00") + globalAlignment}
+        sGlobalRowFillRowFont1 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.0") + globalAlignment}
+        sGlobalRowFillRowFontX1<- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.0") + globalAlignment}
         sGlobalRowFillRowFont2 <- function () {styleGlobal + rowFill + rowFont + DataFormat("@") + globalAlignment}
-        sGlobalRowFillRowFont3 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.00") + Alignment(h="ALIGN_CENTER")}
-        sGlobalRowFillRowFont4 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.00 %")+ globalAlignment}
-        sGlobalWgtFillRowFont0 <- function () {styleGlobal + wgtFill + rowFont + DataFormat("#,##0.00 %")+ globalAlignment}
-        sGlobalRowFillPnlFont0 <- function () {styleGlobal + rowFill + pnlFont + DataFormat("#,##0.00")+ globalAlignment}
-        sGlobalRowFillPnlFont1 <- function () {styleGlobal + rowFill + pnlFont + DataFormat("#,##0.00 %")+ globalAlignment}
+        sGlobalRowFillRowFont3 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.0") + Alignment(h="ALIGN_CENTER")}
+        sGlobalRowFillRowFont4 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.0 %")+ globalAlignment}
+        sGlobalWgtFillRowFont0 <- function () {styleGlobal + wgtFill + rowFont + DataFormat("#,##0.0 %")+ globalAlignment}
+        sGlobalRowFillPnlFont0 <- function () {styleGlobal + rowFill + pnlFont + DataFormat("#,##0.0")+ globalAlignment}
+        sGlobalRowFillPnlFont1 <- function () {styleGlobal + rowFill + pnlFont + DataFormat("#,##0.0 %")+ globalAlignment}
 
         ## Define the list of cell styles:
         cellStyles <- lapply(columnStyles[tableHeader], function(x) do.call(x[["rowStyle"]], list()))

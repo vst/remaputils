@@ -66,6 +66,9 @@ dbRemapCountryTreater <- function(countries, countrymaps) {
     ## Assign capitalised country names to non-NA's:
     countries[!is.na(countries)] <- capitalised[!is.na(countries)]
 
+    ##:
+    countries <- ifelse(is.na(countries), "Notavailable", countries)
+
     ## Notavailable field to NA:
     countries[countries == "Notavailable"] <- NA
 

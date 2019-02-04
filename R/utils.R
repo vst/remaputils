@@ -1,3 +1,72 @@
+##' A function to check multiple conditions row-wise in data-frame.
+##'
+##' This is a description.
+##'
+##' @param df A data-frame.
+##' @param inCols TODO
+##' @param candCols TODO
+##' @param inKeys TODO
+##' @param exKeys TODO
+##' @param inclToIns TOOD
+##' @return Returns a vector with logicals.
+##' @export
+getIndex <- function(df, inCols, candCols=NULL, inKeys=NULL, exKeys=NULL, inclToIns=NULL) {
+
+    ## If 1 inKeys in provided, duplicate:
+    if (length(inKeys) == 1) {
+        inKeys <- c(inKeys, inKeys)
+    }
+    ## If 1 exKeys in provided, duplicate:
+    if (length(exKeys) == 1) {
+        exKeys <- c(exKeys, exKeys)
+    }
+
+    ## Define a auxiliary function:
+    auxFun <- function(df, x) {
+        if (is.null(x)) {
+            return(x)
+        }
+        apply(do.call(cbind, lapply(1:length(x), function(i) {
+            apply(mgrep(df[, names(x)[i]], x[[i]]), MARGIN=1, function(z) any(z != "0"))
+        })), MARGIN=1, any)
+    }
+
+    ## Define a auxiliary function:
+    auxFun2 <- function(df, x) {
+        if (is.null(x)) {
+            return(rep(FALSE, NROW(df)))
+        }
+        apply(do.call(cbind, lapply(1:length(x), function(i) {
+            .x <- apply(df[, names(x)], MARGIN=2, toupper)
+            mxgrep(.x, toupper(x[[i]]))
+        })), MARGIN=1, function(z) any(!is.na(z)))
+    }
+
+    ## Get the inclusive column logicals:
+    inCols <- auxFun(df, inCols)
+
+    ## Get the candidate column logicals:
+    candCols <- auxFun(df, candCols)
+
+    ## Get the inclusive key column logicals:
+    inKeys <- auxFun2(df, inKeys)
+
+    ## Get the exclusive key column logicals:
+    exKeys <- auxFun2(df, exKeys)
+
+    ## If some keys are automatically to be considered in inclusive key column, add:
+    if (!is.null(inclToIns)) {
+        inKeys <- inKeys | apply(do.call(cbind, lapply(1:length(inclToIns), function(i) {
+            apply(mgrep(df[, names(inclToIns)[i]], inclToIns[[i]]), MARGIN=1, function(x) any(x != "0"))
+        })), MARGIN=1, any)
+    }
+
+    ## Run the condition and return:
+    inCols | candCols & inKeys & !exKeys
+
+}
+
+
 ##' This function checks if value is a whole number:
 ##'
 ##' This is a description.
@@ -264,7 +333,7 @@ specialCharacterTreater <- function(df, cols=NULL) {
 ##' @param nameField The column name of the name field.
 ##' @return A list with date and value.
 ##' @export
-valueOfNearestDate <- function(targetDate, data, tolerance, dateField="date", valueField="price", nameField="name") {
+valueOfNearestDate <- function(targetDate, data, tolerance, dateField="date", valueField="price", nameField=NULL) {
 
     ## Compute the date difference:
     dateDist <- data[, dateField] - targetDate
@@ -293,8 +362,7 @@ valueOfNearestDate <- function(targetDate, data, tolerance, dateField="date", va
     ## Done, return the value and corresponding date:
     return(list("date"=data[, dateField][minDistIdx],
                 "value"=data[, valueField][minDistIdx],
-                "name"=data[, nameField][minDistIdx]))
-
+                "name"=ifelse(is.null(nameField), NA, data[, nameField][minDistIdx])))
 
 }
 
@@ -364,12 +432,16 @@ assertit <- function (condition, error) {
 ##'
 ##' @param df A data-frame.
 ##' @param inCols TODO
-##' @param exCols TODO
 ##' @param idCols TODO
 ##' @param addConditions TODO
 ##' @return A list with the row indices and the group indices of the strategy.
 ##' @export
-indexCompiler <- function(df, inCols, exCols, idCols, addConditions) {
+indexCompiler <- function(df, inCols, idCols=NULL, addConditions=NULL) {
+
+    ## If no idCols, set to inCols:
+    if (is.null(idCols)) {
+        idCols <- names(inCols)[1]
+    }
 
     ## Initialise the reval:
     retval <- list("index"=NULL,
@@ -384,8 +456,13 @@ indexCompiler <- function(df, inCols, exCols, idCols, addConditions) {
     considerId <- ifelse(consider, "CONSIDER", sapply(1:NROW(df), function(z) getRandString()))
 
     ## Construct the composite id:
-    idColVals <- apply(df[, unlist(idCols)], MARGIN=2, function(x) sapply(x, function(z) ifelse(is.na(z), getRandString(), z)))
-    df[, "composite"] <- paste0(apply(idColVals, MARGIN=1, function(x) trimDws(paste0(x, collapse=""))), considerId)
+    idColVals <- apply(as.data.frame(df[, unlist(idCols)]), MARGIN=2, function(x) sapply(x, function(z) ifelse(is.na(z), getRandString(), z)))
+
+    if (NROW(df) == 1) {
+        df[, "composite"] <- paste0(trimDws(paste0(idColVals, collapse="")), considerId)
+    } else {
+        df[, "composite"] <- paste0(apply(idColVals, MARGIN=1, function(x) trimDws(paste0(x, collapse=""))), considerId)
+    }
 
     ## Get the table with occurances:
     occurances <- data.frame(table(as.character(df[, "composite"])))

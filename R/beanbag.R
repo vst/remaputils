@@ -480,8 +480,8 @@ writeFundReport <- function (report, file) {
         }
 
         globalAlignment <- Alignment(h="ALIGN_LEFT", indent=30)
-        globalAlignment <- Alignment(h="ALIGN_LEFT", indent=30)
-        sGlobalRowFont0 <- function() {styleGlobal + rowFont + DataFormat("#,##0.00")}
+        sGlobalRowFont0 <- function() {styleGlobal + rowFont + DataFormat("#,##0.0")}
+        sGlobalRowFont0X <- function() {styleGlobal + rowFont + DataFormat("#,##0")}
         styleShrclass0 <- function () {styleShrcls + Alignment(h="ALIGN_CENTER")}
         sGlobalRowFillRowFont0 <- function () {styleGlobal + rowFill + rowFont}
         sGlobalRowFillRowFont1 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.0") + globalAlignment}
@@ -558,9 +558,9 @@ writeFundReport <- function (report, file) {
             ## Add NAV/Share:
             writeCell(sheet, nextRow+2, stCol, .emptyToNA(px$px_clsccy$qty), sGlobalRowFont0())
             ## Add NAV:
-            writeCell(sheet, nextRow+3, stCol, .emptyToNA(px$nav_adjusted$qty), sGlobalRowFont0())
+            writeCell(sheet, nextRow+3, stCol, .emptyToNA(px$nav_adjusted$qty), sGlobalRowFont0X())
             ## Add AuM:
-            writeCell(sheet, nextRow+4, stCol, .emptyToNA(px$gav_clsccy$qty), sGlobalRowFont0())
+            writeCell(sheet, nextRow+4, stCol, .emptyToNA(px$gav_clsccy$qty), sGlobalRowFont0X())
             ## Add Peformance (YTD):
             writeCell(sheet, nextRow+5, stCol, .emptyToNA(px$ytdext), sGlobalRowFont0())
 
@@ -583,7 +583,7 @@ writeFundReport <- function (report, file) {
     sheet$getPrintSetup()$setFitWidth(.jshort(1L))
 
     ## Compute the scale to be used:
-    scale <- as.integer((36000 / sum(sapply(columnStyles[tableHeader], function(x) x[["width"]]))) * 100)
+    scale <- as.integer((36200 / sum(sapply(columnStyles[tableHeader], function(x) x[["width"]]))) * 100)
 
     ## Dynamically set scale:
     sheet$getPrintSetup()$setScale(.jshort(scale))

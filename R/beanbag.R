@@ -23,7 +23,7 @@ COMPOSITION1 <- function(portfolio, ccy, date, dtype, regions, session){
 
     ## The columsn to be selected for this composition:
     colselect <- c(
-        "Name", "QTY", "CCY", "PX Cost", "PX Last", "Value", "Accrd", "Value (%)", "Exposure", "Exp (%)", "PnL (Unreal)", "PnL (% Inv.)", "order"
+        "Name", "QTY", "CCY", "PX Cost", "PX Last", "Value", "Accrd", "Value (%)", "Exposure", "Exp (%)", "PnL (Unrl)", "PnL (%Inv)", "order"
     )
 
     ## The summary addons for this composition:
@@ -58,7 +58,7 @@ COMPOSITION2 <- function(portfolio, ccy, date, dtype, regions, session){
 
     ## The columsn to be selected for this composition:
     colselect <- c(
-        "Name", "QTY", "CCY", "PX Cost", "PX Last", "Value", "Accrd", "Value (%)", "Exposure", "Exp (%)", "PnL (Unreal)", "PnL (% Inv.)", "order"
+        "Name", "QTY", "CCY", "PX Cost", "PX Last", "Value", "Accrd", "Value (%)", "Exposure", "Exp (%)", "PnL (Unrl)", "PnL (%Inv)", "order"
     )
 
     ## The summary addons for this composition:
@@ -91,7 +91,7 @@ COMPOSITION3 <- function(portfolio, ccy, date, dtype, regions, session){
 
     ## The columsn to be selected for this composition:
     colselect <- c(
-        "Name", "QTY", "CCY", "Expiry", "Rate", "PX Cost", "PX Last", "Value", "Value (%)", "Exposure", "Exp (%)", "PnL (Unreal)", "PnL (% Inv.)", "order"
+        "Name", "QTY", "CCY", "Expiry", "Rate", "PX Cost", "PX Last", "Value", "Value (%)", "Exposure", "Exp (%)", "PnL (Unrl)", "PnL (%Inv)", "order"
     )
 
     sublevel <- NULL
@@ -165,7 +165,7 @@ COMPOSITION4 <- function(portfolio, ccy, date, dtype, regions, session){
 
     ## The columsn to be selected for this composition:
     colselect <- c(
-        "Name", "QTY", "CCY", "PX Cost", "PX Last", "Value", "Value (%)", "Exposure", "Exp (%)", "PnL (Unreal)", "PnL (% Inv.)", "order"
+        "Name", "QTY", "CCY", "PX Cost", "PX Last", "Value", "Value (%)", "Exposure", "Exp (%)", "PnL (Unrl)", "PnL (%Inv)", "order"
     )
 
     ## The summary addons for this composition:
@@ -207,8 +207,8 @@ retreatReport <- function (indata) {
     holdings$"Value (%)" <- fixit(holdings$"Value (%)") / 100
     holdings$Exposure <- fixit(holdings$Exposure)
     holdings$"Exp (%)" <- fixit(holdings$"Exp (%)") / 100
-    holdings$"PnL (Unreal)" <- fixit(holdings$"PnL (Unreal)")
-    holdings$"PnL (% Inv.)" <- fixit(holdings$"PnL (% Inv.)") / 100
+    holdings$"PnL (Unrl)" <- fixit(holdings$"PnL (Unrl)")
+    holdings$"PnL (%Inv)" <- fixit(holdings$"PnL (%Inv)") / 100
     holdings$order <- fixit(holdings$order)
 
     ## Slive the data to be printed:
@@ -232,6 +232,7 @@ retreatReport <- function (indata) {
 ##' @return Next row number.
 ##' @export
 writeTableHeader <- function (sheet, row, header, alignments, baseStyle) {
+
     ## Translate alignments and filter out nulls:
     alignments <- Filter(Negate(is.null), lapply(alignments, function (x) .lookupAlignment()[[x]]))
 
@@ -305,6 +306,18 @@ writeCell <- function (sheet, row, col, value, style) {
 ##' @export
 writeFundReport <- function (report, file) {
 
+    ## If no holdings, mask one:
+    if (is.null(report$holdings)) {
+        report$holdings <- data.frame("Name"=NA,
+                                      "QTY"=NA,
+                                      "CCY"=NA,
+                                      "Value"=NA,
+                                      "Value (%)"=NA,
+                                      "Exposure"=NA,
+                                      "order"=1,
+                                      check.names=FALSE)
+    }
+
     ## Define function globals:
     .SHEETNAME <- "Default"
     .GLOBAL.FONT.NAME <- "DejaVu Sans"
@@ -312,7 +325,7 @@ writeFundReport <- function (report, file) {
     .GLOBAL.BORDER.COLOR <- "black"
     .GLOBAL.BORDER.PEN <- "BORDER_MEDIUM"
     .GLOBAL.FILL.COLOR <- "#e2dcea"
-    .TITLE.FONT.SIZE <- 32
+    .TITLE.FONT.SIZE <- 28
     .WIDTH <- length(which(safeGrep(colnames(report$holdings), "order") == 0))
 
     ## Get the holdings:
@@ -326,6 +339,9 @@ writeFundReport <- function (report, file) {
 
     ## Define the global default cell style:
     styleGlobal <- CellStyle(workbook) + Font(workbook, name=.GLOBAL.FONT.NAME, heightInPoints=.GLOBAL.FONT.SIZE)
+
+    styleShrcls <- styleGlobal + Font(workbook, name=.GLOBAL.FONT.NAME, heightInPoints=6, isBold=TRUE) +
+        Fill(backgroundColor="#000000", foregroundColor=.GLOBAL.FILL.COLOR, pattern="SOLID_FOREGROUND")
 
     ## Define the cell style for "TITLE":
     styleTitle <- styleGlobal +
@@ -360,22 +376,19 @@ writeFundReport <- function (report, file) {
 
     ## Add ISIN:
     writeCell(sheet, nextRow, 1, "ISIN", styleLabel)
-    writeCell(sheet, nextRow, 2, report$consolidation$isin, styleGlobal)  ## TODO: Add ISIN
+    writeCell(sheet, nextRow, 2, .emptyToNA(report$consolidation$isin), styleGlobal)  ## TODO: Add ISIN
     nextRow <- nextRow + 1
 
     ## Add Launch Date:
     writeCell(sheet, nextRow, 1, "Launch Date", styleLabel)
-    writeCell(sheet, nextRow, 2, .formatDate(report$consolidation$inception), styleGlobal + DataFormat("DD/MM/YYYY"))  ## TODO: Add Launch Date
+    writeCell(sheet, nextRow, 2, .formatDate(.emptyToNA(report$consolidation$inception)), styleGlobal + DataFormat("DD/MM/YYYY"))  ## TODO: Add Launch Date
     nextRow <- nextRow + 1
 
     ## Add Report Date:
     writeCell(sheet, nextRow, 1, "Report Date", styleLabel)
-    writeCell(sheet, nextRow, 2, .formatDate(report$consolidation$asof), styleGlobal + DataFormat("DD/MM/YYYY"))
+    writeCell(sheet, nextRow, 2, .formatDate(.emptyToNA(report$consolidation$asof)), styleGlobal + DataFormat("DD/MM/YYYY"))
     nextRow <- nextRow + 1
     nextRow <- nextRow + 1
-
-    ## Define the table headers:
-    tableHeader <- colnames(holdings)
 
     ## Define the table header cell alignments:
     ##
@@ -389,21 +402,24 @@ writeFundReport <- function (report, file) {
     ## all following cells are also centered. Once the bug is fixed,
     ## we can use the first statement instead.
 
-    columnStyles <- list("Name"        =list("align"="c", "rowStyle"="sGlobalRowFillRowFont0", "width"=28L * 256L),
-                         "QTY"         =list("align"="r", "rowStyle"="sGlobalRowFillRowFont1", "width"=14L * 256L),
-                         "CCY"         =list("align"="c", "rowStyle"="sGlobalRowFillRowFont2", "width"= 4L * 256L),
-                         "Expiry"      =list("align"="c", "rowStyle"="sGlobalRowFillRowFont2", "width"=14L * 256L),
-                         "Rate"        =list("align"="r", "rowStyle"="sGlobalRowFillRowFont1", "width"=10L * 256L),
-                         "PX Cost"     =list("align"="c", "rowStyle"="sGlobalRowFillRowFont3", "width"=12L * 256L),
-                         "PX Last"     =list("align"="c", "rowStyle"="sGlobalRowFillRowFont3", "width"=12L * 256L),
-                         "Value"       =list("align"="c", "rowStyle"="sGlobalRowFillRowFont1", "width"=14L * 256L),
-                         "Accrd"       =list("align"="c", "rowStyle"="sGlobalRowFillRowFont1", "width"=14L * 256L),
-                         "Value (%)"   =list("align"="c", "rowStyle"="sGlobalWgtFillRowFont0", "width"=10L * 256L),
-                         "Exposure"    =list("align"="c", "rowStyle"="sGlobalRowFillRowFont1", "width"=15L * 256L),
-                         "Exp (%)"     =list("align"="c", "rowStyle"="sGlobalRowFillRowFont4", "width"=10L * 256L),
-                         "PnL (Unreal)"=list("align"="c", "rowStyle"="sGlobalRowFillPnlFont0", "width"=15L * 256L),
-                         "PnL (% Inv.)"=list("align"="c", "rowStyle"="sGlobalRowFillPnlFont1", "width"=14L * 256L))
 
+    columnStyles <- list("Name"        =list("align"="c", "rowStyle"="sGlobalRowFillRowFont0", "width"=28L * 256L),
+                         "QTY"         =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=12L * 256L),
+                         "CCY"         =list("align"="l", "rowStyle"="sGlobalRowFillRowFont2", "width"= 4L * 256L),
+                         "Expiry"      =list("align"="l", "rowStyle"="sGlobalRowFillRowFont2", "width"=12L * 256L),
+                         "Rate"        =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=11L * 256L),
+                         "PX Cost"     =list("align"="l", "rowStyle"="sGlobalRowFillRowFont3", "width"=11L * 256L),
+                         "PX Last"     =list("align"="l", "rowStyle"="sGlobalRowFillRowFont3", "width"=11L * 256L),
+                         "Value"       =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=12L * 256L),
+                         "Accrd"       =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"= 8L * 256L),
+                         "Value (%)"   =list("align"="l", "rowStyle"="sGlobalWgtFillRowFont0", "width"= 8L * 256L),
+                         "Exposure"    =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=12L * 256L),
+                         "Exp (%)"     =list("align"="l", "rowStyle"="sGlobalRowFillRowFont4", "width"= 8L * 256L),
+                         "PnL (Unrl)"  =list("align"="l", "rowStyle"="sGlobalRowFillPnlFont0", "width"=10L * 256L),
+                         "PnL (%Inv)"  =list("align"="l", "rowStyle"="sGlobalRowFillPnlFont1", "width"= 8L * 256L))
+
+    ## Define the table headers:
+    tableHeader <- colnames(holdings)
 
     ## How shall the table headers be aligned?
     tableAligns <- unlist(sapply(columnStyles[tableHeader], function(x) x[["align"]]))
@@ -463,15 +479,17 @@ writeFundReport <- function (report, file) {
             pnlFont <- rowFont
         }
 
+        globalAlignment <- Alignment(h="ALIGN_LEFT", indent=30)
         sGlobalRowFont0 <- function() {styleGlobal + rowFont + DataFormat("#,##0.00")}
+        styleShrclass0 <- function () {styleShrcls + Alignment(h="ALIGN_CENTER")}
         sGlobalRowFillRowFont0 <- function () {styleGlobal + rowFill + rowFont}
-        sGlobalRowFillRowFont1 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.00")}
-        sGlobalRowFillRowFont2 <- function () {styleGlobal + rowFill + rowFont + DataFormat("@") + Alignment(h="ALIGN_CENTER")}
-        sGlobalRowFillRowFont3 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.0000") + Alignment(h="ALIGN_CENTER")}
-        sGlobalRowFillRowFont4 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.00 %")}
-        sGlobalWgtFillRowFont0 <- function () {styleGlobal + wgtFill + rowFont + DataFormat("#,##0.00 %")}
-        sGlobalRowFillPnlFont0 <- function () {styleGlobal + rowFill + pnlFont + DataFormat("#,##0.00")}
-        sGlobalRowFillPnlFont1 <- function () {styleGlobal + rowFill + pnlFont + DataFormat("#,##0.00 %")}
+        sGlobalRowFillRowFont1 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.00") + globalAlignment}
+        sGlobalRowFillRowFont2 <- function () {styleGlobal + rowFill + rowFont + DataFormat("@") + globalAlignment}
+        sGlobalRowFillRowFont3 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.00") + globalAlignment}
+        sGlobalRowFillRowFont4 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.00 %")+ globalAlignment}
+        sGlobalWgtFillRowFont0 <- function () {styleGlobal + wgtFill + rowFont + DataFormat("#,##0.00 %")+ globalAlignment}
+        sGlobalRowFillPnlFont0 <- function () {styleGlobal + rowFill + pnlFont + DataFormat("#,##0.00")+ globalAlignment}
+        sGlobalRowFillPnlFont1 <- function () {styleGlobal + rowFill + pnlFont + DataFormat("#,##0.00 %")+ globalAlignment}
 
         ## Define the list of cell styles:
         cellStyles <- lapply(columnStyles[tableHeader], function(x) do.call(x[["rowStyle"]], list()))
@@ -495,34 +513,67 @@ writeFundReport <- function (report, file) {
         }
     }
 
-    ## Add number of certificates:
-    writeCell(sheet, nextRow, 1, "Number of Certificates", styleLabel)
-    writeCell(sheet, nextRow, 2, ifelse(is.null(report$consolidation$subscriptions), NA, report$consolidation$subscriptions), sGlobalRowFont0())
-    nextRow <- nextRow + 1
+    ## Is the portfolio a mandate?
+    isMandate <- all(sapply(report$consolidation$pxinfo, function(x) length(x[["shareclass"]][["subscriptions"]]) == 0 &
+                                                                     length(x[["shareclass"]][["feeschedules"]]) == 0))
+    ## If it is a mandate, write mandate summary:
+    if (isMandate) {
+        ## Add NAV row name:
+        writeCell(sheet, nextRow, 2, "NAV", styleLabel)
+        ## Add the Performance YTD row name:
+        writeCell(sheet, nextRow+1, 2, "Peformance (YTD)", styleLabel)
 
-    ## Add NAV/Share:
-    writeCell(sheet, nextRow, 1, "NAV/Share", styleLabel)
-    writeCell(sheet, nextRow, 2, ifelse(is.null(report$consolidation$price$qty), NA, report$consolidation$price$qty), sGlobalRowFont0())
-    writeCell(sheet, nextRow, 3, ifelse(is.null(report$consolidation$price$ccy), NA, report$consolidation$price$ccy), styleGlobal)
-    nextRow <- nextRow + 1
+        ## Define the global default cell style:
+        for (px in report$consolidation$pxinfo) {
+            ## Add NAV value:
+            writeCell(sheet, nextRow,   4, .emptyToNA(px$nav$qty), sGlobalRowFont0())
+            ## Add the performance ytd value:
+            writeCell(sheet, nextRow+1, 4, .emptyToNA(px$ytdext), sGlobalRowFont0())
+        }
+        ## And update next rows:
+        nextRow <- nextRow + 2
+    }
 
-    ## Add NAV:
-    writeCell(sheet, nextRow, 1, "NAV", styleLabel)
-    writeCell(sheet, nextRow, 2, ifelse(is.null(report$consolidation$nav), NA, report$consolidation$nav), sGlobalRowFont0())
-    writeCell(sheet, nextRow, 3, ifelse(is.null(report$consolidation$ccy), NA, report$consolidation$ccy), styleGlobal)
-    nextRow <- nextRow + 1
+    ## If it is a fund, write the fund summary:
+    if (!isMandate) {
+        ## Add number of certificates:
+        writeCell(sheet, nextRow,   2, "Shareclass", styleLabel)
+        writeCell(sheet, nextRow+1, 2, "# Certificates", styleLabel)
+        writeCell(sheet, nextRow+2, 2, "NAV/Share", styleLabel)
+        writeCell(sheet, nextRow+3, 2, "NAV", styleLabel)
+        writeCell(sheet, nextRow+4, 2, "GAV", styleLabel)
+        writeCell(sheet, nextRow+5, 2, "Peformance (YTD)", styleLabel)
 
-    ## Add AuM:
-    writeCell(sheet, nextRow, 1, "AuM", styleLabel)
-    writeCell(sheet, nextRow, 2, ifelse(is.null(report$consolidation$aum), NA, report$consolidation$aum), sGlobalRowFont0())
-    writeCell(sheet, nextRow, 3, ifelse(is.null(report$consolidation$ccy), NA, report$consolidation$ccy), styleGlobal)
-    nextRow <- nextRow + 1
+        stCol <- 4
 
-    ## Add Peformance (YTD):
-    writeCell(sheet, nextRow, 1, "Peformance (YTD)", styleLabel)
-    writeCell(sheet, nextRow, 2,  report$consolidation$passiveYTD, sGlobalRowFont0())
-    nextRow <- nextRow + 1
-    nextRow <- nextRow + 1
+        ## Define the global default cell style:
+        for (px in report$consolidation$pxinfo) {
+
+            ## Add number of certificates:
+            writeCell(sheet, nextRow, stCol, .emptyToNA(px$shareclass$name),  styleShrclass0())
+            ## Add number of certificates:
+            writeCell(sheet, nextRow+1, stCol, .emptyToNA(px$sharecount_curr), sGlobalRowFont0())
+            ## Add NAV/Share:
+            writeCell(sheet, nextRow+2, stCol, .emptyToNA(px$px_clsccy$qty), sGlobalRowFont0())
+            ## Add NAV:
+            writeCell(sheet, nextRow+3, stCol, .emptyToNA(px$nav_adjusted$qty), sGlobalRowFont0())
+            ## Add AuM:
+            writeCell(sheet, nextRow+4, stCol, .emptyToNA(px$gav_clsccy$qty), sGlobalRowFont0())
+            ## Add Peformance (YTD):
+            writeCell(sheet, nextRow+5, stCol, .emptyToNA(px$ytdext), sGlobalRowFont0())
+
+            ## Compute the required width for the shareclass name cell:
+            requiredWidth <- ifelse(is.null(px$shareclass$name), 0, nchar(px$shareclass$name) * 120)
+
+            ## Update the width(s) for corresponding columns:
+            columnStyles[tableHeader][[stCol]]$width <- max(columnStyles[tableHeader][[stCol]]$width,  requiredWidth)
+
+            ## Next shareclass info, if any:
+            stCol <- stCol + 1
+        }
+        ## And update the new row:
+        nextRow <- nextRow + 6
+    }
 
     ## Lastly, we will set print settings:
     sheet$getPrintSetup()$setLandscape(TRUE);
@@ -565,6 +616,11 @@ writeFundReport <- function (report, file) {
 ##' @return TODO.
 ##' @export
 appendCash <- function(orderedHoldings, nestedHoldings){
+
+    ## If no cash, return holdings:
+    if (NROW(orderedHoldings[["cash"]]) == 0) {
+        return(nestedHoldings)
+    }
 
     ## Get the cash positions:
     cash <- orderedHoldings[["cash"]]
@@ -652,8 +708,8 @@ getSummary <- function(holdings, idxpair){
                "Value (%)"=sum(as.numeric(na.omit(chunk[,"Value (%)"]))),
                "Exposure"=sum(as.numeric(na.omit(chunk[,"Exposure"]))),
                "Exp (%)"=sum(as.numeric(na.omit(chunk[,"Exp (%)"]))),
-               "PnL (Unreal)"=sum(as.numeric(na.omit(chunk[,"PnL (Unreal)"]))),
-               "PnL (% Inv.)"=mean(as.numeric(na.omit(chunk[,"PnL (% Inv.)"]))), check.names=FALSE)
+               "PnL (Unrl)"=sum(as.numeric(na.omit(chunk[, "PnL (Unrl)"]))),
+               "PnL (%Inv)"=mean(as.numeric(na.omit(chunk[,"PnL (%Inv)"]))), check.names=FALSE)
 }
 
 

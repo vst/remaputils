@@ -340,7 +340,7 @@ writeFundReport <- function (report, file) {
     ## Define the global default cell style:
     styleGlobal <- CellStyle(workbook) + Font(workbook, name=.GLOBAL.FONT.NAME, heightInPoints=.GLOBAL.FONT.SIZE)
 
-    styleShrcls <- styleGlobal + Font(workbook, name=.GLOBAL.FONT.NAME, heightInPoints=6, isBold=TRUE) +
+    styleShrcls <- styleGlobal + Font(workbook, name=.GLOBAL.FONT.NAME, heightInPoints=7, isBold=TRUE) +
         Fill(backgroundColor="#000000", foregroundColor=.GLOBAL.FILL.COLOR, pattern="SOLID_FOREGROUND")
 
     ## Define the cell style for "TITLE":
@@ -403,7 +403,7 @@ writeFundReport <- function (report, file) {
     ## we can use the first statement instead.
 
 
-    columnStyles <- list("Name"        =list("align"="c", "rowStyle"="sGlobalRowFillRowFont0", "width"=30L * 256L),
+    columnStyles <- list("Name"        =list("align"="c", "rowStyle"="sGlobalRowFillRowFont0", "width"=32L * 256L),
                          "QTY"         =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=14L * 256L),
                          "CCY"         =list("align"="l", "rowStyle"="sGlobalRowFillRowFont2", "width"= 4L * 256L),
                          "Expiry"      =list("align"="l", "rowStyle"="sGlobalRowFillRowFont2", "width"=12L * 256L),
@@ -563,7 +563,7 @@ writeFundReport <- function (report, file) {
             writeCell(sheet, nextRow+5, stCol, .emptyToNA(px$ytdext), sGlobalRowFont0())
 
             ## Compute the required width for the shareclass name cell:
-            requiredWidth <- ifelse(is.null(px$shareclass$name), 0, nchar(px$shareclass$name) * 160)
+            requiredWidth <- ifelse(is.null(px$shareclass$name), 0, nchar(px$shareclass$name) * 180)
 
             ## Update the width(s) for corresponding columns:
             columnStyles[tableHeader][[stCol]]$width <- max(columnStyles[tableHeader][[stCol]]$width,  requiredWidth)

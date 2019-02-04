@@ -403,20 +403,20 @@ writeFundReport <- function (report, file) {
     ## we can use the first statement instead.
 
 
-    columnStyles <- list("Name"        =list("align"="c", "rowStyle"="sGlobalRowFillRowFont0", "width"=28L * 256L),
-                         "QTY"         =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=12L * 256L),
+    columnStyles <- list("Name"        =list("align"="c", "rowStyle"="sGlobalRowFillRowFont0", "width"=30L * 256L),
+                         "QTY"         =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=14L * 256L),
                          "CCY"         =list("align"="l", "rowStyle"="sGlobalRowFillRowFont2", "width"= 4L * 256L),
                          "Expiry"      =list("align"="l", "rowStyle"="sGlobalRowFillRowFont2", "width"=12L * 256L),
                          "Rate"        =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=12L * 256L),
-                         "PX Cost"     =list("align"="l", "rowStyle"="sGlobalRowFillRowFont3", "width"=12L * 256L),
-                         "PX Last"     =list("align"="l", "rowStyle"="sGlobalRowFillRowFont3", "width"=12L * 256L),
-                         "Value"       =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=13L * 256L),
-                         "Accrd"       =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"= 8L * 256L),
-                         "Value (%)"   =list("align"="l", "rowStyle"="sGlobalWgtFillRowFont0", "width"= 9L * 256L),
-                         "Exposure"    =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=13L * 256L),
-                         "Exp (%)"     =list("align"="l", "rowStyle"="sGlobalRowFillRowFont4", "width"= 8L * 256L),
-                         "PnL (Unrl)"  =list("align"="l", "rowStyle"="sGlobalRowFillPnlFont0", "width"=10L * 256L),
-                         "PnL (%Inv)"  =list("align"="l", "rowStyle"="sGlobalRowFillPnlFont1", "width"= 8L * 256L))
+                         "PX Cost"     =list("align"="l", "rowStyle"="sGlobalRowFillRowFont3", "width"=13L * 256L),
+                         "PX Last"     =list("align"="l", "rowStyle"="sGlobalRowFillRowFont3", "width"=13L * 256L),
+                         "Value"       =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=14L * 256L),
+                         "Accrd"       =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=10L * 256L),
+                         "Value (%)"   =list("align"="l", "rowStyle"="sGlobalWgtFillRowFont0", "width"=10L * 256L),
+                         "Exposure"    =list("align"="l", "rowStyle"="sGlobalRowFillRowFont1", "width"=14L * 256L),
+                         "Exp (%)"     =list("align"="l", "rowStyle"="sGlobalRowFillRowFont4", "width"=10L * 256L),
+                         "PnL (Unrl)"  =list("align"="l", "rowStyle"="sGlobalRowFillPnlFont0", "width"=12L * 256L),
+                         "PnL (%Inv)"  =list("align"="l", "rowStyle"="sGlobalRowFillPnlFont1", "width"=10L * 256L))
 
     ## Define the table headers:
     tableHeader <- colnames(holdings)
@@ -563,7 +563,7 @@ writeFundReport <- function (report, file) {
             writeCell(sheet, nextRow+5, stCol, .emptyToNA(px$ytdext), sGlobalRowFont0())
 
             ## Compute the required width for the shareclass name cell:
-            requiredWidth <- ifelse(is.null(px$shareclass$name), 0, nchar(px$shareclass$name) * 120)
+            requiredWidth <- ifelse(is.null(px$shareclass$name), 0, nchar(px$shareclass$name) * 160)
 
             ## Update the width(s) for corresponding columns:
             columnStyles[tableHeader][[stCol]]$width <- max(columnStyles[tableHeader][[stCol]]$width,  requiredWidth)
@@ -581,7 +581,7 @@ writeFundReport <- function (report, file) {
     sheet$getPrintSetup()$setFitWidth(.jshort(1L))
 
     ## Compute the scale to be used:
-    scale <- as.integer((35000 / sum(sapply(columnStyles[tableHeader], function(x) x[["width"]]))) * 100)
+    scale <- as.integer((35500 / sum(sapply(columnStyles[tableHeader], function(x) x[["width"]]))) * 100)
 
     ## Dynamically set scale:
     sheet$getPrintSetup()$setScale(.jshort(scale))

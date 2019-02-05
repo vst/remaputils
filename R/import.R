@@ -121,6 +121,10 @@ xDecafPreemble <- function(sourceSession, targetSession, containerMap, container
     ## Add the container type information:
     portAccMap[, "containerType"] <- rep(containerType, NROW(portAccMap))
 
+    taccountname <- lapply(containerMap, function(x) x[["taccountname"]])
+    taccountname <- sapply(taccountname, function(x) ifelse(is.null(x), NA, x))
+    portAccMap[, "taccountname"] <- taccountname
+
     ## Print message:
     print(paste0("Retrieving stocks and corresponding resources from source for ", containerType, " ..."))
 
@@ -130,8 +134,18 @@ xDecafPreemble <- function(sourceSession, targetSession, containerMap, container
     ## Get the vision resources by stock:
     sourceResources <- getResourcesByStock(sourceStocks, sourceSession)
 
+    ## Return, if no trades:
+    if (NROW(sourceTrades) == 0) {
+        return(list("trades"=NULL,
+                    "resources"=sourceResources,
+                    "portAccMap"=portAccMap))
+    }
+
     ## Append the ucapbh portfolioNames to the vision trades:
     sourceTrades <- data.frame(sourceTrades, "port_name_target"=portAccMap[match(sourceTrades[, "accmain"], portAccMap[, "account"]), "target"],
+                               stringsAsFactors=FALSE)
+
+    sourceTrades <- data.frame(sourceTrades, "acc_name_target"=portAccMap[match(sourceTrades[, "accmain"], portAccMap[, "account"]), "taccountname"],
                                stringsAsFactors=FALSE)
 
     ## Append the instrument currencies to the vision trades:
@@ -142,7 +156,10 @@ xDecafPreemble <- function(sourceSession, targetSession, containerMap, container
     print("Mapping / Creating accounts ...")
 
     ## Map and overwrite the vision accmain id's with ucapbh accmain id's:
-    sourceTrades[, "accmain"] <- accountMapper(trimConcatenate(sourceTrades[, "port_name_target"]), as.character(sourceTrades[,"ccymain"]), targetSession)
+    sourceTrades[, "accmain"] <- accountMapper(portfolio=trimConcatenate(sourceTrades[, "port_name_target"]),
+                                               currency=as.character(sourceTrades[,"ccymain"]),
+                                               session=targetSession,
+                                               accountName=sourceTrades[, "acc_name_target"])
 
     ## Map and append the resource quantity to vision trades:
     sourceTrades <- data.frame(sourceTrades,
@@ -167,6 +184,7 @@ xDecafPreemble <- function(sourceSession, targetSession, containerMap, container
          "portAccMap"=portAccMap)
 
 }
+
 
 
 ##' A function to return a flat account to portfolio mapping using the portfolio data-frame

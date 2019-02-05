@@ -318,7 +318,7 @@ getOrderedHoldings <- function(holdings, toplevel="Subtype", sublevels=c("CCY", 
         ## Set the custom top levels:
         for (cTop in customTop) {
 
-            print(cTop)
+            ## print(cTop)
 
             ## Run the custom top function:
             retval <- do.call(cTop, list(holdings, args))

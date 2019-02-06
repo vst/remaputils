@@ -84,8 +84,6 @@ COMPOSITION2 <- function(portfolio, ccy, date, dtype, regions, session){
 ##' @export
 COMPOSITION3 <- function(portfolio, ccy, date, dtype, regions, session){
 
-    sourceFromFolder("~/projects/remaputils/R", pattern="*.R")
-
     ## The toplevel for this composition:
     toplevel <- "Subtype"
 
@@ -374,10 +372,17 @@ writeFundReport <- function (report, file) {
     writeCell(sheet, nextRow, 2, report$consolidation$ccy, styleGlobal)
     nextRow <- nextRow + 1
 
-    ## Add ISIN:
-    writeCell(sheet, nextRow, 1, "ISIN", styleLabel)
-    writeCell(sheet, nextRow, 2, .emptyToNA(report$consolidation$isin), styleGlobal)  ## TODO: Add ISIN
-    nextRow <- nextRow + 1
+    ## Is the portfolio a mandate?
+    isMandate <- all(sapply(report$consolidation$pxinfo, function(x) length(x[["shareclass"]][["subscriptions"]]) == 0 &
+                                                                     length(x[["shareclass"]][["feeschedules"]]) == 0))
+
+    ## Add ISIN if fund:
+    if (!isMandate) {
+        ## Add ISIN:
+        writeCell(sheet, nextRow, 1, "ISIN", styleLabel)
+        writeCell(sheet, nextRow, 2, .emptyToNA(report$consolidation$isin), styleGlobal)  ## TODO: Add ISIN
+        nextRow <- nextRow + 1
+    }
 
     ## Add Launch Date:
     writeCell(sheet, nextRow, 1, "Launch Date", styleLabel)
@@ -402,21 +407,41 @@ writeFundReport <- function (report, file) {
     ## all following cells are also centered. Once the bug is fixed,
     ## we can use the first statement instead.
 
-
-    columnStyles <- list("Name"        =list("align"="c", "rowStyle"="sGlobalRowFillRowFont0", "width"=32L * 256L),
+    columnStyles <- list("Name"        =list("align"="c", "rowStyle"="sGlobalRowFillRowFont0", "width"=34L * 256L),
                          "QTY"         =list("align"="c", "rowStyle"="sGlobalRowFillRowFont1", "width"=14L * 256L),
                          "CCY"         =list("align"="c", "rowStyle"="sGlobalRowFillRowFont2", "width"= 4L * 256L),
-                         "Expiry"      =list("align"="c", "rowStyle"="sGlobalRowFillRowFont2", "width"=12L * 256L),
-                         "Rate"        =list("align"="c", "rowStyle"="sGlobalRowFillRowFont1", "width"=12L * 256L),
+                         "Expiry"      =list("align"="c", "rowStyle"="sGlobalRowFillRowFont2", "width"=11L * 256L),
+                         "Rate"        =list("align"="c", "rowStyle"="sGlobalRowFillRowFont1", "width"=11L * 256L),
                          "PX Cost"     =list("align"="c", "rowStyle"="sGlobalRowFillRowFont3", "width"=13L * 256L),
                          "PX Last"     =list("align"="c", "rowStyle"="sGlobalRowFillRowFont3", "width"=13L * 256L),
-                         "Value"       =list("align"="c", "rowStyle"="sGlobalRowFillRowFontX1","width"=14L * 256L),
+                         "Value"       =list("align"="c", "rowStyle"="sGlobalRowFillRowFontX1","width"=13L * 256L),
                          "Accrd"       =list("align"="c", "rowStyle"="sGlobalRowFillRowFont1", "width"=10L * 256L),
                          "Value (%)"   =list("align"="c", "rowStyle"="sGlobalWgtFillRowFont0", "width"=10L * 256L),
-                         "Exposure"    =list("align"="c", "rowStyle"="sGlobalRowFillRowFontX1","width"=14L * 256L),
+                         "Exposure"    =list("align"="c", "rowStyle"="sGlobalRowFillRowFontX1","width"=13L * 256L),
                          "Exp (%)"     =list("align"="c", "rowStyle"="sGlobalRowFillRowFont4", "width"=10L * 256L),
                          "PnL (Unrl)"  =list("align"="c", "rowStyle"="sGlobalRowFillPnlFont0", "width"=12L * 256L),
-                         "PnL (%Inv)"  =list("align"="c", "rowStyle"="sGlobalRowFillPnlFont1", "width"=10L * 256L))
+                         "PnL (%Inv)"  =list("align"="c", "rowStyle"="sGlobalRowFillPnlFont1", "width"=11L * 256L))
+
+
+    sGlobalRowFont0 <- function() {styleGlobal + rowFont + DataFormat("#,##0.0")}
+    sGlobalRowFont0X <- function() {styleGlobal + rowFont + DataFormat("#,##0")}
+    styleShrclass0 <- function () {styleShrcls + Alignment(h="ALIGN_CENTER")}
+
+    globalAlign <- function(h, indent) {
+        alignment <- Alignment(h=h)
+        alignment[["indent"]] <- indent
+        alignment
+    }
+
+    sGlobalRowFillRowFont0 <- function () {styleGlobal + rowFill + rowFont}
+    sGlobalRowFillRowFont1 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.0") + globalAlign("ALIGN_LEFT", 1)}
+    sGlobalRowFillRowFontX1<- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0") + globalAlign("ALIGN_LEFT", 1)}
+    sGlobalRowFillRowFont2 <- function () {styleGlobal + rowFill + rowFont + DataFormat("@") +  globalAlign("ALIGN_CENTER", 0)}
+    sGlobalRowFillRowFont3 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.00") + globalAlign("ALIGN_LEFT", 1)}
+    sGlobalRowFillRowFont4 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.0 %")+ globalAlign("ALIGN_LEFT", 1)}
+    sGlobalWgtFillRowFont0 <- function () {styleGlobal + wgtFill + rowFont + DataFormat("#,##0.0 %")+ globalAlign("ALIGN_LEFT", 1)}
+    sGlobalRowFillPnlFont0 <- function () {styleGlobal + rowFill + pnlFont + DataFormat("#,##0")+ globalAlign("ALIGN_LEFT", 1)}
+    sGlobalRowFillPnlFont1 <- function () {styleGlobal + rowFill + pnlFont + DataFormat("#,##0.0 %")+ globalAlign("ALIGN_LEFT", 1)}
 
     ## Define the table headers:
     tableHeader <- colnames(holdings)
@@ -479,20 +504,6 @@ writeFundReport <- function (report, file) {
             pnlFont <- rowFont
         }
 
-        globalAlignment <- Alignment(h="ALIGN_LEFT", indent=30)
-        sGlobalRowFont0 <- function() {styleGlobal + rowFont + DataFormat("#,##0.0")}
-        sGlobalRowFont0X <- function() {styleGlobal + rowFont + DataFormat("#,##0")}
-        styleShrclass0 <- function () {styleShrcls + Alignment(h="ALIGN_CENTER")}
-        sGlobalRowFillRowFont0 <- function () {styleGlobal + rowFill + rowFont}
-        sGlobalRowFillRowFont1 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.0") + globalAlignment}
-        sGlobalRowFillRowFontX1<- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.0") + globalAlignment}
-        sGlobalRowFillRowFont2 <- function () {styleGlobal + rowFill + rowFont + DataFormat("@") + globalAlignment}
-        sGlobalRowFillRowFont3 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.0") + Alignment(h="ALIGN_CENTER")}
-        sGlobalRowFillRowFont4 <- function () {styleGlobal + rowFill + rowFont + DataFormat("#,##0.0 %")+ globalAlignment}
-        sGlobalWgtFillRowFont0 <- function () {styleGlobal + wgtFill + rowFont + DataFormat("#,##0.0 %")+ globalAlignment}
-        sGlobalRowFillPnlFont0 <- function () {styleGlobal + rowFill + pnlFont + DataFormat("#,##0.0")+ globalAlignment}
-        sGlobalRowFillPnlFont1 <- function () {styleGlobal + rowFill + pnlFont + DataFormat("#,##0.0 %")+ globalAlignment}
-
         ## Define the list of cell styles:
         cellStyles <- lapply(columnStyles[tableHeader], function(x) do.call(x[["rowStyle"]], list()))
 
@@ -515,9 +526,6 @@ writeFundReport <- function (report, file) {
         }
     }
 
-    ## Is the portfolio a mandate?
-    isMandate <- all(sapply(report$consolidation$pxinfo, function(x) length(x[["shareclass"]][["subscriptions"]]) == 0 &
-                                                                     length(x[["shareclass"]][["feeschedules"]]) == 0))
     ## If it is a mandate, write mandate summary:
     if (isMandate) {
         ## Add NAV row name:
@@ -530,10 +538,10 @@ writeFundReport <- function (report, file) {
             ## Add NAV value:
             writeCell(sheet, nextRow,   4, .emptyToNA(px$nav$qty), sGlobalRowFont0())
             ## Add the performance ytd value:
-            writeCell(sheet, nextRow+1, 4, .emptyToNA(px$ytdext), sGlobalRowFont0())
+            writeCell(sheet, nextRow+1, 4, .emptyToNA(px$ytdext), sGlobalRowFillRowFont4())
         }
         ## And update next rows:
-        nextRow <- nextRow + 2
+        ## nextRow <- nextRow + 2
     }
 
     ## If it is a fund, write the fund summary:
@@ -562,7 +570,7 @@ writeFundReport <- function (report, file) {
             ## Add AuM:
             writeCell(sheet, nextRow+4, stCol, .emptyToNA(px$gav_clsccy$qty), sGlobalRowFont0X())
             ## Add Peformance (YTD):
-            writeCell(sheet, nextRow+5, stCol, .emptyToNA(px$ytdext), sGlobalRowFont0())
+            writeCell(sheet, nextRow+5, stCol, .emptyToNA(px$ytdext), sGlobalRowFillRowFont4())
 
             ## Compute the required width for the shareclass name cell:
             requiredWidth <- ifelse(is.null(px$shareclass$name), 0, nchar(px$shareclass$name) * 180)
@@ -573,8 +581,9 @@ writeFundReport <- function (report, file) {
             ## Next shareclass info, if any:
             stCol <- stCol + 1
         }
+
         ## And update the new row:
-        nextRow <- nextRow + 6
+        ## nextRow <- nextRow + 6
     }
 
     ## Lastly, we will set print settings:
@@ -583,7 +592,7 @@ writeFundReport <- function (report, file) {
     sheet$getPrintSetup()$setFitWidth(.jshort(1L))
 
     ## Compute the scale to be used:
-    scale <- as.integer((36200 / sum(sapply(columnStyles[tableHeader], function(x) x[["width"]]))) * 100)
+    scale <- as.integer((37500 / sum(sapply(columnStyles[tableHeader], function(x) x[["width"]]))) * 100)
 
     ## Dynamically set scale:
     sheet$getPrintSetup()$setScale(.jshort(scale))

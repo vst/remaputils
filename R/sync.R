@@ -251,6 +251,9 @@ syncResources <- function(targetSession, sourceSession, sourceAccounts, noPush=F
         return(resources)
     }
 
+    ## resources[, "description"] <- ellipsify(resources[, "description"])
+    resources[is.na(resources[, "quantity"]), "quantity"] <- 1
+
     ## Create the payload:
     payload <- toJSON(list("artifacts"=resources), auto_unbox=TRUE, na="null", digits=10)
 
@@ -258,9 +261,17 @@ syncResources <- function(targetSession, sourceSession, sourceAccounts, noPush=F
     response <- pushPayload(payload=payload, endpoint=NULL, session=targetSession, import=FALSE, inbulk=TRUE, params=list(sync="True"))
 
     ## Done, return:
-    safeRbind(lapply(getResource("resources", params=list("page_size"=-1), session=targetSession), function(res) do.call(cbind, res[!names(res) == "tags"])))
+    resources <- getResource("resources", params=list("page_size"=-1), session=targetSession)
+    resources <- lapply(resources, function(res) do.call(cbind, res[!names(res) == "tags"]))
+    safeRbind(lapply(1:length(resources), function(i) {
+        data.frame(t(resources[[i]][, safeGrep(colnames(resources[[i]]), "extdata") == "0"]),
+                   stringsAsFactors=FALSE)
+    }))
 
 }
+
+
+
 
 
 ##' A function to sync analytical types between 2 DECAF instances:

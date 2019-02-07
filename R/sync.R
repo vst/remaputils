@@ -550,8 +550,6 @@ syncTrades <- function(targetSession, trades, atypes, shrclss, institutions, age
 }
 
 
-
-
 ##' A function to sync ohlc observations between 2 DECAF instances.
 ##'
 ##' This is the description
@@ -576,10 +574,13 @@ syncOHLC <- function(sourceSession, targetSession, resources, lte=NULL, lookBack
     pairs <- expand.grid(currency, currency)
 
     ## Get rid of identities and combine the legs:
-    pairs <- as.character(apply(pairs[apply(pairs, MARGIN=1, function(x) x[1] != x[2]), ], MARGIN=1, function(x) paste0(x, collapse="")))
+    pairs <- as.character(apply(pairs[apply(pairs, MARGIN=1, function(x) as.character(x[1]) != as.character(x[2])), ], MARGIN=1, function(x) paste0(x, collapse="")))
 
     ## Append pairs to the symbols:
     uSymbols <- c(uSymbols, pairs)
+
+    ## Remove empty or NA symbols:
+    uSymbols <- uSymbols[!isNAorEmpty(uSymbols)]
 
     ## Get the ohlc observations for each symbol:
     ohlcObsList <- lapply(uSymbols, function(sym) getOhlcObsForSymbol(sourceSession, sym, lte, lookBack))

@@ -271,9 +271,6 @@ syncResources <- function(targetSession, sourceSession, sourceAccounts, noPush=F
 }
 
 
-
-
-
 ##' A function to sync analytical types between 2 DECAF instances:
 ##'
 ##' This is the description
@@ -529,16 +526,30 @@ syncTrades <- function(targetSession, trades, atypes, shrclss, institutions, age
         trades[, fld] <- NULL
     }
 
-    ## Create the payload:
-    payload <- toJSON(list("actions"=trades), auto_unbox=TRUE, na="null", digits=10)
+    ## Create the trade batches:
+    batches <- createBatches(NROW(trades), 1000)
 
-    ## Push the payload:
-    response <- pushPayload(payload=payload, endpoint=NULL, session=targetSession, import=FALSE, inbulk=TRUE, params=list(sync="True"))
+    ## Iterate over batches:
+    for (i in 1:length(batches[[1]])) {
+
+        ## What's the start index of the current batch:
+        start <- batches$startingIdx[[i]]
+
+        ## What's the end index of the current batch:
+        end <- batches$endingIdx[[i]]
+
+        ## Create the payload:
+        payload <- toJSON(list("actions"=trades[start:end,]), auto_unbox=TRUE, na="null", digits=10)
+
+        ## Push the payload:
+        response <- pushPayload(payload=payload, endpoint=NULL, session=targetSession, import=FALSE, inbulk=TRUE, params=list(sync="True"))
+    }
 
     ## Done, return:
     trades
-
 }
+
+
 
 
 ##' A function to sync ohlc observations between 2 DECAF instances.

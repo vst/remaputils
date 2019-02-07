@@ -1238,8 +1238,12 @@ ellipsify <- function(str, charLimit=30, capitalise=TRUE){
         str <- toupper(str)
     }
 
+    ## NA's stay NA:
+    str[naStr] <- NA
+
     ## Done, return:
     str
+
 }
 
 

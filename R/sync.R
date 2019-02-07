@@ -418,7 +418,7 @@ syncExtValuation <- function(sourceSession, targetSession, targetPortfolios, tar
     ## Iterate over source  portfolio id's and get external valuations:
     for (id in sourcePortIds) {
         ## Get the valuation and combine:
-        extValuations <- rbind(extValuations, as.data.frame(getResource("passivevaluations", params=list("format"="csv", "page_size"=-1, "portfolio"=id), session=sourceSession)))
+        extValuations <- rbind(extValuations, as.data.frame(getResource("externalvaluations", params=list("format"="csv", "page_size"=-1, "portfolio"=id), session=sourceSession)))
     }
 
     for (fld in c("id", "creator", "updated", "updater")) {
@@ -441,6 +441,7 @@ syncExtValuation <- function(sourceSession, targetSession, targetPortfolios, tar
     extValuations
 
 }
+
 
 
 ##' A function to sync trades between 2 DECAF instances:

@@ -114,12 +114,12 @@ syncShareclass <- function(sourceSession, targetSession, sourcePortfolios){
         matchShrcls <- match(trimConcatenate(shrcls[, "name"]), trimConcatenate(safeTry(try(safeColumn(targetShreclasses, "name"), silent=TRUE))))
 
         ## If such share-class exists in target, overwrite fields and return:
-        if (any(!is.na(matchShrcls))) {
-            sourceShreclasses[row, "portfolio"] <- targetShreclasses[matchShrcls, "portfolio"]
-            sourceShreclasses[row, "id"] <- targetShreclasses[matchShrcls, "id"]
-            sourceShreclasses[row, "guid"] <- targetShreclasses[matchShrcls, "guid"]
-            next
-        }
+            if (any(!is.na(matchShrcls))) {
+                sourceShreclasses[row, "portfolio"] <- targetShreclasses[matchShrcls, "portfolio"]
+                sourceShreclasses[row, "id"] <- targetShreclasses[matchShrcls, "id"]
+                sourceShreclasses[row, "guid"] <- targetShreclasses[matchShrcls, "guid"]
+                next
+            }
 
         ## If share-class in target doesn't exist, overwrite the necessary fields to create such share-class:
         sourcePortfolioGUID   <-   sourcePortfolios[match(shrcls[, "portfolio"], sourcePortfolios[, "id"]), "guid"]
@@ -127,7 +127,7 @@ syncShareclass <- function(sourceSession, targetSession, sourcePortfolios){
         shrcls[, "id"] <- NULL
 
         ## Create the payload:
-        payload <- toJSON(as.list(shrcls),  auto_unbox=TRUE)
+        payload <- toJSON(as.list(shrcls),  auto_unbox=TRUE, na="null")
 
         ## Post the payload:
         response <- postResource("shareclasses", payload=payload, session=targetSession)

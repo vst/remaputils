@@ -730,8 +730,14 @@ getResourcesByStock <- function(stocks, session, getUnderlying=TRUE){
     ## Get vision resource. NOTE: We are binding them safely ourselfs.
     resources <- getResource("resources", params=params, session=session)
 
+    ## Get the external data:
+    extData1Pass <- lapply(resources,function(x) x[["extdata"]])
+
     ## Excluding tag information, safely combine and return:
     resources <- safeRbind(resources)
+
+    ## Reassign the extdata as list:
+    resources$extdata <- extData1Pass
 
     ## resources <- safeRbind(lapply(resources, function(res) do.call(cbind, res[!names(res) == "tags"])))
 
@@ -756,7 +762,13 @@ getResourcesByStock <- function(stocks, session, getUnderlying=TRUE){
                        "id__in"=paste(resources[undrl, "underlying"], collapse=","))
 
         ## Get and bind the undelrying resources:
-        undrlResources <- safeRbind(lapply(getResource("resources", params=params, session=session), function(res) do.call(cbind, res[!names(res) == "tags"])))
+        undrlResources <- getResource("resources", params=params, session=session)
+
+        ## Get the external data as list:
+        extData2Pass <- lapply(undrlResources,function(x) x[["extdata"]])
+
+        ## Remove the tags:
+        undrlResources <- safeRbind(lapply(undrlResources, function(res) do.call(cbind, res[!names(res) == "tags"])))
 
         ## These are underlying resources:
         undrlResources[, "is_underlying"] <- TRUE
@@ -768,7 +780,6 @@ getResourcesByStock <- function(stocks, session, getUnderlying=TRUE){
 
     ## Done, return:
     resources
-
 }
 
 

@@ -797,6 +797,13 @@ getResourcesByStock <- function(stocks, session, getUnderlying=TRUE){
 ##' @export
 getStocks <- function(container, session, zero=1, date=Sys.Date(), c="account") {
 
+    ## If not a data-frame, assume container is the id:
+    if (NCOL(container) == 1) {
+        container <- data.frame("id"=container,
+                                "name"=NA,
+                                stringsAsFactors=FALSE)
+    }
+
     ## Constrct the stocks params:
     params <- list("page_size"=-1,
                    "c"=c,

@@ -559,10 +559,24 @@ syncTrades <- function(targetSession, trades, atypes, shrclss, institutions, age
 ##' @param resources The resource data frame.
 ##' @param lte TODO:
 ##' @param lookBack TODO:
+##' @param targetPrefix TODO:
 ##' @return TODO:
 ##' @import rdecaf
 ##' @export
-syncOHLC <- function(sourceSession, targetSession, resources, lte=NULL, lookBack=NULL) {
+syncOHLC <- function(sourceSession, targetSession, resources, lte=NULL, lookBack=NULL, targetPrefix=NULL) {
+
+    ## Store the original symbols:
+    originalSymbol <- resources[, "symbol"]
+
+    ## If there is no special prefix, mask the prefix variable:
+    if (is.null(targetPrefix)) {
+        prefix <- ""
+    } else {
+        prefix <- targetPrefix
+    }
+
+    ## Remove the special prefix:
+    resources[, "symbol"] <- gsub(prefix, "", resources[, "symbol"])
 
     ## Get the unique symbols including ohlccodes:
     uSymbols <- as.character(na.omit(unique(c(resources[, "symbol"], safeColumn(resources, "ohlccode")))))
@@ -597,7 +611,7 @@ syncOHLC <- function(sourceSession, targetSession, resources, lte=NULL, lookBack
     ## Overwrite dates:
     ohlcObs[, "date"] <- dates
 
-    ## Get rid of id:
+        ## Get rid of id:
     ohlcObs[, "id"] <- NULL
 
     ## In which chunks shall we push?
@@ -615,7 +629,7 @@ syncOHLC <- function(sourceSession, targetSession, resources, lte=NULL, lookBack
         ## Compute the minimum chunk:
         chunk <- min(NROW(ohlcObs) - start, chunk)
 
-        ## Compute the end index:
+            ## Compute the end index:
         end <- start + chunk
 
         ## Print stuff:
@@ -623,6 +637,12 @@ syncOHLC <- function(sourceSession, targetSession, resources, lte=NULL, lookBack
 
         ## Get the chunk of observations to be pushed this iteration:
         ohlcObsN <- ohlcObs[start:end,]
+
+        ## Get the replace symbol:
+        replaceSymbol <- originalSymbol[match(paste0(prefix, ohlcObsN[, "symbol"]), originalSymbol)]
+
+        ## Replace the symbol with the originals:
+        ohlcObsN[, "symbol"] <- ifelse(is.na(replaceSymbol), ohlcObsN[, "symbol"], replaceSymbol)
 
         ## Construct the payload:
         payload <- toJSON(ohlcObsN, auto_unbox=TRUE, na = c("null"))
@@ -633,7 +653,7 @@ syncOHLC <- function(sourceSession, targetSession, resources, lte=NULL, lookBack
                              body=payload,
                              add_headers(.headers = c("Content-Type"="application/json")))
 
-        ## Update the start index:
+            ## Update the start index:
         start <- start + chunk + 1
     }
 

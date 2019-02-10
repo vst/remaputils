@@ -5,7 +5,7 @@
 \title{A function to sync ohlc observations between 2 DECAF instances.}
 \usage{
 syncOHLC(sourceSession, targetSession, resources, lte = NULL,
-  lookBack = NULL)
+  lookBack = NULL, targetPrefix = NULL)
 }
 \arguments{
 \item{sourceSession}{The session info for the DECAF instance to sync from.}
@@ -17,6 +17,8 @@ syncOHLC(sourceSession, targetSession, resources, lte = NULL,
 \item{lte}{TODO:}
 
 \item{lookBack}{TODO:}
+
+\item{targetPrefix}{TODO:}
 }
 \value{
 TODO:

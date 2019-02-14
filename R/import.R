@@ -1,3 +1,121 @@
+##' A function to push ohlc observations
+##'
+##' This is the description
+##'
+##' @param symbol The vector of symbols.
+##' @param close The vector of close values.
+##' @param date The vector of dates.
+##' @param session The rdecaf session.
+##' @return Returns NULL
+##' @export
+pushOhlc <- function(symbol, close, date, session) {
+
+    ## Construct the data-frame:
+    ohlcObs <- data.frame("symbol"=symbol,
+                          "close"=close,
+                          "date"=date,
+                          stringsAsFactors=FALSE)
+
+    ## Create batches:
+    batches <- createBatches(NROW(ohlcObs), 500)
+
+    ## Iterate over batches and push:
+    for (i in 1:length(batches[[1]])) {
+
+        ## The starting index:
+        strt <- batches[["startingIdx"]][i]
+
+        ## The ending index:
+        ends <- batches[["endingIdx"]][i]
+
+        ## Get the payload:
+        payload <- toJSON(ohlcObs[strt:ends,], auto_unbox=TRUE, na = c("null"))
+
+        print(paste0("Posting prices ", strt, ":", ends, " of ", NROW(ohlcObs)))
+
+        ## Push:
+        result <- httr::POST(paste0(session[["location"]], "/ohlcobservations/updatebulk/"),
+                             httr::authenticate(session[["username"]], session[["password"]]),
+                             body=payload,
+                             httr::add_headers(.headers = c("Content-Type"="application/json")))
+    }
+
+}
+
+
+##' A function to inbulk portfolios.
+##'
+##' This is the description
+##'
+##' @param guid The vector with guids. If NULL (default), creates using guidPrefix and xguid.
+##' @param name The vector with names.
+##' @param rccy The vector of currencies.
+##' @param team The vector of teams id's.
+##' @param guidPrefix A string to use as prefix (e.g Custodian Name)
+##' @param xguid A vector with the id to be transformed to guid.
+##' @param session The rdecaf session
+##' @return Returns NULL
+##' @export
+inbulkPortfolio <- function (guid=NULL, name, rccy, team, guidPrefix=NULL, xguid=NULL, session) {
+
+    ## If guid is null, construct one:
+    if (is.null(guid)) {
+        guid <- as.character(sapply(paste0(guidPrefix, xguid), function(id) paste0("~XID.portfolio.", digest::digest(id))))
+    }
+
+    ## Create the payload:
+    payload <- jsonlite::toJSON(list("portfolios"=data.frame("guid"=guid,
+                                                             "name"=name,
+                                                             "rccy"=rccy,
+                                                             "team"=team)), auto_unbox=TRUE, na="null")
+    ## Sync portfolios:
+    response <- rdecaf::postResource("imports/inbulk", params=list(sync="True"), payload=payload, session = session)
+
+    ## Done, return:
+    list("response"=response,
+         "guid"=guid,
+         "name"=name,
+         "id"=sapply(response[[1]][["portfolios"]], function(x) x[[1]]))
+
+}
+
+##' A function to inbulk accounts.
+##'
+##' This is the description
+##'
+##' @param guid The vector with guids. If NULL (default), creates using guidPrefix and xguid.
+##' @param name The vector with names.
+##' @param portfolio The vector with portfolio id's.
+##' @param custodian The vector with custodian id's.
+##' @param guidPrefix A string to use as prefix (e.g Custodian Name)
+##' @param xguid A vector with the id to be transformed to guid.
+##' @param session The rdecaf session
+##' @return Returns NULL
+##' @export
+inbulkAccount <- function (guid=NULL, name, portfolio, custodian, guidPrefix=NULL, xguid=NULL, session) {
+
+    ## If guid is null, construct one:
+    if (is.null(guid)) {
+        guid <- as.character(sapply(paste0(guidPrefix, xguid), function(id) paste0("~XID.account.", digest::digest(id))))
+    }
+
+    ## Create the payload:
+    payload <- toJSON(list("accounts"=data.frame("guid"=guid,
+                                                 "name"=name,
+                                                 "portfolio"=portfolio,
+                                                 "custodian"=custodian)), auto_unbox=TRUE, na="null")
+    ## Sync portfolios:
+    response <- postResource("imports/inbulk", params=list(sync="True"), payload=payload, session = session)
+
+    ## Done, return:
+    list("response"=response,
+         "guid"=guid,
+         "name"=name,
+         "id"=sapply(response[[1]][["accounts"]], function(x) x[[1]]))
+
+}
+
+
 ##' A function to post resources in batches.
 ##'
 ##' This is the description

@@ -1,3 +1,15 @@
+##' A function to forward fill NA's
+##'
+##' This is a description.
+##'
+##' @param x A vector
+##' @return A vector
+##' @export
+forwardFillNA <- function(x){
+    x[which(!isNA)[c(1,1:sum(!isNA))][cumsum(!isNA)+1]]
+}
+
+
 ##' A function to check multiple conditions row-wise in data-frame.
 ##'
 ##' This is a description.

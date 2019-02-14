@@ -309,6 +309,17 @@ dbRemapNewResource <- function(remapDB, sourceDB, isinFlds=NULL, idFlds=NULL) {
 }
 
 
+##' This function puts and patches from source to target data-frame.
+##'
+##' This is a description.
+##'
+##' @param targetDF The target data frame.
+##' @param sourceDF The source data frame.
+##' @param mField The respective fields to be matched to find the identity of rows.
+##' @param putMap The fields to be putted.
+##' @param patchMap The fields to be patched.
+##' @return Returns a putted/patched target data frame.
+##' @export
 patchDataframe <- function(targetDF,
                            sourceDF,
                            mField,

@@ -1244,6 +1244,9 @@ getRandString <- function(n=1, len=12) {
 ##' @return Ellipsified string.
 ##' @export
 ellipsify <- function(str, charLimit=30, capitalise=TRUE){
+
+    naStr <- is.na(str)
+
     ## The ellipsis vector:
     ellipsis <- ifelse(nchar(as.character(str)) > charLimit, "...", "")
     ## Paste and return:

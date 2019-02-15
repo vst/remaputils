@@ -6,6 +6,9 @@
 ##' @return A vector
 ##' @export
 forwardFillNA <- function(x){
+
+    isNA <- is.na(x)
+
     x[which(!isNA)[c(1,1:sum(!isNA))][cumsum(!isNA)+1]]
 }
 

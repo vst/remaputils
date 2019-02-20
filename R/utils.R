@@ -1,3 +1,27 @@
+##' This function orders a vector by the keys provided.
+##'
+##' This is a description.
+##'
+##' @param x A vector
+##' @param keys The vector of keys in order of preference.
+##' @return A ordered vector
+##' @export
+orderByKey <- function(x, keys) {
+
+    ## Grep the vector of keys in the string:
+    grepped <- mgrep(toupper(x), toupper(keys))
+
+    ## Get the ranking of each string:
+    rankedKeys <- apply(grepped, MARGIN=1, function(row) (row != "0") * 1:length(keys))
+
+    ## If any of the ranking is 0 since it couldnt be grepped, assign Inf:
+    ranking <- as.numeric(apply(rankedKeys, MARGIN=2, function(col) ifelse(all(col == 0), Inf, col[col != 0])))
+
+    ## Order the vector and return:
+    x[order(ranking)]
+}
+
+
 ##' A function to forward fill NA's
 ##'
 ##' This is a description.

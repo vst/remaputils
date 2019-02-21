@@ -244,6 +244,7 @@ createShareResource <- function(df, session){
     dfx <- data.frame("symbol"=df[,"symbol"],
                       "id"=NA,
                       "ctype"="SHRE",
+                      "quantity"=safeColumn(df, "pxfactor"),
                       "isin"=safeColumn(df, "isin"),
                       "figi"=safeColumn(df, "figi"),
                       "stype"=safeColumn(df, "stype"),
@@ -331,6 +332,7 @@ createOtherResource <- function(df, session){
                       "ctype"="OTHER",
                       "isin"=safeColumn(df, "isin"),
                       "name"=df[,"name"],
+                      "quantity"=safeColumn(df, "pxfactor"),
                       "ccymain"=df[,"ccymain"])
 
     ## Create the payload:
@@ -601,7 +603,7 @@ createBondResource <- function(df, session){
                       "pxmain"=df[,"cpn"],
                       "ccymain"=df[,"ccymain"],
                       "expiry"=df[,"maturity"],
-                      "quantity"=df[,"pxfactor"],
+                      "quantity"=safeColumn(df, "pxfactor"),
                       "frequency"=df[,"frequency"],
                       "convday"=df[,"convday"])
 

@@ -767,9 +767,11 @@ rSync <- function(server, location, target, folderNames, exclude=""){
         exclude <- paste("--exclude", exclude, collapse=" ")
     }
 
+    ## If servers is local, omit server string:
+    server <- ifelse(server=="local", "", paste0(server, ":"))
+
     ## Run the rsync commands:
     for (f in 1:length(folderNames)) {
-        server <- ifelse(server=="local", "", paste0(server, ":"))
         cmd <- trimDws(sprintf("rsync -auzvP %s %s%s%s/ %s%s/", exclude, server, location, names(folderNames)[f], target, folderNames[f]))
         result <- try(system(cmd), silent = TRUE)
     }

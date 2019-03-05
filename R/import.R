@@ -43,6 +43,40 @@ pushOhlc <- function(symbol, close, date, session) {
 }
 
 
+##' A function to inbulk trades.
+##'
+##' This is the description
+##'
+##' @param data The data frame with trade records.
+##' @param guid The vector with guids. If NULL (default), creates using guidPrefix and xguid.
+##' @param guidPrefix A string to use as prefix (e.g Custodian Name)
+##' @param xguid A vector with the id to be transformed to guid.
+##' @param session The rdecaf session
+##' @return Returns list with inbulk results.
+##' @export
+inbulkTrades <- function (data, guid = NULL, guidPrefix = NULL, xguid = NULL, session) {
+
+    ## If guid is null, construct one:
+    if (is.null(guid)) {
+        data[, "guid"] <- as.character(sapply(paste0(guidPrefix, xguid), function(id) paste0("~XID.trade.", digest::digest(id))))
+    } else {
+        data[, "guid"] <- guid
+    }
+
+    ## Create the payload:x
+    payload <- toJSON(list(actions = data), auto_unbox = TRUE, na = "null")
+
+    ## Sync trades:
+    response <- postResource("imports/inbulk", params = list(sync = "True"),payload = payload, session = session)
+
+    ## Done, return:
+    list(response=response,
+         guid=data[,"guid"],
+         name=NULL,
+         id = sapply(response[[1]][["actions"]], function(x) x[[1]]))
+}
+
+
 ##' A function to inbulk portfolios.
 ##'
 ##' This is the description

@@ -94,6 +94,11 @@ figi <- function(data, idType="ID_ISIN", fld="isin", ccy="ccymain", figiApi){
         figiResult <- figiCall(figiJob, figiApi)
     }
 
+    ## If figi results are empty, return NULL:
+    if (all(is.na(figiResult[, "name"]))) {
+        return(NULL)
+    }
+
     ## Treat the figi result and return:
     figiResultTreater(figiResult)
 

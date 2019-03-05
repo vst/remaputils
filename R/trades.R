@@ -93,6 +93,66 @@ getAccountWiseTrades <- function(accounts, session, gte=NULL) {
 }
 
 
+##' A function to get account-wise trades from a DECAF instance.
+##'
+##' This is the description
+##'
+##' @param ids A vector with container id's.
+##' @param containerType The container type.
+##' @param session The DECAF session info.
+##' @param gte The date after which trades should be considered.
+##' @return A data-frame with DECAF trades.
+##' @import rdecaf
+##' @export
+getContainerWiseTrades <- function(ids, containerType="accounts", session, gte=NULL) {
+
+    ## Initialise the trade list:
+    trades <- list()
+
+    if (containerType == "accounts") {
+        params <- list("accmain"=NA,
+                       "page_size"=-1,
+                       "format"="csv",
+                       "commitment__gte"=gte)}
+
+    if (containerType == "portfolios") {
+        params <- list("portfolio"=NA,
+                       "page_size"=-1,
+                       "format"="csv",
+                       "commitment__gte"=gte)}
+
+    ## Retrieve account-wise trades
+    for (i in 1:length(ids)) {
+
+        ## Get the trades list:
+        params[[1]] <- ids[i]
+
+        trds  <- as.data.frame(getResource("trades", params=params, session=session))
+
+        ## If no trades, next:
+        if (NROW(trds) == 0) {
+            next
+        }
+
+        ## Do the nested ordering:
+        trds <- nestedOrdering(trds, c("commitment", "executedat", "pseudorder", "created"))
+
+        ## Change date formats to character:
+        for (fld in c("commitment", "settlement", "created", "updated")) {
+            ## Get the trades:
+            trds[, fld] <- as.character(trds[, fld])
+        }
+
+        ## Append the system trades:
+        trades <- c(trades, list(trds))
+    }
+
+    ## Safely bind and return:
+    safeRbind(trades)
+}
+
+
+
 ##' A function to detect outliers in xts return series:
 ##'
 ##' This is the description

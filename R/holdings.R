@@ -199,7 +199,6 @@ getEnrichedHoldings <- function(holdings, nav, gav, regions, resources){
                "Call/Put"=safeCondition(resources[matchIdx, ], "callput", "True"),
                "Rate"= as.character(ifelse(sapply(resources[matchIdx, "pxmain"], is.null), NA, resources[matchIdx, "pxmain"])),
                "Underlying"=as.character(ifelse(sapply(resources[matchIdx, "underlying"], is.null), NA, resources[matchIdx, "underlying"])),
-               "Asset Class"=as.character(ifelse(sapply(resources[matchIdx, "underlying"], is.null), NA, resources[matchIdx, "assetclass"])),
                check.names=FALSE,
                stringsAsFactors=FALSE)
 
@@ -259,7 +258,9 @@ getFlatHoldings <- function(x, charLimit=30){
                   "Accrd",
                   "Exposure",
                   "PnL (Unrl)",
-                  "PnL (%Inv)")
+                  "PnL (%Inv)",
+                  "Asset Class",
+                  "AClass Order")
 
     ## Initialse the holdings data-frame:
     holdings <- initDF(colNames)
@@ -286,6 +287,8 @@ getFlatHoldings <- function(x, charLimit=30){
                                                  "Exposure"=.emptyToNA(safeNull(as.numeric(h[["valuation"]][["exposure"]][["net"]][["ref"]]))),
                                                  "PnL (Unrl)"=.emptyToNA(safeNull(as.numeric(h[["pnl"]]))),
                                                  "PnL (%Inv)"=.emptyToNA(safeNull(as.numeric(h[["pnl_to_investment"]]))),
+                                                 "Asset Class"=.emptyToNA(as.character(h[["tags"]][["classification"]][[1]][["name"]])),
+                                                 "AClass Order"=.emptyToNA(as.character(h[["tags"]][["classification"]][[1]][["order"]])),
                                                  check.names=FALSE))
 
     ## Get the holdings:
@@ -374,7 +377,7 @@ getOrderedHoldings <- function(holdings, toplevel="Subtype", sublevels=c("CCY", 
 
     topLevelWise <- lapply(unique(holdings[, topIdx]), function(z) holdings[holdings[, topIdx] == z, ])
 
-    holdings <- do.call(rbind, topLevelWise[order(sapply(topLevelWise, function(x) sum(x[, "Value"])), decreasing=TRUE)])
+    holdings <- do.call(rbind, topLevelWise[order(sapply(topLevelWise, function(x) sum(as.numeric(x[, "Value"]))), decreasing=TRUE)])
 
     list("holdings"=holdings,
          "cash"=cashHoldings)
@@ -608,7 +611,7 @@ getPrintableHoldings <- function(portfolio, ccy, date, dtype, toplevel, sublevel
     resources <- getResourcesByStock(stocks, session)
 
     ## Enriched resources with asset class:
-    resources <- getAssetClass(resources)
+    ## resources <- getAssetClass(resources)
 
     ## Get the enriched holdings:
     enrichedHoldings <- getEnrichedHoldings(holdings, consolidation[["nav"]], consolidation[["gav"]], regions, resources)

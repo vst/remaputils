@@ -5,7 +5,7 @@
 \title{Gets the consolidation based on container type and name}
 \usage{
 getConsolidationFromContainerName(containerNames, containerType, ccy, date,
-  session)
+  session, charLimit = Inf, resources)
 }
 \arguments{
 \item{containerNames}{A vector with container names}
@@ -17,6 +17,10 @@ getConsolidationFromContainerName(containerNames, containerType, ccy, date,
 \item{date}{The date of the consolidation}
 
 \item{session}{The rdecaf session}
+
+\item{charLimit}{The character limit for holding name}
+
+\item{resources}{The rdecaf resources data frame.}
 }
 \value{
 A list with the holdings data-frames.

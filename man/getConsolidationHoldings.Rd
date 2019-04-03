@@ -4,7 +4,8 @@
 \alias{getConsolidationHoldings}
 \title{TODO:}
 \usage{
-getConsolidationHoldings(session, containerType, containerId, ccy, date)
+getConsolidationHoldings(session, containerType, containerId, ccy, date,
+  charLimit, resources)
 }
 \arguments{
 \item{session}{The rdecaf session}
@@ -16,6 +17,10 @@ getConsolidationHoldings(session, containerType, containerId, ccy, date)
 \item{ccy}{The currency of the consolidation}
 
 \item{date}{The date of the consolidation}
+
+\item{charLimit}{The limit of characters of holdings name}
+
+\item{resources}{The rdecaf resources data frame.}
 }
 \value{
 A data-frame with the holdings

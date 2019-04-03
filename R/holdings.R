@@ -109,10 +109,12 @@ getAssetClass <- function(resources) {
 ##' @param containerId The container id
 ##' @param ccy The currency of the consolidation
 ##' @param date The date of the consolidation
+##' @param charLimit The limit of characters of holdings name
+##' @param resources The rdecaf resources data frame.
 ##' @return A data-frame with the holdings
 ##' @import rdecaf
 ##' @export
-getConsolidationHoldings <- function(session, containerType, containerId, ccy, date) {
+getConsolidationHoldings <- function(session, containerType, containerId, ccy, date, charLimit, resources) {
 
     print(paste0("From ", session[["location"]], ": Getting consolidation for ", containerType, " ", containerId))
 
@@ -123,10 +125,28 @@ getConsolidationHoldings <- function(session, containerType, containerId, ccy, d
     consolidation <- rdecaf::getResource("consolidation", params=params, session=session)
 
     ## Get and return the flat holdings:
-    flatHoldings <- getFlatHoldings(consolidation[["holdings"]])
+    flatHoldings <- getFlatHoldings(consolidation[["holdings"]], charLimit)
 
     ## Add container name:
     flatHoldings[, "CName"] <- as.character(unlist(consolidation[["containers"]][["containers"]])["name"])
+
+    ## Match the position with the resources:
+    matchIdx <- match(flatHoldings[, "ID"], resources[, "id"])
+
+    ## Append ISIN:
+    flatHoldings[, "ISIN"] <- resources[matchIdx, "isin"]
+
+    ## Append Reference:
+    flatHoldings[, "Reference"] <- resources[matchIdx, "reference"]
+
+    ## Append the Telekurs:
+    flatHoldings[, "Telekurs"] <- resources[matchIdx, "telekurs"]
+
+    ## Append the OHLC:
+    flatHoldings[, "OHLC"] <- resources[matchIdx, "ohlccode"]
+
+    ## Append the PX Factor:
+    flatHoldings[, "PXFactor"] <- resources[matchIdx, "quantity"]
 
     ## Done, return:
     flatHoldings
@@ -143,16 +163,18 @@ getConsolidationHoldings <- function(session, containerType, containerId, ccy, d
 ##' @param ccy The currency of the consolidation
 ##' @param date The date of the consolidation
 ##' @param session The rdecaf session
+##' @param charLimit The character limit for holding name
+##' @param resources The rdecaf resources data frame.
 ##' @return A list with the holdings data-frames.
 ##' @import rdecaf
 ##' @export
-getConsolidationFromContainerName <- function(containerNames, containerType, ccy, date, session) {
+getConsolidationFromContainerName <- function(containerNames, containerType, ccy, date, session, charLimit=Inf, resources) {
 
     ## Get the container by name:
     container <- getContainer(containerNames, containerType, session)
 
     ## Get the consolidations:
-    apply(container, MARGIN=1, function(x) getConsolidationHoldings(session, containerType, x["id"], ccy, date))
+    apply(container, MARGIN=1, function(x) getConsolidationHoldings(session, containerType, x["id"], ccy, date, charLimit, resources))
 
 }
 

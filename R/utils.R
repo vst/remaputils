@@ -1,3 +1,33 @@
+##' This function
+##'
+##' This is a description.
+##'
+##' @param v1 A vector with strings to be matched.
+##' @param v2 A vector with candidate matching strings.
+##' @param param The stringdist method's parameter.
+##' @param dir Bigger or smaller than the param?
+##' @param method The method for stringdist.
+##' @return A ordered vector
+##' @export
+getStringDistanceIndex <- function(v1, v2, param=0.2, dir="smaller", method="jaccard") {
+
+    ## Compute the distance:
+    dst <- lapply(v1, function(n) stringdist::stringdist(n, v2, method=method))
+
+    if (dir == "smaller") {
+        result <- sapply(dst, function(x) ifelse(any(x < param), which(x == min(x)), NA))
+    }
+
+    if (dir == "bigger") {
+        result <- sapply(dst, function(x) ifelse(any(x > param), which(x == min(x)), NA))
+    }
+
+    ## Return:
+    result
+
+}
+
+
 ##' This function orders a vector by the keys provided.
 ##'
 ##' This is a description.
@@ -144,6 +174,11 @@ isWholenumber <- function(x, tol=.Machine$double.eps^0.5)  {
 ##' @return Returns a data-frame with the grepped key.
 ##' @export
 mxgrep <- function(df, key) {
+
+    ## If key is NA, return NA:
+    if (is.na(key)) {
+        return(rep(NA, NROW(df)))
+    }
 
     ## Get the key list:
     kList <- lapply(colnames(df), function(x) ifelse(safeGrep(df[, x], key) == "1", df[, x], NA))
@@ -1030,6 +1065,12 @@ sourceFromFolder <- function(paths, pattern="*.R"){
 ##' @return The column values or NA.
 ##' @export
 safeColumn <- function(df, col) {
+
+    ## Short circuit out:
+    if (NROW(df) == 0) {
+        return(NA)
+    }
+
     ## Check if expiry column exists:
     value <- try(df[,col], silent=TRUE)
 

@@ -148,6 +148,9 @@ getConsolidationHoldings <- function(session, containerType, containerId, ccy, d
     ## Append the PX Factor:
     flatHoldings[, "PXFactor"] <- resources[matchIdx, "quantity"]
 
+    ## Append the PX Factor:
+    flatHoldings[, "Maturity"] <- resources[matchIdx, "expiry"]
+
     ## Done, return:
     flatHoldings
 

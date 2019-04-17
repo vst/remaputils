@@ -96,15 +96,15 @@ COMPOSITION3 <- function(portfolio, ccy, date, dtype, regions, session){
 
     customtop <- c("subTypeParser",
                    "ctypeByRegionAndDirection",
-                   "ctypeByDuration",
-                   "longStraddle",
-                   "shortStraddle",
-                   "closedOption",
-                   "calendarSpread",
-                   "coveredCall",
-                   "callSpread",
-                   "putSpread",
-                   "syntheticLong"
+                   "ctypeByDuration"
+                   ##"longStraddle",
+                   ##"shortStraddle",
+                   ##"closedOption",
+                   ##"calendarSpread",
+                   ##"coveredCall",
+                   ##"callSpread",
+                   ##"putSpread",
+                   ##"syntheticLong"
                    )
 
     ## The summary addons for this composition:
@@ -122,17 +122,17 @@ COMPOSITION3 <- function(portfolio, ccy, date, dtype, regions, session){
                          "regions"=regions,
                          "summaryaddon"=summaryaddon,
                          "session"=session,
-                         calendarSpreadExcl=TRUE,
-                         longStraddleExcl=TRUE,
-                         shortStraddleExcl=TRUE,
-                         closedOptionExcl=TRUE,
-                         synthLongExcl=TRUE,
-                         callSprdExcl=TRUE,
-                         putSprdExcl=TRUE,
-                         cvrdCallExcl=TRUE,
+                         ##calendarSpreadExcl=TRUE,
+                         ##longStraddleExcl=TRUE,
+                         ##shortStraddleExcl=TRUE,
+                         ##closedOptionExcl=TRUE,
+                         ##synthLongExcl=TRUE,
+                         ##callSprdExcl=TRUE,
+                         ##putSprdExcl=TRUE,
+                         ##cvrdCallExcl=TRUE,
                          ctbrInclude=c("Share", "EQY", "Common Stock"),
                          ctbdInclude=c("Option", "Share"),
-                         ctbdHorizon=list("steps"=c(10, 30),
+                         ctbdHorizon=list("steps"=c(30),
                                           "periodicity"="days"))
 
 }

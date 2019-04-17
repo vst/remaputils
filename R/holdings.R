@@ -404,6 +404,7 @@ getOrderedHoldings <- function(holdings, toplevel="Subtype", sublevels=c("CCY", 
 
     holdings <- do.call(rbind, topLevelWise[order(sapply(topLevelWise, function(x) sum(as.numeric(x[, "Value"]))), decreasing=TRUE)])
 
+    ## Done, return:
     list("holdings"=holdings,
          "cash"=cashHoldings)
 
@@ -522,7 +523,10 @@ getNestedHoldings <- function(holdings, levels, toplevel="Subtype", sublevels=c(
         holdingsIdx <- which(holdings[, finalKeyIdx] == key & holdings[, "isHeader"] == "FALSE" & holdings[, "isFooter"] == "FALSE")
 
         ## Reorder the positions and assign back:
-        holdings[holdingsIdx, ] <- holdings[holdingsIdx,][order(holdings[holdingsIdx, "Name"]), ]
+        holdings[holdingsIdx,][order(holdings[holdingsIdx, "Expiry"], holdings[holdingsIdx, "Name"]), ]
+
+        ## holdings[holdingsIdx, ] <- holdings[holdingsIdx,][order(holdings[holdingsIdx, "Name"]), ]
+
     }
 
     ## Return:

@@ -523,7 +523,7 @@ getNestedHoldings <- function(holdings, levels, toplevel="Subtype", sublevels=c(
         holdingsIdx <- which(holdings[, finalKeyIdx] == key & holdings[, "isHeader"] == "FALSE" & holdings[, "isFooter"] == "FALSE")
 
         ## Reorder the positions and assign back:
-        holdings[holdingsIdx,][order(holdings[holdingsIdx, "Expiry"]), ]
+        holdings[holdingsIdx, ] <- holdings[holdingsIdx,][order(holdings[holdingsIdx, "Expiry"], holdings[holdingsIdx, "Name"]), ]
 
         ## holdings[holdingsIdx, ] <- holdings[holdingsIdx,][order(holdings[holdingsIdx, "Name"]), ]
     }

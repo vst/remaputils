@@ -493,12 +493,13 @@ writeFundReport <- function (report, file) {
         ## Define the row font:
         rowFont <- Font(workbook, name=.GLOBAL.FONT.NAME, heightInPoints=rowFontSize, isBold=!isPosition, isItalic=isSubtotal)
 
-        pnlIdx <- safeGrep(tableHeader, "PnL")
+        ## Get the column index with the PnL:
+        pnlIdx <- which(safeGrep(tableHeader, "PnL") == "1")[1]
 
         ## Define the PnL fill:
-        if (!isSubtitle && !is.na(holdings[i, 11]) && holdings[i, 11] < 0) {
+        if (!isSubtitle && !is.na(holdings[i, pnlIdx]) && holdings[i, pnlIdx] < 0) {
             pnlFont <- Font(workbook, name=.GLOBAL.FONT.NAME, heightInPoints=rowFontSize, isBold=!isPosition, isItalic=isSubtotal, color="#AA3333")
-        } else if (!isSubtitle && !is.na(holdings[i, 11]) && holdings[i, 11] > 0) {
+        } else if (!isSubtitle && !is.na(holdings[i, pnlIdx]) && holdings[i, pnlIdx] > 0) {
             pnlFont <- Font(workbook, name=.GLOBAL.FONT.NAME, heightInPoints=rowFontSize, isBold=!isPosition, isItalic=isSubtotal, color="#33AA33")
         } else {
             pnlFont <- rowFont

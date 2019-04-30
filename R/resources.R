@@ -735,13 +735,17 @@ getResourcesByStock <- function(stocks, session, getUnderlying=TRUE){
     ## Get the external data:
     extData1Pass <- lapply(resources,function(x) x[["extdata"]])
 
+    ## Get the tags:
+    tags <- lapply(resources,function(x) x[["tags"]])
+
     ## Excluding tag information, safely combine and return:
     resources <- safeRbind(resources)
 
     ## Reassign the extdata as list:
     resources$extdata <- extData1Pass
 
-    ## resources <- safeRbind(lapply(resources, function(res) do.call(cbind, res[!names(res) == "tags"])))
+    ## Reassign the extdata as list:
+    resources$tags <- tags
 
     ## Indicate if it is a underlying:
     resources[, "is_underlying"] <- FALSE

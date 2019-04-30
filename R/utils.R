@@ -2,6 +2,19 @@
 ##'
 ##' This is a description.
 ##'
+##' @param x A numeric vector.
+##' @param factor The factor to expand the limits with.
+##' @return A list with the expanded upper and lower limits
+##' @export
+expandLimits <- function(x, factor=0.1) {
+    list("lower"=min(x) - abs(min(x) * factor),
+         "upper"=max(x) + abs(min(x) * factor))
+}
+
+##' This function
+##'
+##' This is a description.
+##'
 ##' @param v1 A vector with strings to be matched.
 ##' @param v2 A vector with candidate matching strings.
 ##' @param param The stringdist method's parameter.
@@ -413,8 +426,10 @@ valueOfNearestDate <- function(targetDate, data, tolerance, dateField="date", va
     dateDist <- data[, dateField] - targetDate
 
     ## Filter the data for negative distances:
-    data <- data[dateDist <= 0,]
-    dateDist <- dateDist[dateDist <= 0]
+    if (any(dateDist < 0)) {
+        data <- data[dateDist <= 0, ]
+        dateDist <- dateDist[dateDist <= 0]
+    }
 
     ## If empty, return NA:
     if (length(dateDist) == 0) {

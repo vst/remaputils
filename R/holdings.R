@@ -2,108 +2,6 @@
 ##'
 ##' This is the description
 ##'
-##' @param resources rdecaf resources.
-##' @return A vector with asset class strings.
-##' @export
-getAssetClass <- function(resources) {
-
-    resources[, "underlying_symbol"] <- safeColumn(resources, "underlying_symbol")
-
-    if (NROW(resources) == 1) {
-        resources <- rbind(resources, resources)
-    }
-
-    indexFX <- getIndex(df=resources,
-                        inCols=list("ctype"=c("CCY", "FXFWD")),
-                        candCols=list("ctype"=c("FUT", "OPT", "DCIP", "FXOPT", "FXMF", "OTHER")),
-                        inKeys=list("symbol"="Curncy",
-                                    "name"="Curncy",
-                                    "stype"="Option - Currency"),
-                        exKeys=list("stype"="ALTN",
-                                    "stype"="Alternative"),
-                        inclToIns=list("ctype"="FXMF"))
-
-    resources[indexFX, "assetclass"] <- "FX"
-
-    indexMM <- getIndex(df=resources,
-                        inCols=list("ctype"=c("LOAN", "DEPO")),
-                        candCols=list("ctype"=c("OTHER")),
-                        inKeys=list("name"="margin",
-                                    "name"="special limit",
-                                    "name"="guarantee limit",
-                                    "name"="standing order",
-                                    "name"="passive credit"),
-                        exKeys=list("stype"="ALTN"))
-
-    resources[indexMM, "assetclass"] <- "Money Market"
-
-    indexComm <- getIndex(df=resources,
-                          inCols=list("ctype"="COMM"),
-                          candCols=list("ctype"=c("FUT", "OPT", "SPMF", "SHRE")),
-                          inKeys=list("symbol"="Comdty",
-                                      "underlying_symbol"="Comdty",
-                                      "stype"="Commodity",
-                                      "name"="Comdty",
-                                      "name"="Gold",
-                                      "name"="Orange",
-                                      "name"="Crude Oil",
-                                      "name"="Commodity",
-                                      "name"="Metal"),
-                          exKeys=list("stype"="ALTN",
-                                      "stype"="Alternative"),
-                          inclToIns=NULL)
-
-    resources[indexComm, "assetclass"] <- "Commodity"
-
-    indexFI <- getIndex(df=resources,
-                        inCols=list("ctype"="BOND"),
-                        candCols=list("ctype"=c("FUT", "SHRE")),
-                        inKeys=list("name"="BOND",
-                                    "name"="INTEREST",
-                                    "name"="FIXED INCOME",
-                                    "name"="TREASURY",
-                                    "stype"="BOND"),
-                        exKeys=list("stype"="ALTN",
-                                    "stype"="Alternative"),
-                        inclToIns=NULL)
-
-    resources[indexFI, "assetclass"] <- "Fixed Income"
-
-    indexEQ <- getIndex(df=resources,
-                        inCols=list("ctype"=getRandString()),
-                        candCols=list("ctype"=c("FUT", "SHRE", "OPT", "SPMF", "SP")),
-                        inKeys=list("name"="Equity",
-                                    "symbol"="Equity",
-                                    "symbol"="Index",
-                                    "stype"="Share - Registered",
-                                    "stype"="EQY",
-                                    "stype"="Option - Share",
-                                    "stype"="Share - Bearer",
-                                    "stype"="Common",
-                                    "stype"="ordinary",
-                                    "underlying_symbol"="Equity",
-                                    "underlying_symbol"="Index"),
-                        exKeys=list("stype"="ALTN",
-                                    "stype"="Alternative",
-                                    "name"="Bond",
-                                    "name"="Fixed Income",
-                                    "name"="treasury",
-                                    "name"="interest"),
-                        inclToIns=NULL)
-
-    resources[indexEQ, "assetclass"] <- "Equity"
-
-    resources[is.na(resources[, "assetclass"]), "assetclass"] <- "Alternative"
-
-    return(resources[!duplicated(resources[, "id"]), ])
-
-}
-
-
-##' TODO:
-##'
-##' This is the description
-##'
 ##' @param session The rdecaf session
 ##' @param containerType The container type
 ##' @param containerId The container id
@@ -191,10 +89,11 @@ getConsolidationFromContainerName <- function(containerNames, containerType, ccy
 ##' @param gav The gav as returned by getResource("consolidation").
 ##' @param regions The data-frame with the country to region mapping.
 ##' @param resources The data-frame as returned by getResource("resources")
+##' @param addTagsBy TODO.
 ##' @return A data-frame with the enriched holdings.
 ##' @import rdecaf
 ##' @export
-getEnrichedHoldings <- function(holdings, nav, gav, regions, resources){
+getEnrichedHoldings <- function(holdings, nav, gav, regions, resources, addTagsBy=NULL){
 
     ## Treat the country names:
     holdings[, "Country"] <- dbRemapCountryTreater(holdings[, "Country"], "countrymaps")
@@ -210,22 +109,36 @@ getEnrichedHoldings <- function(holdings, nav, gav, regions, resources){
     matchIdx <- match(holdings[,"ID"], resources[,"id"])
 
     ##:
+    holdings[, "Subtype"] <- as.character(holdings[, "Subtype"])
     holdings[is.na(holdings[,"Subtype"]), "Subtype"] <- holdings[is.na(holdings[,"Subtype"]), "Type"]
 
     ## All 'Money' subtypes to 'Cash'.
     holdings[holdings[,"Subtype"] == "Money", "Subtype"] <- "Cash"
 
     ## Enrich the holdings data-frame and return:
-    data.frame(holdings,
-               "Region"=safeTry(try(as.character(regions))),
-               "Value (%)"=safeTry(try(holdings[,"Value"] / nav, silent=TRUE)),
-               "Exp (%)"=safeTry(try(holdings[,"Exposure"] / nav, silent=TRUE)),
-               "Expiry"=as.character(resources[matchIdx, "expiry"]),
-               "Call/Put"=safeCondition(resources[matchIdx, ], "callput", "True"),
-               "Rate"= as.character(ifelse(sapply(resources[matchIdx, "pxmain"], is.null), NA, resources[matchIdx, "pxmain"])),
-               "Underlying"=as.character(ifelse(sapply(resources[matchIdx, "underlying"], is.null), NA, resources[matchIdx, "underlying"])),
-               check.names=FALSE,
-               stringsAsFactors=FALSE)
+    retval <- data.frame(holdings,
+                         "Region"=safeTry(try(as.character(regions))),
+                         "Value (%)"=safeTry(try(holdings[,"Value"] / nav, silent=TRUE)),
+                         "Exp (%)"=safeTry(try(holdings[,"Exposure"] / nav, silent=TRUE)),
+                         "Expiry"=as.character(resources[matchIdx, "expiry"]),
+                         "Call/Put"=safeCondition(resources[matchIdx, ], "callput", "True"),
+                         "Rate"= as.character(ifelse(sapply(resources[matchIdx, "pxmain"], is.null), NA, resources[matchIdx, "pxmain"])),
+                         "Underlying"=as.character(ifelse(sapply(resources[matchIdx, "underlying"], is.null), NA, resources[matchIdx, "underlying"])),
+                         check.names=FALSE,
+                         stringsAsFactors=FALSE)
+
+    addCols <- NA
+
+    ## If additional columns are to added, do so:
+    if (!is.null(addTagsBy)) {
+        addTagRetval <- addTagsAsColumns(retval, resources, addTagsBy)
+        addCols <- addTagRetval[["addCols"]]
+        retval <- addTagRetval[["holdings"]]
+
+    }
+
+    return(list("holdings"=retval,
+                "addCols"=addCols))
 
 }
 
@@ -251,7 +164,7 @@ getHoldingsWrapper <- function(params, resources, session, charLimit=50, regions
     holdings <- getFlatHoldings(consolidation[["holdings"]], charLimit=charLimit)
 
     ## Enrich the holdings:
-    getEnrichedHoldings(holdings, consolidation[["nav"]], consolidation[["gav"]], regions, resources)
+    getEnrichedHoldings(holdings, consolidation[["nav"]], consolidation[["gav"]], regions, resources)[["holdings"]]
 }
 
 
@@ -577,11 +490,23 @@ getFormattedHoldings <- function(holdings){
 ##' @param colselect TODO
 ##' @param regions The list with the country to region mapping
 ##' @param summaryaddon TODO
+##' @param addTagsBy TODO
 ##' @param session The rdecaf session
 ##' @param ... Additional parameters
 ##' @return A data-frame with the printable format of holdings
 ##' @export
-getPrintableHoldings <- function(portfolio, ccy, date, dtype, toplevel, sublevel, customTop, colselect, regions, summaryaddon, session, ...){
+getPrintableHoldings <- function(portfolio,
+                                 ccy,
+                                 date,
+                                 dtype,
+                                 toplevel,
+                                 sublevel,
+                                 customTop,
+                                 colselect,
+                                 regions,
+                                 summaryaddon,
+                                 addTagsBy=NULL,
+                                 session, ...){
 
     ## Get additional arguments:
     args <- list(...)
@@ -634,16 +559,17 @@ getPrintableHoldings <- function(portfolio, ccy, date, dtype, toplevel, sublevel
     }
 
     ## Get the stocks:
-    stocks <- getStocksFromContainerNames(session, "portfolios", portfolioDetails[, "name"], zero=1, date)
+    stocks <- getStocksFromContainerNames(session, "portfolios", portfolioDetails[, "name"], zero=0, date)
 
     ## Get the resources:
     resources <- getResourcesByStock(stocks, session)
 
-    ## Enriched resources with asset class:
-    ## resources <- getAssetClass(resources)
-
     ## Get the enriched holdings:
-    enrichedHoldings <- getEnrichedHoldings(holdings, consolidation[["nav"]], consolidation[["gav"]], regions, resources)
+    enrichedHoldings <- getEnrichedHoldings(holdings, consolidation[["nav"]], consolidation[["gav"]], regions, resources, addTagsBy)
+
+    addCols <- enrichedHoldings[["addCols"]]
+
+    enrichedHoldings <- enrichedHoldings[["holdings"]]
 
     ## Get the ordered holdings:
     orderedHoldings <- getOrderedHoldings(enrichedHoldings, toplevel=toplevel, sublevels=sublevel, customTop=customTop, args)
@@ -664,8 +590,84 @@ getPrintableHoldings <- function(portfolio, ccy, date, dtype, toplevel, sublevel
     consolidation[["isin"]] <- isin
     consolidation[["inception"]] <- inception
 
+    if (any(!is.na(addCols))) {
+        colselect <- c(colselect, addCols)
+    }
+
     ## Return:
-    list("holdings"=formattedHoldings[,colselect],
+    list("holdings"=formattedHoldings[, colselect],
          "consolidation"=consolidation,
-         "rawHoldings"=enrichedHoldings)
+         "rawHoldings"=enrichedHoldings,
+         "colselect"=colselect)
+}
+
+##' TODO:
+##'
+##' This is the description
+##'
+##' @param holdings TODO
+##' @param resources TODO
+##' @param addTagsBy TODO
+##' @return A data-frame with the holdings
+##' @import rdecaf
+##' @export
+addTagsAsColumns <- function(holdings, resources, addTagsBy) {
+
+    ## Get the match index:
+    matchIdx <- match(holdings[,"ID"], resources[,"id"])
+
+    ## Get the relevant, aligned resources:
+    resources <- resources[matchIdx, ]
+
+    ## Get the tags by the seperator addTagsBy:
+    tags <- unlist(strsplit(unlist(lapply(lapply(resources[, "tags"], function(x) unlist(x)), function(x) x[safeGrep(x, addTagsBy) == "1"])), addTagsBy))
+
+    ## Get the non-empty tags:
+    tags <- tags[nchar(tags) > 0]
+
+    ## If not tag qualifies with the addTagsBy seperator, return retval:
+    if (length(tags) == 0) {
+        return(list("holdings"=holdings,
+                    "addCols"=NA))
+    }
+
+    ## Get the additional column names from tag:
+    addCols <- unique(sapply(strsplit(tags, ":"), function(x) x[1]))
+
+    ## If no tag qualifies with the seperator, return retval:
+    if (length(addCols) == 0) {
+        return(list("holdings"=holdings,
+                    "addCols"=NA))
+    }
+
+    ## Add/append the tags as column:
+    holdings[, addCols] <- NA
+
+    ## Split each tag by the addTagsBy key:
+    splitKey <- lapply(resources[, "tags"], function(x) unlist(strsplit(as.character(x), addTagsBy)))
+
+    ## Get rid of empty splits:
+    splitKey <- lapply(splitKey, function(x) x[nchar(x) > 0])
+
+    ## Split by column and value separator:
+    columnValue<- lapply(splitKey, function(x) strsplit(as.character(x), ":"))
+
+    ## Iterate over each column and value keys:
+    for (i in 1:length(columnValue)) {
+
+        ## Match the column value with the appended columns:
+        matchIdx <- sapply(columnValue[[i]], function(x) match(x[1], colnames(holdings)))
+
+        ## If no match, next:
+        if (length(matchIdx) == 0) {
+            next
+        }
+
+        ## Assign the column values to the appended columsn:
+        holdings[i, na.omit(matchIdx)] <- sapply(columnValue[[i]], function(x) x[2])[!is.na(matchIdx)]
+    }
+
+    ## Done, return:
+    return(list("holdings"=holdings,
+                "addCols"=addCols))
 }

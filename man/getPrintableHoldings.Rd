@@ -5,7 +5,8 @@
 \title{A function to generate the printable holdings data-frame}
 \usage{
 getPrintableHoldings(portfolio, ccy, date, dtype, toplevel, sublevel,
-  customTop, colselect, regions, summaryaddon, session, ...)
+  customTop, colselect, regions, summaryaddon, addTagsBy = NULL, session,
+  ...)
 }
 \arguments{
 \item{portfolio}{The portfolio id}
@@ -27,6 +28,8 @@ getPrintableHoldings(portfolio, ccy, date, dtype, toplevel, sublevel,
 \item{regions}{The list with the country to region mapping}
 
 \item{summaryaddon}{TODO}
+
+\item{addTagsBy}{TODO}
 
 \item{session}{The rdecaf session}
 

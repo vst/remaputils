@@ -4,7 +4,8 @@
 \alias{getEnrichedHoldings}
 \title{A function to get the enriched holdings data-frame.}
 \usage{
-getEnrichedHoldings(holdings, nav, gav, regions, resources)
+getEnrichedHoldings(holdings, nav, gav, regions, resources,
+  addTagsBy = NULL)
 }
 \arguments{
 \item{holdings}{The holdings data-frame as returned by getFlatHoldings}
@@ -16,6 +17,8 @@ getEnrichedHoldings(holdings, nav, gav, regions, resources)
 \item{regions}{The data-frame with the country to region mapping.}
 
 \item{resources}{The data-frame as returned by getResource("resources")}
+
+\item{addTagsBy}{TODO.}
 }
 \value{
 A data-frame with the enriched holdings.

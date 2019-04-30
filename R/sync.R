@@ -440,7 +440,7 @@ syncExtValuation <- function(sourceSession, targetSession, targetPortfolios, tar
     extValuations[, "portfolio"] <- paste0("dcf:portfolio?guid=", targetPortfolios[match(extValuations[, "portfolio"], targetPortfolios[, "id"]), "guid"])
 
     ## Prepare the payload:
-    payload <- toJSON(list(passivevaluations = extValuations), auto_unbox = TRUE, na = "null", digits = 10)
+    payload <- toJSON(list(externalvaluations = extValuations), auto_unbox = TRUE, na = "null", digits = 10)
 
     ## Push and get the response:
     response <- pushPayload(payload = payload, endpoint = NULL, session = targetSession, import = FALSE, inbulk = TRUE, params = list(sync = "True"))

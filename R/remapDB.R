@@ -46,7 +46,12 @@ getRemapContent <- function(baseUrl="https://db.remap.decafhub.com/", contentNam
 dbRemapCountryTreater <- function(countries, countrymaps) {
 
     ## Get the country map:
-    countryMap <- as.data.frame(do.call(rbind, getRemapContent(contentName=countrymaps)))
+    countryMap <- try(as.data.frame(do.call(rbind, getRemapContent(contentName=countrymaps))), silent=TRUE)
+
+    ## If no connections, return original countries:
+    if (class(countryMap) == "try-error") {
+        return(countries)
+    }
 
     ## Which columns to check:
     checkCols <- c("iso-3-letter", "iso-2-letter", "arbitrary1")

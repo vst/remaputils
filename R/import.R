@@ -1,3 +1,136 @@
+##' This function mimicks the PX Last methodology of DECAF:
+##'
+##' This is the description
+##'
+##' @param resmain The resmain id in DECAF:
+##' @param resources The rdecaf resources:
+##' @param session The rdecaf session
+##' @param date The date of interest.
+##' @return Returns the last available price for the resmains
+##' @export
+getPXLast <- function(resmain, resources, session, date) {
+
+    ## Get the symbol of resmain:
+    symbols <- resources[match(resmain, resources[, "id"]), "symbol"]
+
+    ## Iterate over symbols:
+    ohlc <- do.call(rbind, lapply(1:length(symbols), function(i) {
+
+        ## Try to get the ohlc observations:
+        result <- head(getOhlcObsForSymbol(session, symbols[i], lte=date, lookBack=2000), 1)
+
+        ## If ohlc successful, return result:
+        if (NROW(result) > 0) {
+            return(result)
+        }
+
+        ## Try the trade of resmain:
+        params <- list("resmain"=resmain[i],
+                       "page_size"=-1,
+                       "format"="csv")
+
+        ## Get the trades of resmain:
+        trds  <- as.data.frame(getResource("trades", params=params, session=session))
+
+        ## Get trades which are equal or less than date:
+        trds <- trds[trds[, "commitment"] <= date, ]
+
+        ## Map and return:
+        return(data.frame("id"=NA,
+                          "symbol"=symbols[i],
+                          "date"=trds[which(trds[, "commitment"] == min(trds[, "commitment"]))[1], "commitment"],
+                          "open"=NA,
+                          "high"=NA,
+                          "low"=NA,
+                              "close"=trds[which(trds[, "commitment"] == min(trds[, "commitment"]))[1], "pxmain"]))
+    }))
+
+    ## Done, return:
+    return(ohlc)
+
+}
+
+
+##' This function prepares the position quantities of external vis-a-vis decaf stocks:
+##'
+##' This is the description
+##'
+##' @param data The data with the external positions. Expected columns: resmain, qtymain, pxmain, accmain
+##' @param session the rdecaf session
+##' @return Returns a data frame with the respective quantities:
+##' @export
+positionDifferential <- function(data, session) {
+
+    ## Get the stocks:
+    stocks <- as.data.frame(getResource("stocks", params=list("page_size"=-1,
+                                                              "format"="csv",
+                                                              "date"=data[1, "pDate"],
+                                                              "zero"=0), session=session))
+
+    ## If no stocks, mask:
+    if (NROW(stocks) == 0) {
+        stocks <- data.frame("account"=NA, "artifact"=NA, "quantity"=NA)
+    }
+
+    ## Get the account wise positions:
+    aWisePositions <- lapply(unique(data[, "accmain"]), function(acc) data[data[, "accmain"] == acc,])
+
+    ## Iterate over account positions:
+    stockdiff <- do.call(rbind, lapply(1:length(aWisePositions), function(i) {
+
+        ## Get the account's positions:
+        aPos <- aWisePositions[[i]]
+
+        ## If NA rows, omit:
+        aPos <- aPos[apply(aPos, MARGIN=1, function(x) !all(is.na(x))),]
+
+        ## Get the stocks for such account:
+        aStocks <- stocks[!is.na(match(stocks[, "account"], aPos[, "accmain"])), ]
+
+        ## If there is no stock, return:
+        if (NROW(aStocks) == 0) {
+            return(data.frame("resmain"=aPos[, "resmain"],
+                              "qtyint"=0,
+                              "qtyext"=aPos[, "qtymain"],
+                              "pxmain"=aPos[, "pxmain"],
+                              "accmain"=aPos[, "accmain"],
+                              stringsAsFactors=FALSE))
+        }
+
+        ## Initialise the retval:
+        retval <- as.data.frame(matrix(NA, length(unique(c(aStocks[, "artifact"], aPos[, "resmain"]))), 5), stringsAsFactors=FALSE)
+        colnames(retval) <- c("resmain", "qtyint", "qtyext", "pxmain", "accmain")
+
+        ## Plug the unique resmains:
+        retval[, "resmain"] <- unique(c(aStocks[, "artifact"], aPos[, "resmain"]))
+
+        ## Match and assign the internal quantity:
+        retval[, "qtyint"] <- aStocks[match(retval[, "resmain"], aStocks[, "artifact"]), "quantity"]
+
+        ## Match and assign the external quantity:
+        retval[, "qtyext"] <- aPos[match(retval[, "resmain"], aPos[, "resmain"]), "qtymain"]
+
+        ## Assing the pxmain:
+        retval[, "pxmain"] <- aPos[match(retval[, "resmain"], aPos[, "resmain"]), "pxmain"]
+
+        retval[, "accmain"] <- aPos[1, "accmain"]
+
+        ## NA qtyint to 0:
+        retval[is.na(retval[, "qtyint"]), "qtyint"] <- 0
+
+        ## NA qtyext to 0:
+        retval[is.na(retval[, "qtyext"]), "qtyext"] <- 0
+
+        ## Done, return:
+        return(retval)
+
+    }))
+
+    ## Done, return:
+    return(stockdiff)
+}
+
+
 ##' A function to push ohlc observations
 ##'
 ##' This is the description

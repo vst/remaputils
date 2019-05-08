@@ -358,6 +358,7 @@ createFXFwdResource <- function(df, session){
     ## Create the data frame:
     dfx <- data.frame("ccymain"=df[,"ccymain"],
                       "symbol"=safeTry(try(df[, "symbol"], silent=TRUE)),
+                      "launch"=safeTry(try(df[, "launch"], silent=TRUE)),
                       "ccyaltn"=df[,"ccyaltn"],
                       "expiry"=df[,"settlement"],
                       "id"=NA,
@@ -927,6 +928,16 @@ getEnrichedStocks <- function(stocks, accounts, resources){
 ##' @export
 isinCCYMatch <- function(data, resources) {
 
+    ## Exclude the currency instruments from resources:
+    resources <- resources[isIsin(resources[, "isin"]), ]
+
+    ## If no resources left, return:
+    if (NROW(resources) == 0) {
+        data[, "resmain"] <- NA
+        data[, "symbol"] <- NA
+        return(data)
+    }
+
     ## ISIN and CCY composite in data:
     compositeD <- paste0(data[, "isin"], data[, "ccymain"])
 
@@ -944,6 +955,9 @@ isinCCYMatch <- function(data, resources) {
 
     ## Match isins with no ccy:
     data[naResmains, "resmain"] <- resources[match(naResD, resources[, "isin"]), "id"]
+
+    ## Get the symbol:
+    data[, "symbol"] <- resources[match(data[, "resmain"], resources[, "id"]), "symbol"]
 
     ## Done, return:
     data

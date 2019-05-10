@@ -1,3 +1,172 @@
+##' This function syncs portfolios from a data frame and appends the name and id's to the data frame
+##'
+##' This is the description
+##'
+##' @param data The data frame. Required columns: "portfolio" ("name of portoflio"),
+##' @param session The rdecaf session
+##' @param prefix Optional string to be used as prefix for portfolio name:
+##' @return Returns the appended data frame.
+##' @export
+appendPortfolioIDs <- function(data, session, prefix="") {
+
+    ## Get the portfolios:
+    portfolios <- as.data.frame(getResource("portfolios", params=list("format"="csv", "page_size"=-1), session=session))
+
+    ## If not portfolios yet, mask:
+    if (NROW(portfolios) == 0) {
+        portfolios <- as.data.frame(matrix(NA, 1, 2))
+        colnames(portfolios) <- c("name", "id")
+    }
+
+    ## Grep the portoflios name:
+    pNameMatch <- mgrep(portfolios[, "name"], data[, "portfolio"])
+
+    ## Check if portfolio exists:
+    hasIt <- do.call(c, lapply(1:NCOL(pNameMatch), function(i) {
+        hasIt <- which(pNameMatch[, i] != "0")
+        if (length(hasIt) == 0) {
+            return(NA)
+        }
+        portfolios[hasIt, "guid"]
+
+    }))
+
+    ## Assign the portfolio names to the existence boolean:
+    names(hasIt) <- colnames(pNameMatch)
+
+    ## For the exsiting portoflios, assign the guid:
+    data[, "portfolio_guid"] <- hasIt[match(data[, "portfolio"], names(hasIt))]
+
+    ## For the exsiting portoflios, assign the name:
+    data[, "portfolio_name"] <- portfolios[match(data[, "portfolio_guid"], portfolios[, "guid"]), "name"]
+
+    ## For the exsiting portoflios, assign the id:
+    data[, "portfolio_id"] <- portfolios[match(data[, "portfolio_guid"], portfolios[, "guid"]), "id"]
+
+    ## Create if portfolio doesn't exsit:
+    if (any(is.na(hasIt))) {
+
+        ## Get the NA portfolios:
+        naHasIt <- is.na(hasIt)
+
+        ## Inbulk the NA portfolios:
+        resPort <- inbulkPortfolio(name=paste0(prefix, data[naHasIt, "portfolio"]),
+                                   rccy=data[naHasIt,"refCCY"],
+                                   team="1",
+                                   guidPrefix=prefix,
+                                   xguid=data[naHasIt, "portfolio"],
+                                   session=session)
+
+        ## For the new portoflios, assign the name:
+        data[naHasIt, "portfolio_name"] <- resPort[["name"]]
+
+        ## For the new portoflios, assign the id:
+        data[naHasIt, "portfolio_id"] <- resPort[["id"]]
+
+        ## For the new portoflios, assign the guid:
+        data[naHasIt, "portfolio_guid"] <- resPort[["guid"]]
+
+    }
+
+    ## Done, return:
+    return(data)
+
+}
+
+
+##' This function creates new accounts if missing and appends masked ficticious records
+##'
+##' This is the description
+##'
+##' @param data The data frame. Required columns: "account" ("name of account"), "portfolio_id",
+##' @param guidInst The guid for the institution.
+##' @param session The rdecaf session
+##' @param prefix Optional string to be used as prefix for account name:
+##' @return Returns the appended data frame.
+##' @export
+appendAccountIDs <- function(data, guidInst, session, prefix) {
+
+    ## Inbulk the accounts:
+    result <- inbulkAccount(name=paste0(prefix, data[, "account"]),
+                            portfolio=paste0("dcf:portfolio?guid=", data[["portfolio_guid"]]),
+                            custodian=paste0("dcf:institution?guid=", guidInst),
+                            guidPrefix=prefix,
+                            xguid=data[, "account"],
+                            session=session)
+
+    ## Assign the account name:
+    data[, "account_name"] <- result[["name"]]
+
+    ## Assign the account id:
+    data[, "account_id"] <- result[["id"]]
+
+    ## Assign the accmain:
+    data[, "accmain"] <- paste0("dcf:account?guid=", result[["guid"]])
+
+    ## Get the portfolio-wise data:
+    pWiseData <- lapply(unique(data[, "portfolio_id"]), function(p) data[data[, "portfolio_id"] == p,])
+
+    ## Get the system accounts:
+    systemAccounts <- as.data.frame(getResource("accounts", params=list("format"="csv", "page_size"=-1), session=session))
+
+    ## Initialise new data:
+    newData <- NULL
+
+    ## Iterate over portfolios:
+    for (i in 1:length(pWiseData)) {
+
+        ## Get the portfolio data:
+        pWise <- pWiseData[[i]]
+
+        ## Get the account id's of matching accounts:
+        pAccs <- systemAccounts[systemAccounts[, "portfolio"] == pWise[1, "portfolio_id"], "id"]
+
+        ## Get the match the account ids:
+        matchIdx <- match(pAccs, pWise[, "account_id"])
+
+        ## If no match, create account:
+        if (any(is.na(matchIdx))) {
+
+            ## Get the number of missing accounts:
+            noOfMissingAccs <- sum(is.na(matchIdx))
+
+            ## Create dataframe with as many rows as missing accounts:
+            append <- do.call(rbind, lapply(1:noOfMissingAccs, function(x) rep(NA, NCOL(pWise))))
+
+            ## Name the columns of the missing accounts:
+            colnames(append) <- colnames(pWise)
+
+            ## Append the rows to the portfolio data:
+            pWise <- rbind(pWise, append)
+
+            ## Compute the sequence of new row numbers:
+            newRows <- (NROW(pWise) - noOfMissingAccs + 1):(NROW(pWise))
+
+            ## Mask ficitcious values:
+            pWise[newRows, "account_id"] <- pAccs[is.na(matchIdx)]
+            pWise[newRows, "portfolio"]  <- pWise[1, "portfolio"]
+            pWise[newRows, "portfolio_name"]  <- pWise[1, "portfolio_name"]
+            pWise[newRows, "portfolio_guid"]  <- pWise[1, "portfolio_guid"]
+            pWise[newRows, "portfolio_id"]  <- pWise[1, "portfolio_id"]
+            pWise[newRows, "posamnt"]  <- 0
+            pWise[newRows, "ccymain"]  <- "EUR"
+            pWise[newRows, "id"]  <- "EUR"
+            pWise[newRows, "type"]  <- "Cash"
+            pWise[newRows, "positionDate"]  <- pWise[1, "positionDate"]
+            pWise[newRows, "accmain"] <- paste0("dcf:account?guid=", systemAccounts[match(pAccs[is.na(matchIdx)], systemAccounts[, "id"]), "guid"])
+            pWise[newRows, "account_name"] <- systemAccounts[match(pAccs[is.na(matchIdx)], systemAccounts[, "id"]), "name"]
+        }
+
+        ## Append to new data:
+        newData <- rbind(newData, pWise)
+    }
+
+    ## Done, return:
+    return(newData)
+
+}
+
+
 ##' This function mimicks the PX Last methodology of DECAF:
 ##'
 ##' This is the description
@@ -42,7 +211,8 @@ getPXLast <- function(resmain, resources, session, date) {
                           "open"=NA,
                           "high"=NA,
                           "low"=NA,
-                              "close"=trds[which(trds[, "commitment"] == min(trds[, "commitment"]))[1], "pxmain"]))
+                          "close"=trds[which(trds[, "commitment"] == min(trds[, "commitment"]))[1], "pxmain"],
+                          stringsAsFactors=FALSE))
     }))
 
     ## Done, return:

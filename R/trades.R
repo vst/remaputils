@@ -1,3 +1,42 @@
+##' A function to sync trades in batches
+##'
+##' This is the description
+##'
+##' @param trades The trades data frame.
+##' @param session The DECAF session info
+##' @param batchSize The desired batch sizes. Default=150.
+##' @return NULL
+##' @import rdecaf
+##' @export
+syncTradesByBatch <- function(trades, session, batchSize=500) {
+
+    ## Create the batches:
+    batches <- createBatches(NROW(trades), batchSize)
+
+    ## Interate over batches and push:
+    for (i in 1:length(batches[[1]])) {
+
+        ## Get the start index:
+        start <- batches$startingIdx[[i]]
+
+        ## Get the end index
+        end <- batches$endingIdx[[i]]
+
+        ## Get the payload:
+        payload <- toJSON(list("actions"=trades[start:end,]), auto_unbox=TRUE, na="null", digits=10)
+
+        print(paste0("Posting trades ", start, ":", end, " of ", NROW(trades)))
+
+        ## Push and get response:
+        response <- postResource("imports/inbulk", params=list(sync="True"), payload=payload, session = session)
+    }
+
+    ## Done, return:
+    return(NULL)
+
+}
+
+
 ##' A function to get trades from session using container names:
 ##'
 ##' This is the description

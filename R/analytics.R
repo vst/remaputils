@@ -1,3 +1,38 @@
+##' Provides for a time series smoothing, date ascension and limit expansion
+##'
+##' This is the description
+##'
+##' @param df A data frame with 'value' and 'date' columns.
+##' @param smooth The smoothing parameter.
+##' @param limitFactor The factor with which to expand the limits.
+##' @return A list with the date-ascended and smoothed values and the expanded lower and upper limits.
+##' @export
+timeSeriesTransform <- function(df, smooth=0.3, limitFactor=0.1) {
+
+    ## Transform df into time series:
+    ts <- timeSeries::as.timeSeries(df[, "value"], df[, "date"])
+
+    ## Smoothen the values:
+    lw <- timeSeries::smoothLowess(ts, smooth)[, "lowess"]
+
+    ## Convert back to basic data types:
+    value <- as.numeric(lw)
+    date <- rownames(lw)
+
+    ## Order values based on date:
+    value <- value[order(as.Date(date))]
+    date  <- as.character(date[order(as.Date(date))])
+
+    ## Expand the limits:
+    limits <- expandLimits(value, factor=limitFactor)
+
+    ## Done, return:
+    list("value"=value,
+         "date"=date,
+         "limits"=limits)
+}
+
+
 ##' A function to produce the option deltas.
 ##'
 ##' This is the description

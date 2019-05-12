@@ -1,3 +1,541 @@
+##' Arranges holdings based on given columns.
+##'
+##' This is a description.
+##'
+##' @param holdings The holdings data frame.
+##' @param col The columns to be arranged by.
+##' @return A list.
+##' @export
+arrangeHoldings <- function(holdings, col) {
+
+    ## Format the holdings data frame:
+    holdings <- data.frame(holdings, row.names=NULL, check.names=FALSE)
+
+    ## Get the top level index:
+    tlevelIdx <- which(holdings[, "order"] == "1")
+
+    ## Get the start and endpoint of top levels:
+    tlevelIndices <- cbind(tlevelIdx[seq(1, length(tlevelIdx), 2)], tlevelIdx[seq(2, length(tlevelIdx), 2)])
+
+    ## Get the holdings by top level:
+    hTopLevel <- apply(tlevelIndices, MARGIN=1, function(x) holdings[x[1]:x[2], ])
+
+    ## Rearrange the holdings:
+    holdings <- do.call(rbind, hTopLevel[order(sapply(hTopLevel, function(h) median(na.omit(as.numeric(h[, "AClass Order"])))))])
+
+    ## Get the top level index:
+    tlevelIdx <- which(holdings[, "order"] == "1")
+
+    ## Get the start and endpoint of top levels:
+    tlevelIndices <- cbind(tlevelIdx[seq(1, length(tlevelIdx), 2)], tlevelIdx[seq(2, length(tlevelIdx), 2)])
+
+    ##
+    grpSum <- getPositionsByGrp(holdings, col)
+
+    ## Done, return list:
+    list("holdings" = holdings,
+         "subtotals"= holdings[tlevelIndices[,2], ],
+         "asstLbts" = grpSum[["asstLbts"]],
+         "asstLbtsSum"=grpSum[["asstLbtsSummary"]],
+         "positions"=grpSum[["positions"]],
+         "total"=sum(na.omit(holdings[is.na(holdings[, "order"]), "Value"])))
+}
+
+
+##' Provides the positions by groupings.
+##'
+##' This is a description.
+##'
+##' @param holdings The holdings data frame.
+##' @param col The columns to be arranged by.
+##' @return A list.
+##' @export
+getPositionsByGrp <- function(holdings, col) {
+
+    ## Get the asset class indices:
+    grpIdx <- lapply(unique(na.omit(holdings[, col])), function(x) holdings[, col] == x)
+
+    ## Positions by asset class:
+    grpPos <- lapply(grpIdx, function(x) holdings[ifelse(is.na(x), FALSE, x), ])
+    names(grpPos) <- unique(na.omit(holdings[, col]))
+
+    ## Get asset and liabilities:
+    grpAsstLbts <- lapply(grpPos, function(x) list("asset"=cleanNARowsCols(x[x[, "Value"] > 0,]), "liability"=cleanNARowsCols(x[x[, "Value"] < 0, ])))
+
+    ## Assign the names:
+    names(grpAsstLbts) <- unique(na.omit(holdings[, col]))
+
+    ## Get the asset liability summary:
+    grpLbtsSummary <- do.call(rbind, lapply(grpAsstLbts, function(x) c("totalAsset"=sum(safeColumn(x[["asset"]], "Value")),
+                                                                       "totalLiability"=sum(safeColumn(x[["liability"]], "Value")))))
+    return(list("positions"=grpPos,
+                "asstLbts"=grpAsstLbts,
+                "asstLbtsSummary"=grpLbtsSummary))
+}
+
+
+##' Prepares a data frame with scaled hex color codes for values centerd around zero.
+##'
+##' This is a description.
+##'
+##' @param values A vector with values centered around zero.
+##' @param positiveRange A vector with 2 strings with the range of colors for positive values.
+##' @param negativeRange A vector with 2 strings with the range of colors for negative values.
+##' @param stepsno The number of steps for the color range.
+##' @return A data frame with the values and the scaled hex color codes.
+##' @export
+centeredColorScale <- function(values, positiveRange=c("lightgreen", "darkgreen"), negativeRange=c("orangered3", "coral"), stepsno=15) {
+
+    ## Get the color range for positive values:
+    posColors <- colorRampPalette(positiveRange)(stepsno)
+
+    ## Get the color range for negative values:
+    negColors <- colorRampPalette(negativeRange)(stepsno)
+
+    ## Get the positive value indices:
+    posIdx <- which(values >  0)
+
+    ## Get the negative value indices:
+    negIdx <- which(values <= 0)
+
+    ## Store the original positive, negative indices:
+    origNeg <- negIdx
+    origPos <- posIdx
+
+    ## If no positive index, mask values:
+    if (length(posIdx) == 0) {
+        posIdx <- c(1,2)
+    }
+
+    ## If no negatve index, mask values:
+    if (length(negIdx) == 0) {
+        negIdx <- c(1,2)
+    }
+
+    ## Get the positive values:
+    posVal <- data.frame("value"=values[posIdx], "idx"=posIdx)
+
+    ## Get the negative values:
+    negVal <- data.frame("value"=values[negIdx], "idx"=negIdx)
+
+    ## Construct a vector with the equally spaced range of length(posColors) for positive values:
+    posScale <- seq(min(posVal[, "value"]), max(posVal[, "value"]), length.out=length(posColors))
+
+    ## Compute the difference of the actual values wrt the scale:
+    posDists <- lapply(posVal[, "value"], function(x) x - posScale)
+
+    ## Map the actual value to the scaled value:
+    posVal[, "class"] <- sapply(posDists, function(x) which(abs(x) == min(abs(x)))[1])
+
+    ## Assign the corresponding color:
+    posVal[, "col"] <- posColors[posVal[,"class"]]
+
+    ## Construct a vector with the equally spaced range of length(posColors) for negative values:
+    negScale <- seq(min(negVal[, "value"]), max(negVal[, "value"]), length.out=length(negColors))
+
+    ## Compute the difference of the actual values wrt the scale:
+    negDists <- lapply(negVal[, "value"], function(x) x - negScale)
+
+    ## Map the actual value to the scaled value:
+    negVal[, "class"] <- sapply(negDists, function(x) which(abs(x) == min(abs(x)))[1])
+
+    ## Assign the corresponding color:
+    negVal[, "col"] <- negColors[negVal[,"class"]]
+
+    ## Combine the positive and negative data frames:
+    if (length(origPos) == 0) {
+        df <- negVal
+    } else if (length(origNeg) == 0) {
+        df <- posVal
+    } else {
+        df <- rbind(posVal, negVal)
+    }
+
+    ## Done, return
+    df[order(df[, "idx"]), ]
+
+}
+
+
+
+##' Renders an html template.
+##'
+##' This is a description.
+##'
+##' @param tmplPath The path to the template.
+##' @param ... Additional parameters to be passed to tmpl.
+##' @return An html.
+##' @export
+renderTemplate <- function (tmplPath, ...) {
+    templates::tmpl(paste(readLines(tmplPath), collapse="\n"), ...)
+}
+
+
+##' Creates an image tag.
+##'
+##' This is a description.
+##'
+##' @param path The path to the image.
+##' @return An image tag.
+##' @export
+makeImgTag <- function (path) {
+    sprintf("data:image/png;base64,%s", base64enc::base64encode(path))
+}
+
+
+##' Creates an image tag for SVG.
+##'
+##' This is a description.
+##'
+##' @param path The path to the SVG image.
+##' @return An image tag.
+##' @export
+makeImgTagSVG <- function (path) {
+    sprintf("data:image/svg+xml;base64,%s", base64enc::base64encode(path))
+}
+
+
+##' A function to style multiple rows in data frame
+##'
+##' This is a description.
+##'
+##' @param x The data frame.
+##' @param rows The row indices.
+##' @param ... Arguments for kablExtra.
+##' @return A data frame with style rows.
+##' @export
+multirow_spec <- function(x, rows, ...) {
+    for (row in rows)
+        x <- kableExtra::row_spec(x, row, ...)
+    x
+}
+
+
+
+##' Prepares the NAV data frame.
+##'
+##' This is a description.
+##'
+##' @param x A list with "portfolio", "ccy", "currentNAV", "previous NAV".
+##' @param inception The launch date.
+##' @param pxinfo The YTD Performance.
+##' @return A data frame.
+##' @export
+beanbagNAVTable <- function (x, inception, pxinfo) {
+
+    ## Prepare the name column:
+    names <- c("Name",
+               "Currency",
+               "Inception",
+               paste0("NAV (", x[["date"]], ")"),
+               paste0("NAV (", x[["previousDate"]], ")"),
+               "Change",
+               "ISIN",
+               trimws(paste0("Perf (YTD) ", ifelse(!is.na(pxinfo[, "isin"]), as.character(pxinfo[, "shareclass"]), ""))))
+
+    ## Prepare the value column:
+    value <- c(x[["portfolio"]],
+               x[["ccy"]],
+               as.character(inception),
+               paste0(beautify(x[["currentNAV"]]), " ", x[["ccy"]]),
+               paste0(beautify(x[["previousNAV"]]), " ", x[["ccy"]]),
+               paste0(beautify(x[["currentNAV"]] - x[["previousNAV"]]), " ", x[["ccy"]]),
+               paste(pxinfo[, "isin"], collapse=", "),
+               sapply(pxinfo[,"ytdext"], function(x) ifelse(is.na(x), NA, percentify(x))))
+
+    ## Make the data frame:
+    df1 <- data.frame("Name"=names, "Value"=value, check.rows=FALSE, check.names=FALSE, stringsAsFactors=FALSE)
+
+    if (!any(pxinfo[, "isFund"])) {
+        df1 <- df1[!df1[, "Name"] == "ISIN", ]
+    }
+
+    ## Set the column to NULL:
+    colnames(df1) <- NULL
+
+    ## Set the rows to NULL:
+    rownames(df1) <- NULL
+
+    ## Done, return:
+    return(df1)
+
+}
+
+
+##' Gets and prepares the performance information for a portfolio.
+##'
+##' This is a description.
+##'
+##' @param portfolio The portfolio id.
+##' @param start The desired start date.
+##' @param end  The desired end date.
+##' @param freq The desired frequency.
+##' @param session The rdecaf session.
+##' @return A list with the indexed cumulative return series and performance stats.
+##' @export
+getPerformance <- function(portfolio, start, end, freq="daily", session) {
+
+    ## Construct the params:
+    params <- list("portfolios"=portfolio,
+                   "start"=start,
+                   "end"=end,
+                   "frequency"=freq)
+
+    ## Get the asset evolves:
+    performance <- rdecaf::getResource("performance", params=params, session=session)
+
+    ## Get the performance index series:
+    series <- xts::as.xts(unlist(performance[["indexed"]][["data"]]),
+                          order.by=as.Date(unlist(performance[["indexed"]][["index"]])))
+
+    ## Get the stats:
+    stats <- t(safeRbind(lapply(performance[["statistics"]][["univariate"]][["portfolios"]][[1]][["stats"]], function(x) do.call(cbind, x[["stats"]]))))
+
+    ## Add the colnames:
+    colnames(stats) <- sapply(performance[["statistics"]][["univariate"]][["portfolios"]][[1]][["stats"]], function(x) x[["label"]])
+
+    ## Return:
+    list("series"=series,
+         "stats"=stats[,-1])
+}
+
+
+##' Prepares the holdings detail data frame.
+##'
+##' This is a description.
+##'
+##' @param holdings The holdings data frame.
+##' @param colSelect Which columns to select.
+##' @return A list with holdings details information.
+##' @export
+getHoldingsDetails <- function(holdings, colSelect) {
+
+    ## Replace the NA order with the highest available order + 1:
+    holdings[is.na(holdings[, "order"]), "order"] <- max(na.omit(holdings[, "order"])) + 1
+
+    ## Get the row indices which are totals:
+    totalRowIdx <- which(holdings[, "order"] == "1")
+
+    ## Get the row indices which are subtotals:
+    subtlRowIdx <- which(holdings[, "order"] == "2")
+
+    ## Get the row indices which are holdings:
+    holdsRowIdx <- which(holdings[, "order"] == max(na.omit(holdings[, "order"])))
+
+    ## Remove the order column:
+    holdings <- holdings[, !(colnames(holdings) == "order")]
+
+    ## Remove the header column:
+    holdings <- holdings[, !(colnames(holdings) == "isHeader")]
+
+    ## Remove the footer column:
+    holdings <- holdings[, !(colnames(holdings) == "isFooter")]
+
+    ## Remove the rownames:
+    rownames(holdings) <- NULL
+
+    ## Select the columns:
+    holdings <- holdings[, colSelect]
+
+    ## Replace long country strings:
+    if (any(colnames(holdings) == "Country")) {
+        holdings[, "Country"] <- gsub("United States Of America", "United States", holdings[, "Country"])
+    }
+
+    priceKeys <- c("QTY", "PX Cost", "PX Last")
+    priceIdx <- lapply(priceKeys, function(x) colnames(holdings) == x)
+    priceIdx <- apply(do.call(cbind, priceIdx), MARGIN=1, any)
+    ## Beautify percentages:
+    suppressWarnings(holdings[, priceIdx] <- apply(holdings[, priceIdx], MARGIN=2, function(x) round(x, 4)))
+
+    monetaryKeys <- c("QTY", "Value", "Exposure", "Accrd")
+    monetaryIdx <- apply(mgrep(colnames(holdings), monetaryKeys), MARGIN=1, function(x) any(x != "0"))
+
+    ## Beautify monetary amounts:
+    holdings[, monetaryIdx] <- apply(holdings[, monetaryIdx], MARGIN=2, function(x) trimws(beautify(x)))
+
+    percentageKeys <- c("Value (%)", "Exp (%)")
+    percentageIdx <- lapply(percentageKeys, function(x) colnames(holdings) == x)
+    percentageIdx <- apply(do.call(cbind, percentageIdx), MARGIN=1, any)
+    ## Beautify percentages:
+    suppressWarnings(holdings[, percentageIdx] <- apply(holdings[, percentageIdx], MARGIN=2, function(x) trimws(percentify(x))))
+
+    ## Replace unwanted strings with empty:
+    holdings[is.na(holdings)] <- ""
+    holdings[holdings == "NA"] <- ""
+    holdings[holdings == "NA %"] <- ""
+
+    ## Done, return:
+    list("holdingsDetails"=holdings,
+         "subtlIdx"=subtlRowIdx,
+         "totalIdx"=totalRowIdx,
+         "holdsIdx"=holdsRowIdx)
+}
+
+
+##' Prepares the holdings summary data frame.
+##'
+##' This is a description.
+##'
+##' @param holdings The holdings data frame
+##' @return A list with holdings summary information.
+##' @export
+getHoldingsSummary <- function(holdings) {
+
+    ## Get the cash holdings:
+    cashHoldings <-  holdings[safeCondition(holdings, "Subtype", "Cash"), ]
+
+    if (NROW(cashHoldings) != 0) {
+        ## For empty cash names, replace by currency:
+        cashHoldings[isNAorEmpty(cashHoldings[, "Name"]), "Name"] <- cashHoldings[isNAorEmpty(cashHoldings[, "Name"]), "CCY"]
+    }
+
+    ## Exclude the holdings:
+    holdings <- holdings[!is.na(holdings[, "order"]), ]
+
+    ## Get the footers, i.e subtotals:
+    holdings <- holdings[!(as.logical(holdings[, "isHeader"]) & holdings[, "order"] > 1),]
+
+    ## Replace the 'Subtotal' string with 'Total' from the name of footers:
+    holdings[holdings[, "order"] == 1, "Name"] <- gsub("Subtotal", "Total", holdings[holdings[, "order"] == 1, "Name"])
+
+    ## Append the cash holdings to subtotals:
+    holdings <- rbind(holdings[1, ], cashHoldings, holdings[2:NROW(holdings), ])
+
+    ## For NA order, assign 2:
+    holdings[is.na(holdings[, "order"]), "order"] <- 2
+
+    ## Get the index of first level footers:
+    myFooter <- holdings[, "order"] == 1 & as.logical(holdings[, "isFooter"])
+
+    ## Get the index of first level headers:
+    holdings[holdings[, "order"] == 1 & as.logical(holdings[, "isHeader"]), ] <- holdings[myFooter,]
+
+    ## Get the subtotals which are not first level footers:
+    holdings <- holdings[!myFooter, ]
+
+    ## Get the index of rows of order 1, i.e the totals:
+    totalRowIdx <- which(holdings[, "order"] == "1")
+
+    ## Get the index of rows of order !=1, i.e the subtotals:
+    subtlRowIdx <- which(holdings[, "order"] != "1")
+
+    ## Get rid of unwanted columns:
+    holdings <- holdings[, !(colnames(holdings) == "order")]
+
+    ## Get rid of unwanted columns:
+    holdings <- holdings[, !(colnames(holdings) == "isHeader")]
+
+    ## Get rid of unwanted columns:
+    holdings <- holdings[, !(colnames(holdings) == "isFooter")]
+
+    ## Remove rownames:
+    rownames(holdings) <- NULL
+
+    ## Beautify monetary amounts:
+    holdings[, c("Value", "Exposure", "PnL (Unrl)")] <- apply(holdings[, c("Value", "Exposure", "PnL (Unrl)")], MARGIN=2, function(x) trimws(beautify(x)))
+
+    ## Beautify percentages:
+    holdings[, c("Value (%)", "Exp (%)", "PnL (%Inv)")] <- apply(holdings[, c("Value (%)", "Exp (%)", "PnL (%Inv)")], MARGIN=2, function(x) trimws(percentify(x)))
+
+    ## Replace unwanted strings with empty:
+    holdings[is.na(holdings)] <- ""
+    holdings[holdings == "NA"] <- ""
+    holdings[holdings == "NA %"] <- ""
+
+    ## Select the columns
+    holdings <- holdings[, c("Name", "Value", "Value (%)", "Exposure", "Exp (%)", "PnL (Unrl)")]
+
+    ## Done, return list:
+    list("holdingsSummary"=holdings,
+         "subtlIdx"=subtlRowIdx,
+         "totalIdx"=totalRowIdx)
+}
+
+
+##' Gets the asset evolution for a portfolio from pconsolidation
+##'
+##' This is a description.
+##'
+##' @param portfolio The portfolio id.
+##' @param date The date__lte.
+##' @param years The number of years to look back.
+##' @param session The rdecaf session,
+##' @return An data frame with NAV and AUM.
+##' @export
+getAssetEvolution <- function(portfolio, date, years="2", session) {
+    ## Define the params:
+    params <- list("portfolio"=portfolio,
+                   "account__isnull"="True",
+                   "shareclass__isnull"="True",
+                   "date__gte"=dateOfPeriod(paste0("Y-", years)),
+                   "date__lte"=date,
+                   "page_size"=-1)
+
+    ## Get the pconsolidaton:
+    pCons <- rdecaf::getResource("pconsolidations", params=params, session=session)
+
+    ## Build the asset evolution data frame:
+    as.data.frame(do.call(rbind, lapply(pCons, function(x) data.frame("nav"=x[["nav"]], "aum"=x[["aum"]], "date"=as.Date(x[["date"]]), stringsAsFactors=FALSE))))
+
+}
+
+
+##' Highlights each word in a string with a background color
+##'
+##' This is a description.
+##'
+##' @param string A vector with strings.
+##' @param textColor The text color.
+##' @param bgColor The background color.
+##' @param fontSize The font size.
+##' @return An html object.
+##' @export
+beanbagStringHighlight <- function(string, textColor="white", bgColor="darkblue", fontSize=8.5) {
+    ## Prepare and return a styled string:
+    paste(kableExtra::text_spec(string,
+                                color=textColor,
+                                bold=T,
+                                background=bgColor,
+                                font_size=fontSize), collapse = " ")
+}
+
+
+##' Prepares the performance table as styled html.
+##'
+##' This is a description.
+##'
+##' @param stats The statistics data frame from the endpoint.
+##' @return A styled html table.
+##' @export
+beanbagPerformanceTable <- function(stats) {
+
+    ## If no data-frame, Return NULL:
+    if (is.null(dim(stats))) {
+        return(NULL)
+    }
+
+    ## Percentify rows:
+    stats[c(1, 2, 3), ] <- t(apply(stats[c(1,2,3), ], MARGIN=1, percentify))
+
+    ## Round row(s):
+    stats[4, ] <- round(as.numeric(stats[4,]), 2)
+
+    ## Get rid of unwanted characters:
+    stats <- as.data.frame(mgsub(stats, c("0 %", "NA %"), NA))
+
+    ## Capitalise the rownames:
+    rownames(stats) <- capitalise(rownames(stats))
+
+    ## Format and return:
+    stats %>%
+        knitr::kable("html", escape=FALSE) %>%
+        kableExtra::kable_styling(bootstrap_options="striped")
+
+}
+
+
+
 ##' A function to define a fund report composition
 ##'
 ##' This is a description.

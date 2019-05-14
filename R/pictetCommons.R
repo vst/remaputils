@@ -120,6 +120,7 @@ pictetFileMappers <- function() {
                      "PRUNI-BRUT-MONRV"=list("name"="PXCOST"),
                      "NOVAL-ISIN"=list("name"="ISIN"),
                      "SOQTE"=list("name"="QTY"),
+		     "CHMONCO-MONES"=list("name"="FX"),
                      "SIMONT-NOMI-MONES"=list("name"="QTYSIGN"),
                      "COGENR-CPTA"=list("name"="QUOTETYPE"),
                      "COMONL-ISO-VAL"=list("name"="SECURITYCURRENCY"),

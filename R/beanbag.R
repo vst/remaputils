@@ -313,6 +313,12 @@ getHoldingsDetails <- function(holdings, colSelect) {
     ## Replace the NA order with the highest available order + 1:
     holdings[is.na(holdings[, "order"]), "order"] <- max(na.omit(holdings[, "order"])) + 1
 
+    ## Grep title names:
+    grepTitles <- paste0(holdings[holdings[, "order"] == 1 & as.logical(holdings[, "isHeader"]), "Name"], ", ")
+
+    ## Remove title names from subtitles:
+    holdings[, "Name"] <- mgsub(holdings[, "Name"], grepTitles, "")
+
     ## Get the row indices which are totals:
     totalRowIdx <- which(holdings[, "order"] == "1")
 

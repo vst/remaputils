@@ -364,7 +364,7 @@ getHoldingsDetails <- function(holdings, colSelect) {
     ## Beautify monetary amounts:
     holdings[, monetaryIdx] <- apply(holdings[, monetaryIdx], MARGIN=2, function(x) trimws(beautify(x)))
 
-    percentageKeys <- c("Value (%)", "Exp (%)")
+    percentageKeys <- c("Value (%)", "Exp (%)", "PnL (%)", "PnL (%Inv)")
     percentageIdx <- lapply(percentageKeys, function(x) colnames(holdings) == x)
     percentageIdx <- apply(do.call(cbind, percentageIdx), MARGIN=1, any)
     ## Beautify percentages:

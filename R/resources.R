@@ -600,6 +600,7 @@ createBondResource <- function(df, session){
                       "id"=NA,
                       "isin"=safeColumn(df ,"isin"),
                       "ctype"="BOND",
+                      "launch"=safeColumn(df, "launch"),
                       "name"=df[,"name"],
                       "pxmain"=df[,"cpn"],
                       "ccymain"=df[,"ccymain"],

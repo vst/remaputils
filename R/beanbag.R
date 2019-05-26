@@ -231,6 +231,7 @@ beanbagNAVTable <- function (x, inception, pxinfo) {
                paste0("NAV (", x[["previousDate"]], ")"),
                "Change",
                "ISIN",
+               "NAV/Share",
                trimws(paste0("Perf (YTD) ", ifelse(!is.na(pxinfo[, "isin"]), as.character(pxinfo[, "shareclass"]), ""))))
 
     ## Prepare the value column:
@@ -241,13 +242,16 @@ beanbagNAVTable <- function (x, inception, pxinfo) {
                paste0(beautify(x[["previousNAV"]]), " ", x[["ccy"]]),
                paste0(beautify(x[["currentNAV"]] - x[["previousNAV"]]), " ", x[["ccy"]]),
                paste(pxinfo[, "isin"], collapse=", "),
+               x[["navshare"]],
                sapply(pxinfo[,"ytdext"], function(x) ifelse(is.na(x), NA, percentify(x))))
 
     ## Make the data frame:
     df1 <- data.frame("Name"=names, "Value"=value, check.rows=FALSE, check.names=FALSE, stringsAsFactors=FALSE)
 
+    ## For non funds:
     if (!any(pxinfo[, "isFund"])) {
         df1 <- df1[!df1[, "Name"] == "ISIN", ]
+        df1 <- df1[!df1[, "Name"] == "NAV/Share", ]
     }
 
     ## Set the column to NULL:

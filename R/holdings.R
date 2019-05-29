@@ -491,6 +491,7 @@ getFormattedHoldings <- function(holdings){
 ##' @param regions The list with the country to region mapping
 ##' @param summaryaddon TODO
 ##' @param addTagsBy TODO
+##' @param charLimit TODO
 ##' @param session The rdecaf session
 ##' @param ... Additional parameters
 ##' @return A data-frame with the printable format of holdings
@@ -506,6 +507,7 @@ getPrintableHoldings <- function(portfolio,
                                  regions,
                                  summaryaddon,
                                  addTagsBy=NULL,
+                                 charLimit=30,
                                  session, ...){
 
     ## Get additional arguments:
@@ -547,7 +549,7 @@ getPrintableHoldings <- function(portfolio,
     consolidation <- rdecaf::getResource("fundreport", params=list("fund"=portfolio, ccy=ccy, date=date, type=dtype), session=session)
 
     ## Get the flat holdings:
-    holdings <- getFlatHoldings(consolidation[["holdings"]])
+    holdings <- getFlatHoldings(consolidation[["holdings"]], charLimit=charLimit)
 
     ## Check if we have any holdings:
     noHoldings <- all(apply(holdings, MARGIN=1, function(x) all(is.na(x))))

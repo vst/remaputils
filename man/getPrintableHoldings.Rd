@@ -5,8 +5,8 @@
 \title{A function to generate the printable holdings data-frame}
 \usage{
 getPrintableHoldings(portfolio, ccy, date, dtype, toplevel, sublevel,
-  customTop, colselect, regions, summaryaddon, addTagsBy = NULL, session,
-  ...)
+  customTop, colselect, regions, summaryaddon, addTagsBy = NULL,
+  charLimit = 30, session, ...)
 }
 \arguments{
 \item{portfolio}{The portfolio id}
@@ -30,6 +30,8 @@ getPrintableHoldings(portfolio, ccy, date, dtype, toplevel, sublevel,
 \item{summaryaddon}{TODO}
 
 \item{addTagsBy}{TODO}
+
+\item{charLimit}{TODO}
 
 \item{session}{The rdecaf session}
 

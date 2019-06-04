@@ -108,9 +108,17 @@ getEnrichedHoldings <- function(holdings, nav, gav, regions, resources, addTagsB
     ## Get the match index:
     matchIdx <- match(holdings[,"ID"], resources[,"id"])
 
-    ##:
+    ## Replace na Subtypes with Type:
     holdings[, "Subtype"] <- as.character(holdings[, "Subtype"])
     holdings[is.na(holdings[,"Subtype"]), "Subtype"] <- holdings[is.na(holdings[,"Subtype"]), "Type"]
+
+    ## Replace NA Asset Class 2 with Type:
+    holdings[, "Asset Class 2"] <- as.character(holdings[, "Asset Class 2"])
+    holdings[is.na(holdings[,"Asset Class 2"]), "Asset Class 2"] <- holdings[is.na(holdings[,"Asset Class 2"]), "Type"]
+
+    ## Replace NA Asset Class 3 with Subtype:
+    holdings[, "Asset Class 3"] <- as.character(holdings[, "Asset Class 3"])
+    holdings[is.na(holdings[,"Asset Class 3"]), "Asset Class 3"] <- holdings[is.na(holdings[,"Asset Class 3"]), "Subtype"]
 
     ## All 'Money' subtypes to 'Cash'.
     holdings[holdings[,"Subtype"] == "Money", "Subtype"] <- "Cash"
@@ -127,6 +135,7 @@ getEnrichedHoldings <- function(holdings, nav, gav, regions, resources, addTagsB
                          check.names=FALSE,
                          stringsAsFactors=FALSE)
 
+    ## Define addCols as NA:
     addCols <- NA
 
     ## If additional columns are to added, do so:
@@ -134,9 +143,9 @@ getEnrichedHoldings <- function(holdings, nav, gav, regions, resources, addTagsB
         addTagRetval <- addTagsAsColumns(retval, resources, addTagsBy)
         addCols <- addTagRetval[["addCols"]]
         retval <- addTagRetval[["holdings"]]
-
     }
 
+    ## Done, return:
     return(list("holdings"=retval,
                 "addCols"=addCols))
 
@@ -208,6 +217,7 @@ getFlatHoldings <- function(x, charLimit=30){
         return(holdings)
     }
 
+    ## Construct the data frame:
     holdings <- lapply(x, function(h) data.frame("Name"=.emptyToNA(as.character(ellipsify(h[["artifact"]][["name"]], charLimit=charLimit))),
                                                  "Account"=.emptyToNA(h[["accounts"]][[1]][["id"]]),
                                                  "Symbol"=.emptyToNA(as.character(h[["artifact"]][["symbol"]])),
@@ -226,8 +236,16 @@ getFlatHoldings <- function(x, charLimit=30){
                                                  "PnL (Unrl)"=.emptyToNA(safeNull(as.numeric(h[["pnl"]]))),
                                                  ##"PnL (%Inv)"=.emptyToNA(safeNull(as.numeric(h[["pnl_to_investment"]]))),
                                                  "PnL (%Inv)"=.emptyToNA(safeNull(as.numeric(h[["pnl"]])) / safeNull(abs(as.numeric(h[["investment"]][["value"]][["ref"]])))),
-                                                 "Asset Class"=.emptyToNA(as.character(h[["tags"]][["classification"]][[1]][["name"]])),
-                                                 "AClass Order"=.emptyToNA(as.character(h[["tags"]][["classification"]][[1]][["order"]])),
+                                                 "Asset Class 1"=safeTry(try(.emptyToNA(as.character(h[["tags"]][["classification"]][[1]][["name"]])), silent=TRUE)),
+                                                 "AClass 1 Order"=safeTry(try(.emptyToNA(as.character(h[["tags"]][["classification"]][[1]][["order"]])), silent=TRUE)),
+                                                 "Asset Class 2"=safeTry(try(.emptyToNA(as.character(h[["tags"]][["classification"]][[2]][["name"]])), silent=TRUE)),
+                                                 "AClass 2 Order"=safeTry(try(.emptyToNA(as.character(h[["tags"]][["classification"]][[2]][["order"]])), silent=TRUE)),
+                                                 "Asset Class 3"=safeTry(try(.emptyToNA(as.character(h[["tags"]][["classification"]][[3]][["name"]])), silent=TRUE)),
+                                                 "AClass 3 Order"=safeTry(try(.emptyToNA(as.character(h[["tags"]][["classification"]][[3]][["order"]])), silent=TRUE)),
+                                                 "Asset Class 4"=safeTry(try(.emptyToNA(as.character(h[["tags"]][["classification"]][[4]][["name"]])), silent=TRUE)),
+                                                 "AClass 4 Order"=safeTry(try(.emptyToNA(as.character(h[["tags"]][["classification"]][[4]][["order"]])), silent=TRUE)),
+                                                 "Asset Class 5"=safeTry(try(.emptyToNA(as.character(h[["tags"]][["classification"]][[5]][["name"]])), silent=TRUE)),
+                                                 "AClass 5 Order"=safeTry(try(.emptyToNA(as.character(h[["tags"]][["classification"]][[5]][["order"]])), silent=TRUE)),
                                                  check.names=FALSE))
 
     ## Get the holdings:
@@ -347,7 +365,7 @@ getNestedHoldings <- function(holdings, levels, toplevel="Subtype", sublevels=c(
 
     ## Initialise the header/footer indication columns:
     holdings[, "isHeader"] <- FALSE
-    holdings[, "isFooter"] <- FALSE
+    ## holdings[, "isFooter"] <- FALSE
 
     ## Iterate over the levels and nest:
     for (i in 0:(length(levels)-1)) {
@@ -360,15 +378,14 @@ getNestedHoldings <- function(holdings, levels, toplevel="Subtype", sublevels=c(
         uniqueIdx <- which(!duplicated(keys))
 
         ## Initialise a new data frame (extend the holdings dimensionality with additional rows):
-        newM <- as.data.frame(matrix(data=NA, nrow=length(uniqueIdx) * 2 + NROW(holdings), ncol=NCOL(holdings)))
+        newM <- as.data.frame(matrix(data=NA, nrow=length(uniqueIdx) + NROW(holdings), ncol=NCOL(holdings)))
         colnames(newM) <- colnames(holdings)
 
         ## Compute the indices of holdings in the new data frame:
-        newMIdx <- 1:NROW(holdings) + cumsum((!duplicated(keys)) * 2) -1
+        newMIdx <- 1:NROW(holdings) + cumsum((!duplicated(keys)) * 1)
 
         ## Fill the Holdings:
-        newM[newMIdx, ] <- as.data.frame(holdings,
-                                         stringsAsFactors=FALSE)
+        newM[newMIdx, ] <- as.data.frame(holdings, stringsAsFactors=FALSE)
 
         ## Compute the header indices:
         headerIdx <- newMIdx[!duplicated(keys)] - 1
@@ -381,11 +398,14 @@ getNestedHoldings <- function(holdings, levels, toplevel="Subtype", sublevels=c(
 
         ## Fill the next levels key column:
         if (length(levels) -i != 1) {
+
             ## Get the prior level's key:
             priorKey <- paste0(levels[length(levels)-i -1], "-Key")
+
             ## Get the key replacement (basically fill NA's)
             replaceK <- lapply(strsplit(newM[is.na(newM[headerIdx, priorKey]), paste0(level, "-Key")], ","), function(x) paste(head(x, -1), collapse=","))
             replaceK <- sapply(replaceK, function(x) ifelse(isNAorEmpty(x), NA, x))
+
             ## Replace the NA with the key:
             newM[is.na(newM[headerIdx, priorKey]), priorKey] <- replaceK
         }
@@ -394,31 +414,7 @@ getNestedHoldings <- function(holdings, levels, toplevel="Subtype", sublevels=c(
         newM[headerIdx, "isHeader"] <- TRUE
         newM[headerIdx, "order"] <- length(levels) - i
 
-        ## Compute the footer indices:
-        footerIdx <- which(is.na(newM[,"Name"]) & is.na(newM[,"Type"]))
-
-        ## Fill the Footer:
-        newM[footerIdx, ] <- do.call(rbind, lapply(unique(keys), function(key) c(paste0(key, " Subtotal"), rep(NA, NCOL(newM) - 1))))
-
-        ## Fill the level's key column:
-        newM[footerIdx, paste0(level, "-Key")] <- unique(keys)
-
-        ## Fill the next level's key:
-        if (length(levels) -i != 1){
-            ## Get the prior level's key:
-            priorKey <- paste0(levels[length(levels)-i-1], "-Key")
-            ## Get the replacement:
-            replaceK <- lapply(strsplit(newM[is.na(newM[footerIdx, priorKey]), paste0(level, "-Key")], ","), function(x) paste(head(x, -1), collapse=","))
-            replaceK <- sapply(replaceK, function(x) ifelse(isNAorEmpty(x), NA, x))
-            newM[is.na(newM[footerIdx, priorKey]), priorKey] <- replaceK
-        }
-
-        ## Fill the isFooter and order columns:
-        newM[footerIdx, "isFooter"] <- TRUE
-        newM[footerIdx, "order"] <- length(levels) - i
-
         ## Clean NA's in the isHeader and isFooter columns:
-        newM[,"isFooter"] <- ifelse(is.na(newM[,"isFooter"]), FALSE, newM[,"isFooter"])
         newM[,"isHeader"] <- ifelse(is.na(newM[,"isHeader"]), FALSE, newM[,"isHeader"])
 
         ## Assign the new data frame back to holdings:
@@ -434,12 +430,13 @@ getNestedHoldings <- function(holdings, levels, toplevel="Subtype", sublevels=c(
     for (key in unique(holdings[, finalKeyIdx])) {
 
         ## Identify the indices for the final grouping keys' positions (excluding header and footer)
-        holdingsIdx <- which(holdings[, finalKeyIdx] == key & holdings[, "isHeader"] == "FALSE" & holdings[, "isFooter"] == "FALSE")
+        holdingsIdx <- which(holdings[, finalKeyIdx] == key & holdings[, "isHeader"] == "FALSE") ##& holdings[, "isFooter"] == "FALSE")
 
         ## Reorder the positions and assign back:
-        holdings[holdingsIdx, ] <- holdings[holdingsIdx,][order(holdings[holdingsIdx, "Expiry"], holdings[holdingsIdx, "Name"]), ]
+        holdings[holdingsIdx, ] <- holdings[holdingsIdx,][order(holdings[holdingsIdx, "Expiry"],
+                                                                holdings[holdingsIdx, "CCY"],
+                                                                holdings[holdingsIdx, "Name"]), ]
 
-        ## holdings[holdingsIdx, ] <- holdings[holdingsIdx,][order(holdings[holdingsIdx, "Name"]), ]
     }
 
     ## Return:

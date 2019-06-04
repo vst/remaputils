@@ -12,22 +12,17 @@ arrangeHoldings <- function(holdings, col) {
     holdings <- data.frame(holdings, row.names=NULL, check.names=FALSE)
 
     ## Get the top level index:
-    tlevelIdx <- which(holdings[, "order"] == "1")
+    tlevelIdx <- holdings[, "order"] == "1"
+    tlevelIdx <- ifelse(is.na(tlevelIdx), FALSE, tlevelIdx)
 
-    ## Get the start and endpoint of top levels:
-    tlevelIndices <- cbind(tlevelIdx[seq(1, length(tlevelIdx), 2)], tlevelIdx[seq(2, length(tlevelIdx), 2)])
+    ## Get row index range for top level holdings:
+    tlevelIndices <- cbind(which(tlevelIdx), c(tail(which(tlevelIdx), -1) - 1, NROW(holdings)))
 
     ## Get the holdings by top level:
     hTopLevel <- apply(tlevelIndices, MARGIN=1, function(x) holdings[x[1]:x[2], ])
 
     ## Rearrange the holdings:
-    holdings <- do.call(rbind, hTopLevel[order(sapply(hTopLevel, function(h) median(na.omit(as.numeric(h[, "AClass Order"])))))])
-
-    ## Get the top level index:
-    tlevelIdx <- which(holdings[, "order"] == "1")
-
-    ## Get the start and endpoint of top levels:
-    tlevelIndices <- cbind(tlevelIdx[seq(1, length(tlevelIdx), 2)], tlevelIdx[seq(2, length(tlevelIdx), 2)])
+    holdings <- do.call(rbind, hTopLevel[order(sapply(hTopLevel, function(h) median(na.omit(as.numeric(h[, "AClass 1 Order"])))))])
 
     ##
     grpSum <- getPositionsByGrp(holdings, col)
@@ -211,6 +206,22 @@ multirow_spec <- function(x, rows, ...) {
 }
 
 
+##' A function to style multiple cols in data frame
+##'
+##' This is a description.
+##'
+##' @param x The data frame.
+##' @param cols The column indices.
+##' @param ... Arguments for kablExtra.
+##' @return A data frame with style rows.
+##' @export
+multicol_spec <- function(x, cols, ...) {
+    for (row in rows)
+        x <- kableExtra::column_spec(x, row, ...)
+    x
+}
+
+
 
 ##' Prepares the NAV data frame.
 ##'
@@ -317,11 +328,33 @@ getHoldingsDetails <- function(holdings, colSelect) {
     ## Replace the NA order with the highest available order + 1:
     holdings[is.na(holdings[, "order"]), "order"] <- max(na.omit(holdings[, "order"])) + 1
 
-    ## Grep title names:
-    grepTitles <- paste0(holdings[holdings[, "order"] == 1 & as.logical(holdings[, "isHeader"]), "Name"], ", ")
+    ## Iterate over holding rows and remove parent name from tag name:
+    for (row in 1:NROW(holdings)) {
 
-    ## Remove title names from subtitles:
-    holdings[, "Name"] <- mgsub(holdings[, "Name"], grepTitles, "")
+        ## Is the row a header:
+        isHeader <- as.logical(holdings[row, "isHeader"])
+
+        ## If header, remove the parent name:
+        if (isHeader) {
+            subname <- paste0(holdings[row, "Name"], ",")
+            holdings[, "Name"] <- gsub(subname, "", holdings[, "Name"])
+        }
+    }
+
+    ## Compute the grand total values:
+    grandTotal <- colSums(holdings[holdings[, "order"] == "1", c("Value", "Value (%)", "Exposure", "Exp (%)")])
+
+    ## Append a line to the end:
+    holdings <- rbind(holdings, holdings[1, ])
+
+    ## Append the grand total values:
+    holdings[NROW(holdings), c("Value", "Value (%)", "Exposure", "Exp (%)")] <- grandTotal
+
+    ## Name the line as 'Grand Total':
+    holdings[NROW(holdings), "Name"] <- "Grand Total"
+
+    ## Trim all the names:
+    holdings[, "Name"] <- trimws(holdings[, "Name"])
 
     ## Get the row indices which are totals:
     totalRowIdx <- which(holdings[, "order"] == "1")
@@ -329,17 +362,17 @@ getHoldingsDetails <- function(holdings, colSelect) {
     ## Get the row indices which are subtotals:
     subtlRowIdx <- which(holdings[, "order"] == "2")
 
+    ## Get the row indices which are subsubtotals:
+    subtl2RowIdx <- which(holdings[, "order"] == "3")
+
     ## Get the row indices which are holdings:
-    holdsRowIdx <- which(holdings[, "order"] == max(na.omit(holdings[, "order"])))
+    holdsRowIdx <- which(holdings[, "order"] == "3" | holdings[, "order"] == max(na.omit(holdings[, "order"])))
 
     ## Remove the order column:
     holdings <- holdings[, !(colnames(holdings) == "order")]
 
     ## Remove the header column:
     holdings <- holdings[, !(colnames(holdings) == "isHeader")]
-
-    ## Remove the footer column:
-    holdings <- holdings[, !(colnames(holdings) == "isFooter")]
 
     ## Remove the rownames:
     rownames(holdings) <- NULL
@@ -352,21 +385,34 @@ getHoldingsDetails <- function(holdings, colSelect) {
         holdings[, "Country"] <- gsub("United States Of America", "United States", holdings[, "Country"])
     }
 
+    ## Define the keys which are prices:
     priceKeys <- c("QTY", "PX Cost", "PX Last")
+
+    ## Get the indices of the price keys:
     priceIdx <- lapply(priceKeys, function(x) colnames(holdings) == x)
+
+    ##: TODO
     priceIdx <- apply(do.call(cbind, priceIdx), MARGIN=1, any)
+
     ## Beautify percentages:
     suppressWarnings(holdings[, priceIdx] <- apply(holdings[, priceIdx], MARGIN=2, function(x) round(x, 4)))
 
+    ## Define the monetary keys:
     monetaryKeys <- c("QTY", "Value", "Exposure", "Accrd")
+
+    ## Get the indices of the monetary keys:
     monetaryIdx <- apply(mgrep(colnames(holdings), monetaryKeys), MARGIN=1, function(x) any(x != "0"))
 
     ## Beautify monetary amounts:
     holdings[, monetaryIdx] <- apply(holdings[, monetaryIdx], MARGIN=2, function(x) trimws(beautify(x)))
 
+    ## Define the percentage keys:
     percentageKeys <- c("Value (%)", "Exp (%)", "PnL (%)", "PnL (%Inv)")
+
+    ## Get the indices of the percentage keys:
     percentageIdx <- lapply(percentageKeys, function(x) colnames(holdings) == x)
     percentageIdx <- apply(do.call(cbind, percentageIdx), MARGIN=1, any)
+
     ## Beautify percentages:
     suppressWarnings(holdings[, percentageIdx] <- apply(holdings[, percentageIdx], MARGIN=2, function(x) trimws(percentify(x))))
 
@@ -378,6 +424,7 @@ getHoldingsDetails <- function(holdings, colSelect) {
     ## Done, return:
     list("holdingsDetails"=holdings,
          "subtlIdx"=subtlRowIdx,
+         "subtl2Idx"=subtl2RowIdx,
          "totalIdx"=totalRowIdx,
          "holdsIdx"=holdsRowIdx)
 }
@@ -415,16 +462,7 @@ getHoldingsSummary <- function(holdings) {
     ## For NA order, assign 2:
     holdings[is.na(holdings[, "order"]), "order"] <- 2
 
-    ## Get the index of first level footers:
-    myFooter <- holdings[, "order"] == 1 & as.logical(holdings[, "isFooter"])
-
-    ## Get the index of first level headers:
-    holdings[holdings[, "order"] == 1 & as.logical(holdings[, "isHeader"]), ] <- holdings[myFooter,]
-
-    ## Get the subtotals which are not first level footers:
-    holdings <- holdings[!myFooter, ]
-
-    ## Get the index of rows of order 1, i.e the totals:
+   ## Get the index of rows of order 1, i.e the totals:
     totalRowIdx <- which(holdings[, "order"] == "1")
 
     ## Get the index of rows of order !=1, i.e the subtotals:
@@ -437,7 +475,7 @@ getHoldingsSummary <- function(holdings) {
     holdings <- holdings[, !(colnames(holdings) == "isHeader")]
 
     ## Get rid of unwanted columns:
-    holdings <- holdings[, !(colnames(holdings) == "isFooter")]
+    ## holdings <- holdings[, !(colnames(holdings) == "isFooter")]
 
     ## Remove rownames:
     rownames(holdings) <- NULL
@@ -1189,7 +1227,7 @@ appendCash <- function(orderedHoldings, nestedHoldings){
     cash <- rbind(c("Cash", rep(NA, NCOL(cash)-1)), cash)
 
     ## Apend the Cash subtotal row:x
-    cash <- rbind(cash, c("Cash Subtotal", rep(NA, NCOL(cash) -1)))
+    ## cash <- rbind(cash, c("Cash Subtotal", rep(NA, NCOL(cash) -1)))
 
     ## Safely rbind cash and other holdings:
     nestedHoldings <- safeRbind(list(cash, nestedHoldings))
@@ -1201,10 +1239,10 @@ appendCash <- function(orderedHoldings, nestedHoldings){
     nestedHoldings[nestedHoldings[,"Name"] == "Cash", "order"] <- "1"
 
     ## Fill the isFooter value for cash subtotal:
-    nestedHoldings[nestedHoldings[,"Name"] == "Cash Subtotal", "isFooter"] <- "TRUE"
+    ## nestedHoldings[nestedHoldings[,"Name"] == "Cash Subtotal", "isFooter"] <- "TRUE"
 
     ## Fill the order value for cash subtotal:
-    nestedHoldings[nestedHoldings[,"Name"] == "Cash Subtotal", "order"] <- "1"
+    ## nestedHoldings[nestedHoldings[,"Name"] == "Cash Subtotal", "order"] <- "1"
 
     ## Return:
     nestedHoldings
@@ -1222,14 +1260,25 @@ getSubtotalledHoldings <- function(holdings) {
     orderIdx <- lapply(na.omit(unique(holdings[,"order"])), function(x) holdings[,"order"] == x)
 
     ## Replace NA's with FALSE:
-    orderIdx <- lapply(orderIdx, function(x) which(ifelse(is.na(x), FALSE, x)))
+    orderIdx <- lapply(orderIdx, function(x) ifelse(is.na(x), FALSE, x))
 
     ## Name the list elements with order:
     names(orderIdx) <- na.omit(unique(holdings[,"order"]))
 
+    idxPairs <- lapply(orderIdx, function(x) cbind(which(x), c(tail(which(x), -1) - 1, NROW(holdings))))
+
+    ## idxPairs <- orderIdxx
+    ## orderIdx <- lapply(orderIdx, function(x) diff(x))
+    ## orderIdx[[1]] <- orderIdx[[1]] * -1
+
+    ## idxPairs <- suppressWarnings(lapply(orderIdx, function(x) cbind(which(x== 1), which(x == -1))))
+
+    ## idxPairs[[1]][NROW(idxPairs[[1]]), 2] <- NROW(holdings)
+
+
     ## Create index pairs representing the start and end of chunk:
-    idxPairs <- lapply(orderIdx, function(x) cbind(x[seq(1, length(x), 2)],
-                                                   x[seq(2, length(x), 2)]))
+    ## idxPairs <- lapply(orderIdx, function(x) cbind(x[seq(1, length(x), 2)],
+    ##                                                x[seq(2, length(x), 2)]))
 
     ## Iterate over index pairs and run the getSummary for subtotals:
     allSubtotals <- lapply(idxPairs, function(x) do.call(rbind, apply(x, MARGIN=1, function(y) getSummary(holdings, y))))
@@ -1238,13 +1287,13 @@ getSubtotalledHoldings <- function(holdings) {
     for (i in 1:length(idxPairs)){
 
         ## Get the footer row index:
-        footerIdx <- idxPairs[[i]][,2]
+        headerIdx <- idxPairs[[i]][, 1]
 
         ## Get the subtotal values:
         vals <- allSubtotals[[i]]
 
         ## Assign to footer row index:
-        holdings[footerIdx, colnames(vals)] <- vals
+        holdings[headerIdx, colnames(vals)] <- vals
     }
 
     ## Done, return:

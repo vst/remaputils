@@ -92,7 +92,7 @@ stackedBarChart <- function(df, colors=RColorBrewer::brewer.pal(9, "GnBu")[3:9])
     slices <- aggs[,2]
 
     ## Get the labels
-    if (mean(nchar(aggs[,1])) == 3){
+    if (mean(nchar(aggs[,1])) == 3) {
         lbls <- aggs[,1]
     } else {
         lbls <- capitalise(ellipsify(aggs[,1], 15))
@@ -103,7 +103,6 @@ stackedBarChart <- function(df, colors=RColorBrewer::brewer.pal(9, "GnBu")[3:9])
 
     ## Group small values into "Others"
     if (sum(abs(pct) < 0.01) > 1) {
-    ##if (any(abs(pct) < 0.01)) {
         othersval <- sum(slices[abs(pct) < 0.01])
         slices <- c(slices[!(abs(pct) < 0.01)], othersval)
         lbls <- c(lbls[!(abs(pct) < 0.01)], "Others")
@@ -117,7 +116,7 @@ stackedBarChart <- function(df, colors=RColorBrewer::brewer.pal(9, "GnBu")[3:9])
 
     ## Plot the stacked bar chart and the legend:
     par(mai = c(0.4, 0.4, 0.4, 0.4))
-    barplot(as.matrix(pct),
+    barplot(as.numeric(pct[,1]),
             col=colors[1:NROW(pct)],
             border="white",
             xlab="",
@@ -127,10 +126,12 @@ stackedBarChart <- function(df, colors=RColorBrewer::brewer.pal(9, "GnBu")[3:9])
     legend("topright",
            rownames(pct),
            fill=colors[1:NROW(pct)],
-           bg=adjustcolor("white", alpha=0.80),
+           bg=adjustcolor("white", alpha=0.60),
            cex=1.25,
            pt.cex=1,
-           text.col=adjustcolor("black", alpha=1))
+           box.lwd=0.01,
+           box.lty=0,
+           text.col=adjustcolor("black", alpha=0.8))
 }
 
 

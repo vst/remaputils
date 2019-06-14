@@ -1,3 +1,79 @@
+
+##' Gets the previous NAN either using external or internal valuations.
+##'
+##' This is a description.
+##'
+##' @param portfolio The portfolio id.
+##' @param date The report date.
+##' @param ccy The portoflio currency.
+##' @param period The period memnonic, i.e Y-0 for last year end.
+##' @param external TRUE if external valuation is to be used.
+##' @param session The rdecaf session.
+##' @return A list.
+##' @export
+getPreviousNAV <- function(portfolio, date, ccy, period, external, session) {
+
+    previousDate <- dateOfPeriod(period)
+
+    ## If external is true, get previuos NAV from external table:
+    if (external) {
+
+        ## Get the external valuations:
+        extVal <- as.data.frame(getResource("externalvaluations", params=list("format"="csv", "page_size"=-1, "portfolio"=portfolio), session=session))
+
+        ## If not external valuation, retur NA:
+        if (NROW(extVal) == 0) {
+            return(list("value"=NA,
+                        "date"=previousDate))
+        }
+
+        ## If any shareclass exists, construct NAV from shareclass sums:
+        if (any(!is.na(extVal[, "shareclass"]))) {
+
+            ## Iterate over shareclasses:
+            lastVals <- do.call(rbind, lapply(1:length(unique(extVal[, "shareclass"])), function(i) {
+                id <- unique(extVal[, "shareclass"])[i]
+                shrclsVals <- extVal[extVal[, "shareclass"] == id, c("date", "ccy", "nav")]
+
+                return(data.frame(valueOfNearestDate(targetDate=previousDate,
+                                                     data=shrclsVals,
+                                                     tolerance=2,
+                                                     dateField="date",
+                                                     valueField="nav"), "ccy"=shrclsVals[1, "ccy"]))
+
+
+            }))
+
+            fx <- lapply(lastVals[, "ccy"], function(cy) getOhlcObsForSymbol(session, paste0(cy, ccy), previousDate, 0)[, "close"])
+            fx[which(lastVals[, "ccy"] == ccy)] <- 1
+
+            return(list("value"=sum(lastVals[, "value"] * do.call(c, fx)),
+                        "date"=previousDate))
+        }
+
+        ## If no shareclass exists, use the nav only:
+        return(valueOfNearestDate(targetDate=previousDate,
+                                  data=extVal,
+                                  tolerance=2,
+                                  dateField="date",
+                                  valueField="nav"))
+
+    }
+
+    if (!external) {
+        ## Get the asset evolution (pconsolidation)
+        assEvl <- getAssetEvolution(portfolio, date, "2", session)
+
+            return(valueOfNearestDate(targetDate=previousDate,
+                                      data=assEvl,
+                                      tolerance=2,
+                                      dateField="date",
+                                      valueField="nav"))
+    }
+
+}
+
+
 ##' Arranges holdings based on given columns.
 ##'
 ##' This is a description.

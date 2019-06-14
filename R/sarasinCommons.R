@@ -121,6 +121,7 @@ sarasinCTypeMapper <- function() {
       "FXFwd"="FXFWD",
       "ConvBond"="BOND",
       "Share"="SHRE",
+      "Rights"="SHRE",
       "Cash"="CCY",
       "MMLoan"="LOAN",
       "MMDeposit"="DEPO")
@@ -141,6 +142,7 @@ sarasinSTypeMapper <- function() {
       "FXFwd"=NA,
       "ConvBond"="Convertible",
       "Share"="Equity",
+      "Rights"="Equity",
       "Cash"=NA,
       "MMLoan"=NA)
 }

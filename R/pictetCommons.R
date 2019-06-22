@@ -1,3 +1,214 @@
+eBankVSLink <<- c("CAPITAL"="",
+                 "GUARANTEEACCOUNT"="",
+                 "CTFUTURE-COMMODITY"="COM_FUT",
+                 "CTFUTURE-SHAREINDEX"="IND_FUT",
+                 "CTFUTURE-METALS"="MET_FUT",
+                 "FXFORWARD"="",
+                 "BOND"="STR_BD",
+                 "PERPETUALBOND"="PERP_BD",
+                 "SHARI'ABOND"="SHAR_BD",
+                 "CONVERTIBLEBOND"="CONV_BD",
+                 "FIXEDINCOMEFUND"="BOND_FD",
+                 "REGISTEREDSHARE"="ORD_SH",
+                 "CALLOPTIONONEQUITY"="IND_OPT",
+                 "PUTOPTIONONEQUITY"="IND_OPT",
+                 "CALLOPTIONSHAREINDEX"="IND_OPT",
+                 "PUTOPTIONONEQUITYINDEX"="IND_OPT",
+                 "BEARERSHARE"="ORD_SH",
+                 "FUTUREONEQUITYINDEX"="IND_FUT",
+                 "EQUITYFUND"="SHARE_FD",
+                 "HEDGEFUNDS-ARBITRAGEFIXEDINCOME"="HEDGE_FD",
+                 "PRIVATEEQUITY-MISCELLANEOUS"="PRIV_SH",
+                 "PRIVATEEQUITY-PRIVATEINVESTMENTS"="PRIV_SH",
+                 "SHS/STRPR/CAPNPROTPARTICIP"="SP_SH",
+                 "BD/STRPR/CAPNPROTPARTICIP"="SP_BD",
+                 "METAL-SILVER"="PRECMET_NOVAT",
+                 "METAL-GOLD"="PRECMET_NOVAT",
+                 "FUTUREONMETALS"="COM_FUT",
+                 "FUTURE-COMMODITY"="COM_FUT",
+                 "CALLWARRANTONEQUITY"="SH_WRT",
+                 "HEDGEFUNDS-ARBITRAGEMULTISTRATEGY"="HEDGE_FD",
+                 "HEDGEFUNDS-EVENTDRIVEN"="HEDGE_FD",
+                 "HEDGEFUNDS-FUNDOFFUNDS"="HEDGE_FD",
+                 "HEDGEFUNDS-LONG/SHORT"="HEDGE_FD",
+                 "MISCELLANEOUS-GUARANTEES"="",
+                 "MIXEDFUND"="HEDGE_FD",
+                 "HEDGEFUNDS-CTA"="HEDGE_FD",
+                 "HEDGEFUNDS-EQUITIESMARKETNEUTRAL"="HEDGE_FD",
+                 "CALLOPTIONONCURRENCY"="FXOTC_OPT",
+                 "PUTOPTIONONCURRENCY"="FXOTC_OPT",
+                 "PUTOPTIONONSHORTTERMINTERESTRATE"="INTR_OPT",
+                 "CCY/STRPR/MISC"="SP_MISC",
+                 "METAL-PLATINUM"="PRECMET_NOVAT",
+                 "MONEYMARKETFUND"="MMKT_FD",
+                 "HEDGEFUNDS-MISCELLANEOUS"="HEDGE_FD",
+                 "FUND-METAL"="HEDGE_FD",
+                 "MISCELLANEOUS"="")
+
+
+##' This function normalizes the position file from Pictet's ebanking system.
+##'
+##' This is the description
+##'
+##' @param filePath The data frame with flattened records.
+##' @param session The rdecaf session.
+##' @return Returns the normalised records.
+##' @export
+pictetEBankingNormalizer <- function(filePath, session) {
+
+    ## Get system accounts:
+    sysAccounts <- as.data.frame(getResource("accounts", params=list("format"="csv", "page_size"=-1), session=session))
+
+    ## Get the base file name:
+    fileName <- strsplit(tail(strsplit(filePath, "/")[[1]], 1), ".xlsx")[[1]]
+
+    ## Convert to csv using libreoffice CLI:
+    ## system("/usr/lib/libreoffice/program/soffice --headless --convert-to csv --outdir /tmp/ ~/Downloads/Holdings_20190606145751.xlsx")
+
+    ## Read the data:
+    data <- read.csv(paste0("/tmp/", fileName, ".csv"), header=TRUE, sep=",")
+
+    ## Parse the column names:
+    colnames(data) <- trimConcatenate(colnames(data))
+
+    data[, "accmain"] <- sysAccounts[match(paste0("00", as.character(data[, "ACCOUNTNR"])), as.character(sysAccounts[, "name"])), "id"]
+
+    data <- data[!is.na(data[, "accmain"]), ]
+
+    data <- data[!data[, "accmain"] == 25, ]
+    data <- data[!data[, "accmain"] == 30, ]
+
+    ## Get the cash positions:
+    cshIdx <- data[, "ASSETCLASS"] == "Cash" & data[, "SUBASSETCLASS"] == "Current accounts"  |
+              data[, "ASSETCLASS"] == "Metals" & isNAorEmpty(as.character(data[, "UNDERLYING1FINANCIALINSTRUMENTTYPE"]))
+
+    ## Get the forward positions:
+    fwdIdx <- data[, "ASSETCLASS"] == "Cash" &
+              data[, "SUBASSETCLASS"] == "Forward accounts" &
+              nchar(as.character(data[, "UNDERLYING1"])) == 3 &
+              safeGrep(toupper(data[, "DESCRIPTION"]), "OPTION") == "0"
+
+    ## Get the security positions:
+    secIdx <- !cshIdx & !fwdIdx
+
+    cshPositions <- data[cshIdx, ]
+    fwdPositions <- data[fwdIdx, ]
+    secPositions <- data[secIdx, ]
+
+    fwdPositions[, "RATE"] <- fwdPositions[, "VALUATIONINREFERENCECURRENCY"] / fwdPositions[, "QUANTITY"]
+    fwdPositions[, "QTYNATIVE"] <- abs(fwdPositions[, "QUANTITY"])
+    fwdPositions[, "QTYNATIVESIGN"] <- ifelse(fwdPositions[, "QUANTITY"] < 0, "-", "+")
+    fwdPositions[, "QTY"] <- abs(fwdPositions[, "VALUATIONINREFERENCECURRENCY"])
+    fwdPositions[, "MATURITY"] <- gsub("-", "", as.Date(as.character(fwdPositions[, "MATURITY"]), format="%m/%d/%Y"))
+    fwdPositions[, "ISSUEDATE"] <- NA
+
+    cshPositions[, "ACCOUNTNAME"] <- cshPositions[, "SUBASSETCLASS"]
+    cshPositions[, "ACCOUNTNAME"] <- cshPositions[, "SUBASSETCLASS"]
+    cshPositions[, "ACCOUNTCURRENCY"] <- cshPositions[, "POSITIONCURRENCY"]
+    cshPositions[, "QTY"] <- cshPositions[, "QUANTITY"]
+    cshPositions[, "CLIENTNO"] <- cshPositions[, "ACCOUNTNR"]
+
+    ## Map the instrument type to the PicLink SECQTYPEALQ convetion:
+    secPositions[, "SECTYPEALQ"] <-  eBankVSLink[match(trimConcatenate(as.character(secPositions[, "FINANCIALINSTRUMENTTYPE"])), names(eBankVSLink))]
+    secPositions <- secPositions[!isNAorEmpty(secPositions[, "SECTYPEALQ"]), ]
+
+    secPositions[, "CONTRACTSIZE"] <- as.numeric(ifelse(is.na(secPositions[, "CONTRACTSIZE"]), 1, secPositions[, "CONTRACTSIZE"]))
+    secPositions[, "QUOTETYPE"]    <- ifelse(secPositions[, "MARKETPRICEP"] != "P", "C", "P")
+    secPositions[, "CURRENCY"] <- as.character(secPositions[, "PRICECURRENCY"])
+    secPositions[, "SECURITYCURRENCY"] <- secPositions[, "CURRENCY"]
+    secPositions[isNAorEmpty(secPositions[, "SECURITYCURRENCY"]), "SECURITYCURRENCY"] <- as.character(secPositions[isNAorEmpty(secPositions[, "SECURITYCURRENCY"]), "POSITIONCURRENCY"])
+    secPositions[isNAorEmpty(secPositions[, "CURRENCY"]), "CURRENCY"] <- as.character(secPositions[isNAorEmpty(secPositions[, "CURRENCY"]), "POSITIONCURRENCY"])
+    secPositions[, "PXLAST"] <- secPositions[, "MARKETPRICEINPRICECURRENCY"]
+    secPositions[, "SECPXDATE"] <- as.Date(as.character(secPositions[, "MARKETPRICEDATE"]), format="%m/%d/%Y")
+    secPositions[, "ISOCOUNTRY"] <- secPositions[, "ISSUERCOUNTRYCODE"]
+    secPositions[, "INTERESTMETHOD"] <- "Act/Act"
+    secPositions[, "CPNFIRSTDATE"] <- NA
+    secPositions[, "ISSUEDATE"] <- NA
+    secPositions[, "SECURITYNAME"] <- secPositions[, "DESCRIPTION"]
+    secPositions[, "TELEKURS"] <- secPositions[, "TELEKURSID"]
+    secPositions[, "INTERESTRATE"] <- secPositions[, "CURRENTINTERESTRATE1"]
+    secPositions[, "ISOCURRENCY2"] <- secPositions[, "CURRENCY"]
+    secPositions[, "CUSIP"] <- NA
+    secPositions[, "FX2"] <- secPositions[, "EXCHANGERATETOREFERENCECURRENCY"]
+    secPositions[, "PXCOSTCURRENCY"] <- secPositions[, "CURRENCY"]
+    secPositions[, "refCcy"] <- secPositions[, "REFERENCECURRENCY"]
+    secPositions[, "QTY"] <- secPositions[, "QUANTITY"]
+    secPositions[, "CLIENTNO"] <- secPositions[, "ACCOUNTNR"]
+    ## secPositions[!is.na(secPositions[, "GROSSUNITCOSTINPOSITIONCURRENCY"]), "PXCOST"] <- secPositions[!is.na(secPositions[, "GROSSUNITCOSTINPOSITIONCURRENCY"]), "GROSSUNITCOSTINPOSITIONCURRENCY"]
+
+    missingPrice <- is.na(secPositions[, "PXLAST"])
+    secPositions <- secPositions[!missingPrice, ]
+
+    ## valueDate <- as.Date(as.character(data[1, "VALUATIONDATE"]), format="%m/%d/%Y")
+    ## missingPSymbols <- paste(gsub(" ", "-", secPositions[missingPrice, "ISIN"]), secPositions[missingPrice, "SECURITYCURRENCY"], "[PICTET]")
+    ## aa <- lapply(missingPSymbols, function(s) getOhlcObsForSymbol(session, s, lte=valueDate, lookBack=300))
+    ## secPositions[missingPrice, "PXLAST"] <- lapply(aa, function(x) valueOfNearestDate(valueDate, x, Inf, valueField="close")[["value"]])
+    ## secPositions[missingPrice, "QTY"] <- abs(round(secPositions[missingPrice, "QTY"] / secPositions[missingPrice, "CONTRACTSIZE"] / secPositions[missingPrice, "PXLAST"]))
+
+    return(list("L206"=secPositions,
+                "L126"=secPositions,
+                "L120"=cshPositions,
+                "L122"=fwdPositions))
+
+
+    ## computeDuration <- function(faceValue, coupon, frequency, ytm, currentDate, maturity) {
+
+    ##     ## Construct the cashflow data frame:
+    ##     cashflow <- data.frame("dates"=rev(seq(as.Date(maturity), as.Date(currentDate), by=-(365/frequency))),
+    ##                            "cash"=coupon / frequency)
+
+    ##     ## Add the redemption:
+    ##     cashflow[NROW(cashflow), "cash"] <- cashflow[NROW(cashflow), "cash"] + 100
+
+    ##     ## Compute present values of cash flows:
+    ##     cashflow[, "PV"] <- cashflow[, "cash"] / (1+(ytm/frequency)/100)^seq(1:NROW(cashflow))
+
+    ##     ## Comput the periods duration:
+    ##     cashflow[, "tDur"] <- (cashflow[, "PV"] / sum(cashflow[, "PV"])) * as.numeric((cashflow[,"dates"] - as.Date(currentDate)) / 365)
+
+    ##     ## Return the duration:
+    ##     sum(cashflow[, "tDur"])
+
+    ## }
+
+    ## strBondIdx <- secPositions[, c("SECTYPEALQ")] == "STR_BD"
+
+    ## auxFun <- function(duration, faceValue, coupon, ytm, currentDate, maturity) {
+
+    ##     frequencies <- c(1, 2, 4, 12)
+
+    ##     retval <- sapply(c(1, 2, 4, 12), function(frq) {
+    ##         computeDuration(faceValue, coupon, frq, ytm, currentDate, maturity)
+    ##     })
+
+
+    ##     dist <- abs(retval - duration)
+
+    ##     frequencies[dist == min(dist)][1]
+
+    ## }
+
+    ## strBond <- secPositions[strBondIdx, ]
+
+    ## freqs <- sapply(1:NROW(strBond), function(i) {
+
+    ##     strB <- strBond[i, ]
+
+    ##     auxFun("duration"=strB[, "DURATION"],
+    ##            "faceValue"=100,
+    ##            "coupon"=strB[, "CURRENTINTERESTRATE1"],
+    ##            "ytm"=strB[, "YIELDTOMATURITY"],
+    ##            "currentDate"=as.Date(as.character(strB[, "VALUATIONDATE"]), format="%m/%d/%Y"),
+    ##            "maturity"=as.Date(as.character(strB[, "MATURITY"]), format="%m/%d/%Y"))
+
+    ## })
+    ## browser()
+    ## computeDuration(100, 3.068, 4, 3.875271, "2018-12-31", "2020-12-18")
+
+}
+
+
+
 ##' A function to normalise the pictet flattened files for give ltype.
 ##'
 ##' This is the description
@@ -288,6 +499,8 @@ pictetSecTypeMap <- function() {
          "ABS_RET_FD"=list("ctype"="SHRE"),
          "SP_SH"=list("ctype"="SP"),
          "STR_BD"=list("ctype"="BOND"),
+         "SHAR_BD"=list("ctype"="BOND"),
+         "PRIV_SH"=list("ctype"="SHRE"),
          "BOND_FD"=list("ctype"="SHRE"),
          "SHARE_FD"=list("ctype"="SHRE"),
          "FIXT_GAR"=list("ctype"="OTHER"),
@@ -303,6 +516,7 @@ pictetSecTypeMap <- function() {
          "FUND_FD"=list("ctype"="SHRE"),
          "CONV_BD"=list("ctype"="BOND"),
          "MET_FUT"=list("ctype"="FUT"),
+         "COM_FUT"=list("ctype"="FUT"),
          "SP_HYBR"=list("ctype"="SP"),
          "FXOTC_OPT"=list("ctype"="OPT"),
          "IND_OPT"=list("ctype"="OPT"))

@@ -417,6 +417,11 @@ getHoldingsDetails <- function(holdings, colSelect) {
         }
     }
 
+    ## Trim all the names:
+    holdings[, "Name"] <- trimws(holdings[, "Name"])
+    holdings[holdings[, "Name"] == "NA", "Name"] <- ""
+    holdings <- holdings[!isNAorEmpty(holdings[, "Name"]), ]
+
     ## Compute the grand total values:
     grandTotal <- colSums(holdings[holdings[, "order"] == "1", c("Value", "Value (%)", "Exposure", "Exp (%)")])
 

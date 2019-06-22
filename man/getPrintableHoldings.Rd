@@ -6,7 +6,7 @@
 \usage{
 getPrintableHoldings(portfolio, ccy, date, dtype, toplevel, sublevel,
   customTop, colselect, regions, summaryaddon, addTagsBy = NULL,
-  charLimit = 30, session, ...)
+  childDefaults = TRUE, charLimit = 30, session, ...)
 }
 \arguments{
 \item{portfolio}{The portfolio id}
@@ -30,6 +30,8 @@ getPrintableHoldings(portfolio, ccy, date, dtype, toplevel, sublevel,
 \item{summaryaddon}{TODO}
 
 \item{addTagsBy}{TODO}
+
+\item{childDefaults}{TODO}
 
 \item{charLimit}{TODO}
 

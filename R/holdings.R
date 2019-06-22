@@ -90,10 +90,11 @@ getConsolidationFromContainerName <- function(containerNames, containerType, ccy
 ##' @param regions The data-frame with the country to region mapping.
 ##' @param resources The data-frame as returned by getResource("resources")
 ##' @param addTagsBy TODO.
+##' @param childDefaults TODO.
 ##' @return A data-frame with the enriched holdings.
 ##' @import rdecaf
 ##' @export
-getEnrichedHoldings <- function(holdings, nav, gav, regions, resources, addTagsBy=NULL){
+getEnrichedHoldings <- function(holdings, nav, gav, regions, resources, addTagsBy=NULL, childDefaults=TRUE){
 
     ## Treat the country names:
     holdings[, "Country"] <- dbRemapCountryTreater(holdings[, "Country"], "countrymaps")
@@ -108,20 +109,24 @@ getEnrichedHoldings <- function(holdings, nav, gav, regions, resources, addTagsB
     ## Get the match index:
     matchIdx <- match(holdings[,"ID"], resources[,"id"])
 
-    ## Replace na Subtypes with Type:
-    holdings[, "Subtype"] <- as.character(holdings[, "Subtype"])
-    holdings[is.na(holdings[,"Subtype"]), "Subtype"] <- holdings[is.na(holdings[,"Subtype"]), "Type"]
+    ## TODO:
+    if (childDefaults) {
+        ## Replace na Subtypes with Type:
+        holdings[, "Subtype"] <- as.character(holdings[, "Subtype"])
+        holdings[is.na(holdings[,"Subtype"]), "Subtype"] <- holdings[is.na(holdings[,"Subtype"]), "Type"]
 
-    ## Replace NA Asset Class 2 with Type:
-    holdings[, "Asset Class 2"] <- as.character(holdings[, "Asset Class 2"])
-    holdings[is.na(holdings[,"Asset Class 2"]), "Asset Class 2"] <- holdings[is.na(holdings[,"Asset Class 2"]), "Type"]
+        ## Replace NA Asset Class 2 with Type:
+        holdings[, "Asset Class 2"] <- as.character(holdings[, "Asset Class 2"])
+        holdings[is.na(holdings[,"Asset Class 2"]), "Asset Class 2"] <- holdings[is.na(holdings[,"Asset Class 2"]), "Type"]
 
-    ## Replace NA Asset Class 3 with Subtype:
-    holdings[, "Asset Class 3"] <- as.character(holdings[, "Asset Class 3"])
-    holdings[is.na(holdings[,"Asset Class 3"]), "Asset Class 3"] <- holdings[is.na(holdings[,"Asset Class 3"]), "Subtype"]
+        ## Replace NA Asset Class 3 with Subtype:
+        holdings[, "Asset Class 3"] <- as.character(holdings[, "Asset Class 3"])
+        holdings[is.na(holdings[,"Asset Class 3"]), "Asset Class 3"] <- holdings[is.na(holdings[,"Asset Class 3"]), "Subtype"]
+
+    }
 
     ## All 'Money' subtypes to 'Cash'.
-    holdings[holdings[,"Subtype"] == "Money", "Subtype"] <- "Cash"
+    holdings[safeCondition(holdings, "Subtype", "Money"), "Subtype"] <- "Cash"
 
     ## Enrich the holdings data-frame and return:
     retval <- data.frame(holdings,
@@ -278,8 +283,6 @@ getOrderedHoldings <- function(holdings, toplevel="Subtype", sublevels=c("CCY", 
         ## Set the custom top levels:
         for (cTop in customTop) {
 
-            ## print(cTop)
-
             ## Run the custom top function:
             retval <- do.call(cTop, list(holdings, args))
 
@@ -311,12 +314,16 @@ getOrderedHoldings <- function(holdings, toplevel="Subtype", sublevels=c("CCY", 
     ## Combine the levels:
     levels <- c(toplevel, sublevels)
 
+    ##:
+    aClassOrderColIdx <- which(!is.na(match(colnames(holdings), levels))) + 1
+
     ##
     if (length(levels) == 1) {
-        holdings <- holdings[do.call(order, list(holdings[, levels])), ]
+        holdings <- holdings[do.call(order, list(holdings[, aClassOrderColIdx])), ]
     } else {
         ## Order the data frame:
-        holdings <- holdings[do.call(order, lapply(apply(holdings[,levels], MARGIN=2, function(x) list(x)), unlist)), ]
+        holdings <- holdings[do.call(order, lapply(apply(holdings[, aClassOrderColIdx], MARGIN=2, function(x) list(x)), unlist)), ]
+        ##holdings <- holdings[do.call(order, lapply(apply(holdings[,levels], MARGIN=2, function(x) list(x)), unlist)), ]
     }
 
     for (i in 1:length(levels)) {
@@ -365,14 +372,16 @@ getNestedHoldings <- function(holdings, levels, toplevel="Subtype", sublevels=c(
 
     ## Initialise the header/footer indication columns:
     holdings[, "isHeader"] <- FALSE
-    ## holdings[, "isFooter"] <- FALSE
 
     ## Iterate over the levels and nest:
     for (i in 0:(length(levels)-1)) {
 
         ## Get the lowest level key:
         level <- levels[length(levels)-i]
-        keys <- holdings[,paste0(level, "-Key")]
+        keys <- holdings[, paste0(level, "-Key")]
+
+        ## hebele <- !is.na(holdings[, level])
+        ## keys <- keys[hebele]
 
         ## Get the unique keys:
         uniqueIdx <- which(!duplicated(keys))
@@ -488,6 +497,7 @@ getFormattedHoldings <- function(holdings){
 ##' @param regions The list with the country to region mapping
 ##' @param summaryaddon TODO
 ##' @param addTagsBy TODO
+##' @param childDefaults TODO
 ##' @param charLimit TODO
 ##' @param session The rdecaf session
 ##' @param ... Additional parameters
@@ -504,6 +514,7 @@ getPrintableHoldings <- function(portfolio,
                                  regions,
                                  summaryaddon,
                                  addTagsBy=NULL,
+                                 childDefaults=TRUE,
                                  charLimit=30,
                                  session, ...){
 
@@ -564,7 +575,7 @@ getPrintableHoldings <- function(portfolio,
     resources <- getResourcesByStock(stocks, session)
 
     ## Get the enriched holdings:
-    enrichedHoldings <- getEnrichedHoldings(holdings, consolidation[["nav"]], consolidation[["gav"]], regions, resources, addTagsBy)
+    enrichedHoldings <- getEnrichedHoldings(holdings, consolidation[["nav"]], consolidation[["gav"]], regions, resources, addTagsBy, childDefaults)
 
     addCols <- enrichedHoldings[["addCols"]]
 

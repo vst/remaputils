@@ -339,9 +339,8 @@ getOrderedHoldings <- function(holdings, toplevel="Subtype", sublevels=c("CCY", 
 
     topIdx <- grep("-Key", colnames(holdings))[1]
 
-    topLevelWise <- lapply(unique(holdings[, topIdx]), function(z) holdings[holdings[, topIdx] == z, ])
-
-    holdings <- do.call(rbind, topLevelWise[order(sapply(topLevelWise, function(x) sum(as.numeric(x[, "Value"]))), decreasing=TRUE)])
+    ## topLevelWise <- lapply(unique(holdings[, topIdx]), function(z) holdings[holdings[, topIdx] == z, ])
+    ## holdings <- do.call(rbind, topLevelWise[order(sapply(topLevelWise, function(x) sum(as.numeric(x[, "Value"]))), decreasing=TRUE)])
 
     ## Done, return:
     list("holdings"=holdings,
@@ -444,7 +443,11 @@ getNestedHoldings <- function(holdings, levels, toplevel="Subtype", sublevels=c(
         ## Reorder the positions and assign back:
         holdings[holdingsIdx, ] <- holdings[holdingsIdx,][order(holdings[holdingsIdx, "Expiry"],
                                                                 holdings[holdingsIdx, "CCY"],
-                                                                holdings[holdingsIdx, "Name"]), ]
+                                                                as.numeric(holdings[holdingsIdx, "Exposure"]),
+                                                                holdings[holdingsIdx, "Name"],
+                                                                decreasing=TRUE), ]
+
+        ##holdings[holdingsIdx, ] <- holdings[holdingsIdx, ][do.call(order, lapply(apply(holdings[holdingsIdx, c("Expiry", "CCY", "Exposure", "Name")], MARGIN=2, function(x) list(x)), unlist)), ]
 
     }
 

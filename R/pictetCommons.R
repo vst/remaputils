@@ -31,7 +31,7 @@ eBankVSLink <<- c("CAPITAL"="",
                  "HEDGEFUNDS-EVENTDRIVEN"="HEDGE_FD",
                  "HEDGEFUNDS-FUNDOFFUNDS"="HEDGE_FD",
                  "HEDGEFUNDS-LONG/SHORT"="HEDGE_FD",
-                 "MISCELLANEOUS-GUARANTEES"="",
+                 "MISCELLANEOUS-GUARANTEES"="FIXT_GAR",
                  "MIXEDFUND"="HEDGE_FD",
                  "HEDGEFUNDS-CTA"="HEDGE_FD",
                  "HEDGEFUNDS-EQUITIESMARKETNEUTRAL"="HEDGE_FD",
@@ -63,7 +63,9 @@ pictetEBankingNormalizer <- function(filePath, session) {
     fileName <- strsplit(tail(strsplit(filePath, "/")[[1]], 1), ".xlsx")[[1]]
 
     ## Convert to csv using libreoffice CLI:
-    ## system("/usr/lib/libreoffice/program/soffice --headless --convert-to csv --outdir /tmp/ ~/Downloads/Holdings_20190606145751.xlsx")
+    system(sprintf("/usr/lib/libreoffice/program/soffice --headless --convert-to csv --outdir /tmp/ %s ", filePath))
+
+    Sys.sleep(3)
 
     ## Read the data:
     data <- read.csv(paste0("/tmp/", fileName, ".csv"), header=TRUE, sep=",")
@@ -80,7 +82,7 @@ pictetEBankingNormalizer <- function(filePath, session) {
 
     ## Get the cash positions:
     cshIdx <- data[, "ASSETCLASS"] == "Cash" & data[, "SUBASSETCLASS"] == "Current accounts"  |
-              data[, "ASSETCLASS"] == "Metals" & isNAorEmpty(as.character(data[, "UNDERLYING1FINANCIALINSTRUMENTTYPE"]))
+              data[, "ASSETCLASS"] == "Metals" & isNAorEmpty(as.character(data[, "UNDERLYING1FINANCIALINSTRUMENTTYPE"])) & isNAorEmpty(as.character(data[, "ISSUER"]))
 
     ## Get the forward positions:
     fwdIdx <- data[, "ASSETCLASS"] == "Cash" &
@@ -111,7 +113,6 @@ pictetEBankingNormalizer <- function(filePath, session) {
     ## Map the instrument type to the PicLink SECQTYPEALQ convetion:
     secPositions[, "SECTYPEALQ"] <-  eBankVSLink[match(trimConcatenate(as.character(secPositions[, "FINANCIALINSTRUMENTTYPE"])), names(eBankVSLink))]
     secPositions <- secPositions[!isNAorEmpty(secPositions[, "SECTYPEALQ"]), ]
-
     secPositions[, "CONTRACTSIZE"] <- as.numeric(ifelse(is.na(secPositions[, "CONTRACTSIZE"]), 1, secPositions[, "CONTRACTSIZE"]))
     secPositions[, "QUOTETYPE"]    <- ifelse(secPositions[, "MARKETPRICEP"] != "P", "C", "P")
     secPositions[, "CURRENCY"] <- as.character(secPositions[, "PRICECURRENCY"])
@@ -134,76 +135,16 @@ pictetEBankingNormalizer <- function(filePath, session) {
     secPositions[, "refCcy"] <- secPositions[, "REFERENCECURRENCY"]
     secPositions[, "QTY"] <- secPositions[, "QUANTITY"]
     secPositions[, "CLIENTNO"] <- secPositions[, "ACCOUNTNR"]
-    ## secPositions[!is.na(secPositions[, "GROSSUNITCOSTINPOSITIONCURRENCY"]), "PXCOST"] <- secPositions[!is.na(secPositions[, "GROSSUNITCOSTINPOSITIONCURRENCY"]), "GROSSUNITCOSTINPOSITIONCURRENCY"]
+    secPositions[, "PXCOST"] <- secPositions[,"NETUNITCOSTINPOSITIONCURRENCY"]
 
     missingPrice <- is.na(secPositions[, "PXLAST"])
     secPositions <- secPositions[!missingPrice, ]
 
-    ## valueDate <- as.Date(as.character(data[1, "VALUATIONDATE"]), format="%m/%d/%Y")
-    ## missingPSymbols <- paste(gsub(" ", "-", secPositions[missingPrice, "ISIN"]), secPositions[missingPrice, "SECURITYCURRENCY"], "[PICTET]")
-    ## aa <- lapply(missingPSymbols, function(s) getOhlcObsForSymbol(session, s, lte=valueDate, lookBack=300))
-    ## secPositions[missingPrice, "PXLAST"] <- lapply(aa, function(x) valueOfNearestDate(valueDate, x, Inf, valueField="close")[["value"]])
-    ## secPositions[missingPrice, "QTY"] <- abs(round(secPositions[missingPrice, "QTY"] / secPositions[missingPrice, "CONTRACTSIZE"] / secPositions[missingPrice, "PXLAST"]))
-
+    ## Done, return:
     return(list("L206"=secPositions,
                 "L126"=secPositions,
                 "L120"=cshPositions,
                 "L122"=fwdPositions))
-
-
-    ## computeDuration <- function(faceValue, coupon, frequency, ytm, currentDate, maturity) {
-
-    ##     ## Construct the cashflow data frame:
-    ##     cashflow <- data.frame("dates"=rev(seq(as.Date(maturity), as.Date(currentDate), by=-(365/frequency))),
-    ##                            "cash"=coupon / frequency)
-
-    ##     ## Add the redemption:
-    ##     cashflow[NROW(cashflow), "cash"] <- cashflow[NROW(cashflow), "cash"] + 100
-
-    ##     ## Compute present values of cash flows:
-    ##     cashflow[, "PV"] <- cashflow[, "cash"] / (1+(ytm/frequency)/100)^seq(1:NROW(cashflow))
-
-    ##     ## Comput the periods duration:
-    ##     cashflow[, "tDur"] <- (cashflow[, "PV"] / sum(cashflow[, "PV"])) * as.numeric((cashflow[,"dates"] - as.Date(currentDate)) / 365)
-
-    ##     ## Return the duration:
-    ##     sum(cashflow[, "tDur"])
-
-    ## }
-
-    ## strBondIdx <- secPositions[, c("SECTYPEALQ")] == "STR_BD"
-
-    ## auxFun <- function(duration, faceValue, coupon, ytm, currentDate, maturity) {
-
-    ##     frequencies <- c(1, 2, 4, 12)
-
-    ##     retval <- sapply(c(1, 2, 4, 12), function(frq) {
-    ##         computeDuration(faceValue, coupon, frq, ytm, currentDate, maturity)
-    ##     })
-
-
-    ##     dist <- abs(retval - duration)
-
-    ##     frequencies[dist == min(dist)][1]
-
-    ## }
-
-    ## strBond <- secPositions[strBondIdx, ]
-
-    ## freqs <- sapply(1:NROW(strBond), function(i) {
-
-    ##     strB <- strBond[i, ]
-
-    ##     auxFun("duration"=strB[, "DURATION"],
-    ##            "faceValue"=100,
-    ##            "coupon"=strB[, "CURRENTINTERESTRATE1"],
-    ##            "ytm"=strB[, "YIELDTOMATURITY"],
-    ##            "currentDate"=as.Date(as.character(strB[, "VALUATIONDATE"]), format="%m/%d/%Y"),
-    ##            "maturity"=as.Date(as.character(strB[, "MATURITY"]), format="%m/%d/%Y"))
-
-    ## })
-    ## browser()
-    ## computeDuration(100, 3.068, 4, 3.875271, "2018-12-31", "2020-12-18")
 
 }
 
@@ -331,6 +272,7 @@ pictetFileMappers <- function() {
                      "PRUNI-BRUT-MONRV"=list("name"="PXCOST"),
                      "NOVAL-ISIN"=list("name"="ISIN"),
                      "SOQTE"=list("name"="QTY"),
+                     "PRNET-MONES"=list("name"="PXCOST2"),
 		     "CHMONCO-MONES"=list("name"="FX1"),
                      "CHMONRV-MONES"=list("name"="FX2"),
                      "SIMONT-NOMI-MONES"=list("name"="QTYSIGN"),

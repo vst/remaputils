@@ -74,6 +74,7 @@ futureContractSizes <- function() {
           "ST" = 5,
           "NO" = 20000,
           "SM" = 10,
+          "FV" = 1000,
           "NG" = 10000,
           "RX" = 100,
           "DFW"= 5,

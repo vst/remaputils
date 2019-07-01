@@ -4,12 +4,14 @@
 \alias{getHoldingsDetails}
 \title{Prepares the holdings detail data frame.}
 \usage{
-getHoldingsDetails(holdings, colSelect)
+getHoldingsDetails(holdings, colSelect, nav = NULL)
 }
 \arguments{
 \item{holdings}{The holdings data frame.}
 
 \item{colSelect}{Which columns to select.}
+
+\item{nav}{The net asset value.}
 }
 \value{
 A list with holdings details information.

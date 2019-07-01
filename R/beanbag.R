@@ -315,6 +315,7 @@ beanbagNAVTable <- function (x, inception, pxinfo) {
                "Currency",
                "Inception",
                paste0("NAV (", x[["date"]], ")"),
+               paste0("GAV (", x[["date"]], ")"),
                paste0("NAV (", x[["previousDate"]], ")"),
                "Change",
                "ISIN",
@@ -326,6 +327,7 @@ beanbagNAVTable <- function (x, inception, pxinfo) {
                x[["ccy"]],
                as.character(inception),
                paste0(beautify(x[["currentNAV"]]), " ", x[["ccy"]]),
+               paste0(beautify(x[["currentGAV"]]), " ", x[["ccy"]]),
                paste0(beautify(x[["previousNAV"]]), " ", x[["ccy"]]),
                paste0(beautify(x[["currentNAV"]] - x[["previousNAV"]]), " ", x[["ccy"]]),
                paste(pxinfo[, "isin"], collapse=", "),
@@ -337,6 +339,7 @@ beanbagNAVTable <- function (x, inception, pxinfo) {
 
     ## For non funds:
     if (!any(pxinfo[, "isFund"])) {
+        df1 <- df1[safeGrep(df1[, "Name"], "GAV ") == "0", ]
         df1 <- df1[!df1[, "Name"] == "ISIN", ]
         df1 <- df1[!df1[, "Name"] == "NAV/Share", ]
     }
@@ -422,8 +425,16 @@ getHoldingsDetails <- function(holdings, colSelect) {
     holdings[holdings[, "Name"] == "NA", "Name"] <- ""
     holdings <- holdings[!isNAorEmpty(holdings[, "Name"]), ]
 
+    ## Get the totals
+    totals <- holdings[holdings[, "order"] == "1", c("Name", "Value", "Value (%)", "Exposure", "Exp (%)")]
+
     ## Compute the grand total values:
-    grandTotal <- colSums(holdings[holdings[, "order"] == "1", c("Value", "Value (%)", "Exposure", "Exp (%)")])
+    grandTotal <- colSums(totals[, c("Value", "Value (%)", "Exposure", "Exp (%)")])
+
+    ## Consider:
+    consider <- apply(mgrep(totals[, "Name"], c("Cash", "Money Market")), MARGIN=1, function(x) all(x == "0"))
+    grandTotal["Exp (%)"] <- sum(totals[consider, "Exposure"]) / grandTotal["Value"]
+    grandTotal["Exposure"] <- sum(totals[consider, "Exposure"])
 
     ## Append a line to the end:
     holdings <- rbind(holdings, holdings[1, ])

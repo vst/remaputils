@@ -400,9 +400,10 @@ getPerformance <- function(portfolio, start, end, freq="daily", session) {
 ##'
 ##' @param holdings The holdings data frame.
 ##' @param colSelect Which columns to select.
+##' @param nav The net asset value.
 ##' @return A list with holdings details information.
 ##' @export
-getHoldingsDetails <- function(holdings, colSelect) {
+getHoldingsDetails <- function(holdings, colSelect, nav=NULL) {
 
     ## Replace the NA order with the highest available order + 1:
     holdings[is.na(holdings[, "order"]), "order"] <- max(na.omit(holdings[, "order"])) + 1
@@ -433,7 +434,13 @@ getHoldingsDetails <- function(holdings, colSelect) {
 
     ## Consider:
     consider <- apply(mgrep(totals[, "Name"], c("Cash", "Money Market")), MARGIN=1, function(x) all(x == "0"))
-    grandTotal["Exp (%)"] <- sum(totals[consider, "Exposure"]) / grandTotal["Value"]
+
+    if (!is.null(nav)) {
+        grandTotal["Exp (%)"] <- sum(totals[consider, "Exposure"]) / nav
+    } else {
+        grandTotal["Exp (%)"] <- sum(totals[consider, "Exposure"]) / grandTotal["Value"]
+    }
+
     grandTotal["Exposure"] <- sum(totals[consider, "Exposure"])
 
     ## Append a line to the end:

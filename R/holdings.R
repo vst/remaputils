@@ -241,6 +241,8 @@ getFlatHoldings <- function(x, charLimit=30){
                                                  "PnL (Unrl)"=.emptyToNA(safeNull(as.numeric(h[["pnl"]]))),
                                                  ##"PnL (%Inv)"=.emptyToNA(safeNull(as.numeric(h[["pnl_to_investment"]]))),
                                                  "PnL (%Inv)"=.emptyToNA(safeNull(as.numeric(h[["pnl"]])) / safeNull(abs(as.numeric(h[["investment"]][["value"]][["ref"]])))),
+                                                 "PX Val (Ref)"=.emptyToNA(safeNull(as.numeric(h[["valuation" ]][["px"]][["ref"]]))),
+                                                 "PX Inv (Ref)"=.emptyToNA(safeNull(as.numeric(h[["investment"]][["px"]][["ref"]]))),
                                                  "Asset Class 1"=safeTry(try(.emptyToNA(as.character(h[["tags"]][["classification"]][[1]][["name"]])), silent=TRUE)),
                                                  "AClass 1 Order"=safeTry(try(.emptyToNA(as.character(h[["tags"]][["classification"]][[1]][["order"]])), silent=TRUE)),
                                                  "Asset Class 2"=safeTry(try(.emptyToNA(as.character(h[["tags"]][["classification"]][[2]][["name"]])), silent=TRUE)),
@@ -252,6 +254,17 @@ getFlatHoldings <- function(x, charLimit=30){
                                                  "Asset Class 5"=safeTry(try(.emptyToNA(as.character(h[["tags"]][["classification"]][[5]][["name"]])), silent=TRUE)),
                                                  "AClass 5 Order"=safeTry(try(.emptyToNA(as.character(h[["tags"]][["classification"]][[5]][["order"]])), silent=TRUE)),
                                                  check.names=FALSE))
+
+    ## Alternative computation for PnL % if Inf:
+    holdings <- lapply(holdings, function(h) {
+        h[, "PnL (%Inv)"] <- ifelse(is.infinite(h[, "PnL (%Inv)"]),
+                             ifelse(h[, "QTY"] > 0, 1, -1) * (h[, "PX Val (Ref)"] / h[, "PX Inv (Ref)"] - 1),
+                             h[, "PnL (%Inv)"])
+
+        ## Return:
+        return(h)
+
+    })
 
     ## Get the holdings:
     classify(as.data.frame(do.call(rbind, holdings), check.names=FALSE))
@@ -363,6 +376,10 @@ getNestedHoldings <- function(holdings, levels, toplevel="Subtype", sublevels=c(
 
     ## If no security holdings, return NULL:
     if (is.null(holdings)) {
+        return(NULL)
+    }
+
+    if (NROW(holdings) == 0) {
         return(NULL)
     }
 

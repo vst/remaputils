@@ -1,3 +1,103 @@
+##' For trade identity candidates, infer matches
+##'
+##' This is the description
+##'
+##' @param tradeIdentities A list with the trade identity candidates.
+##' @return A list with matched trade identities.
+##' @export
+matchTradeIdentity <- function(tradeIdentities) {
+
+    ## Initialise the return value:
+    retval <- list()
+
+    ## Iterate over trade identities:
+    for (row in 1:length(tradeIdentities)) {
+
+        ## Get the trade identity:
+        trdIdty <- tradeIdentities[[row]]
+
+        ## If trdIdty does not have the corresponding dTrade, return:
+        if (is.null(trdIdty[["dTrade"]])) {
+            retval[[row]] <- trdIdty
+            next
+        }
+
+        ## Match the signs:
+        sgnMatch <- sign(trdIdty[["iTrade"]][, "qtymain"]) == sign(trdIdty[["dTrade"]][, "qtymain"])
+
+        ## Match the numbers:
+        qtyMatch <- sapply(trdIdty[["dTrade"]][, "qtymain"], function(q) numberEquivalency(trdIdty[["iTrade"]][, "qtymain"], q))
+
+        ## If no match, return NULL
+        if (!(sgnMatch & qtyMatch)) {
+            retval[[row]] <- list("iTrade"=trdIdty[["iTrade"]], "dTrade"=NULL)
+            next
+        }
+
+        ## If match, persist:
+        retval[[row]] <- trdIdty
+
+    }
+
+    ## Done, return:
+    retval
+
+}
+
+
+##' For a incoming trade record, this function identifies corresponding candidate trades in decaf.
+##'
+##' This is the description
+##'
+##' @param records A data frame with incoming trade records. Requires columns 'resmain', 'commitment' and 'settlement'
+##' @param accmain The account id in decaf
+##' @param session The rdecaf session info
+##' @return A list of length NROW(records).
+##' @export
+getTradeIdentity <- function (records, accmain, session) {
+
+    ## Define the account params:
+    params <- list("id"=accmain, "page_size"=-1, "format"="csv")
+
+    ## Get the account:
+    account <- as.data.frame(getResource("accounts", params=params, session=session))
+
+    ## Get the container trades:
+    trades <- getTradesFromContainerNames(account[, "name"], session, "accounts")[["trades"]]
+
+    ## Initialise the return value:
+    retval <- list()
+
+    ## Iterate over the incoming trade records:
+    for (row in 1:NROW(records)) {
+
+        ## Get the incoming trade record:
+        iTrade <- records[row, ]
+
+        ## Filter the system trades by the incoming trade record dates:
+        dTrade <- trades[iTrade[, "commitment"] <= trades[, "commitment"] &
+                         iTrade[, "settlement"] >= trades[, "commitment"], ]
+
+        ## Match the resmains and filter:
+        dTrade <- dTrade[match(iTrade[, "resmain"], dTrade[, "resmain"], incomparables=NA), ]
+
+        ## If there is no match, append empty match and next:
+        if (NROW(dTrade) == 1 & all(is.na(dTrade[1, ]))) {
+            retval[[row]] <- list("iTrade"=iTrade, "dTrade"=NULL)
+            next
+        }
+
+        ## If there are candidates, append to incoming trade record:
+        retval[[row]] <- list("iTrade"=iTrade, "dTrade"=dTrade)
+
+    }
+
+    ## Done, return:
+    retval
+
+}
+
+
 ##' This function syncs portfolios from a data frame and appends the name and id's to the data frame
 ##'
 ##' This is the description

@@ -1,3 +1,38 @@
+##' This function checks if 2 numbers match
+##'
+##' This is a description.
+##'
+##' @param num1 The first number
+##' @param num2 The second number
+##' @param pctTolerance The percentage tolerance
+##' @param absTolerance The absolute tolerance
+##' @return TRUE or FALSEg
+##' @export
+numberEquivalency <- function (num1, num2, pctTolerance=0.001, absTolerance=0.05) {
+
+    ## QTY1 as numeric:
+    num1 <- as.numeric(num1)
+
+    ## QTY@ as numeric:
+    num2 <- as.numeric(num2)
+
+    ## If any of the quantities is NA, return FALSE:
+    if (is.na(num1) | is.na(num2)) {
+        return(FALSE)
+    }
+
+    ## First, compute the abs difference:
+    absDiff <- abs(num1 - num2)
+
+    ## Secondly, compute the percentage difference:
+    pctDiff <- absDiff / abs(num1)
+
+    ## Return TRUE if any
+    absDiff < absTolerance | pctDiff < pctTolerance
+
+}
+
+
 ##' This function
 ##'
 ##' This is a description.

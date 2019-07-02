@@ -63,7 +63,7 @@ pictetEBankingNormalizer <- function(filePath, session) {
     fileName <- strsplit(tail(strsplit(filePath, "/")[[1]], 1), ".xlsx")[[1]]
 
     ## Convert to csv using libreoffice CLI:
-    system(sprintf("/usr/lib/libreoffice/program/soffice --headless --convert-to csv --outdir /tmp/ %s ", filePath))
+    ## system(sprintf("/usr/lib/libreoffice/program/soffice --headless --convert-to csv --outdir /tmp/ %s ", filePath))
 
     Sys.sleep(3)
 
@@ -459,9 +459,12 @@ pictetSecTypeMap <- function() {
          "ALLOC_FD"=list("ctype"="SHRE"),
          "FUND_FD"=list("ctype"="SHRE"),
          "CONV_BD"=list("ctype"="BOND"),
+         "BOND_FUT"=list("ctype"="FUT"),
+         "MISC_SH"=list("ctype"="SHRE"),
          "MET_FUT"=list("ctype"="FUT"),
          "COM_FUT"=list("ctype"="FUT"),
          "SP_HYBR"=list("ctype"="SP"),
+         "SH_OPT"=list("ctype"="OPT"),
          "FXOTC_OPT"=list("ctype"="OPT"),
          "IND_OPT"=list("ctype"="OPT"))
 }

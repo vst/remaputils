@@ -257,6 +257,7 @@ pictetFileMappers <- function() {
                      "SISOLDE-CC-CPTA"=list("name"="QTYSIGN"),
                      "MTEST"=list("name"="VALUATION"),
                      "SIMEST"=list("name"="VALUATIONSIGN"),
+                     "CHMON-CC-MONES"=list("name"="EXCHANGERATETOREFERENCECURRENCY"),
                      "CLCC"=list("name"="CURRENTACCOUNTKEY"),
                      "COMONL-ISO-CC"=list("name"="ACCOUNTCURRENCY"),
                      "NMRUB-CC"=list("name"="ACCOUNTNAME"),

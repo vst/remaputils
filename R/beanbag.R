@@ -292,8 +292,8 @@ multirow_spec <- function(x, rows, ...) {
 ##' @return A data frame with style rows.
 ##' @export
 multicol_spec <- function(x, cols, ...) {
-    for (row in rows)
-        x <- kableExtra::column_spec(x, row, ...)
+    for (col in cols)
+        x <- kableExtra::column_spec(x, col, ...)
     x
 }
 
@@ -317,7 +317,7 @@ beanbagNAVTable <- function (x, inception, pxinfo) {
                paste0("NAV (", x[["date"]], ")"),
                paste0("GAV (", x[["date"]], ")"),
                paste0("NAV (", x[["previousDate"]], ")"),
-               "Change",
+               "#Shares",
                "ISIN",
                "NAV/Share",
                trimws(paste0("Perf (YTD) ", ifelse(!is.na(pxinfo[, "isin"]), as.character(pxinfo[, "shareclass"]), ""))))
@@ -329,7 +329,7 @@ beanbagNAVTable <- function (x, inception, pxinfo) {
                paste0(beautify(x[["currentNAV"]]), " ", x[["ccy"]]),
                paste0(beautify(x[["currentGAV"]]), " ", x[["ccy"]]),
                paste0(beautify(x[["previousNAV"]]), " ", x[["ccy"]]),
-               paste0(beautify(x[["currentNAV"]] - x[["previousNAV"]]), " ", x[["ccy"]]),
+               paste(pxinfo[, "noshares"], collapse=", "),
                paste(pxinfo[, "isin"], collapse=", "),
                x[["navshare"]],
                sapply(pxinfo[,"ytdext"], function(x) ifelse(is.na(x), NA, percentify(x))))
@@ -342,6 +342,7 @@ beanbagNAVTable <- function (x, inception, pxinfo) {
         df1 <- df1[safeGrep(df1[, "Name"], "GAV ") == "0", ]
         df1 <- df1[!df1[, "Name"] == "ISIN", ]
         df1 <- df1[!df1[, "Name"] == "NAV/Share", ]
+        df1 <- df1[!df1[, "Name"] == "#Shares", ]
     }
 
     ## Set the column to NULL:

@@ -137,6 +137,8 @@ getEnrichedHoldings <- function(holdings, nav, gav, regions, resources, addTagsB
                          "Call/Put"=safeCondition(resources[matchIdx, ], "callput", "True"),
                          "Rate"= as.character(ifelse(sapply(resources[matchIdx, "pxmain"], is.null), NA, resources[matchIdx, "pxmain"])),
                          "Underlying"=as.character(ifelse(sapply(resources[matchIdx, "underlying"], is.null), NA, resources[matchIdx, "underlying"])),
+                         "ISIN"=as.character(resources[matchIdx, "isin"]),
+                         "OHLC"=as.character(resources[matchIdx, "ohlccode"]),
                          check.names=FALSE,
                          stringsAsFactors=FALSE)
 
@@ -488,6 +490,11 @@ getFormattedHoldings <- function(holdings){
         if (toupper(colnames(holdings)[col]) == "EXPIRY") {
             holdings[, col]
         }
+
+        if (toupper(colnames(holdings)[col]) == "SYMBOL") {
+            next
+        }
+
 
         val <- suppressWarnings(try(as.numeric(holdings[, col]), silent=TRUE))
 

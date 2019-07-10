@@ -4,10 +4,14 @@
 \alias{getHoldingsSummary}
 \title{Prepares the holdings summary data frame.}
 \usage{
-getHoldingsSummary(holdings)
+getHoldingsSummary(holdings, col = "Subtype", key = "Cash")
 }
 \arguments{
 \item{holdings}{The holdings data frame}
+
+\item{col}{The cash column name}
+
+\item{key}{The cash holdings key}
 }
 \value{
 A list with holdings summary information.

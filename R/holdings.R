@@ -130,6 +130,7 @@ getEnrichedHoldings <- function(holdings, nav, gav, regions, resources, addTagsB
 
     ## Enrich the holdings data-frame and return:
     retval <- data.frame(holdings,
+                         "PnL (Contr)"=safeTry(try(as.character(round(holdings[, "PnL (%Inv)"] * holdings[,"Value"]/nav, 4)), silent=TRUE)),
                          "Region"=safeTry(try(as.character(regions))),
                          "Value (%)"=safeTry(try(holdings[,"Value"] / nav, silent=TRUE)),
                          "Exp (%)"=safeTry(try(holdings[,"Exposure"] / nav, silent=TRUE)),
@@ -289,6 +290,12 @@ getOrderedHoldings <- function(holdings, toplevel="Subtype", sublevels=c("CCY", 
     ## Get the extra arguments:
     args <- list(...)[[1]]
 
+    if (is.null(args[["seperateCash"]])) {
+        sepCash <- TRUE
+    } else {
+        sepCash <- args[["seperateCash"]]
+    }
+
     ## Run the custom top functions, if any:
     if (!is.null(customTop)){
 
@@ -319,12 +326,17 @@ getOrderedHoldings <- function(holdings, toplevel="Subtype", sublevels=c("CCY", 
         }
     }
 
-    ## Get the cash:
-    isCash <- holdings[,"Type"] == "Cash"
-    cashHoldings <- holdings[isCash, ]
 
-    ## Exclude the cash holdings:
-    holdings <- holdings[!isCash,]
+    if (sepCash) {
+        ## Get the cash:
+        isCash <- holdings[,"Type"] == "Cash"
+        cashHoldings <- holdings[isCash, ]
+
+        ## Exclude the cash holdings:
+        holdings <- holdings[!isCash,]
+    } else {
+        cashHoldings <- NULL
+    }
 
     ## Combine the levels:
     levels <- c(toplevel, sublevels)
@@ -656,8 +668,16 @@ addTagsAsColumns <- function(holdings, resources, addTagsBy) {
     ## Get the relevant, aligned resources:
     resources <- resources[matchIdx, ]
 
+    tagsTemp <- unlist(lapply(lapply(resources[, "tags"], function(x) unlist(x)), function(x) x[safeGrep(x, addTagsBy) == "1"]))
+
+    ## If not tag qualifies with the addTagsBy seperator, return retval:
+    if (is.null(tagsTemp)) {
+        return(list("holdings"=holdings,
+                    "addCols"=NA))
+    }
+
     ## Get the tags by the seperator addTagsBy:
-    tags <- unlist(strsplit(unlist(lapply(lapply(resources[, "tags"], function(x) unlist(x)), function(x) x[safeGrep(x, addTagsBy) == "1"])), addTagsBy))
+    tags <- unlist(strsplit(tagsTemp, addTagsBy))
 
     ## Get the non-empty tags:
     tags <- tags[nchar(tags) > 0]

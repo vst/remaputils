@@ -317,6 +317,7 @@ beanbagNAVTable <- function (x, inception, pxinfo) {
                paste0("NAV (", x[["date"]], ")"),
                paste0("GAV (", x[["date"]], ")"),
                paste0("NAV (", x[["previousDate"]], ")"),
+               ##"Change",
                "#Shares",
                "ISIN",
                "NAV/Share",
@@ -329,6 +330,7 @@ beanbagNAVTable <- function (x, inception, pxinfo) {
                paste0(beautify(x[["currentNAV"]]), " ", x[["ccy"]]),
                paste0(beautify(x[["currentGAV"]]), " ", x[["ccy"]]),
                paste0(beautify(x[["previousNAV"]]), " ", x[["ccy"]]),
+               ##paste0(beautify(x[["currentNAV"]] - x[["previousNAV"]]), " ", x[["ccy"]]),
                paste(pxinfo[, "noshares"], collapse=", "),
                paste(pxinfo[, "isin"], collapse=", "),
                x[["navshare"]],
@@ -498,7 +500,7 @@ getHoldingsDetails <- function(holdings, colSelect, nav=NULL) {
     suppressWarnings(holdings[, priceIdx] <- apply(holdings[, priceIdx], MARGIN=2, function(x) round(x, 4)))
 
     ## Define the monetary keys:
-    monetaryKeys <- c("QTY", "Value", "Exposure", "Accrd")
+    monetaryKeys <- c("QTY", "Value", "Exposure", "Accrd", "PnL (Unrl)")
 
     ## Get the indices of the monetary keys:
     monetaryIdx <- apply(mgrep(colnames(holdings), monetaryKeys), MARGIN=1, function(x) any(x != "0"))
@@ -507,7 +509,7 @@ getHoldingsDetails <- function(holdings, colSelect, nav=NULL) {
     holdings[, monetaryIdx] <- apply(holdings[, monetaryIdx], MARGIN=2, function(x) trimws(beautify(x)))
 
     ## Define the percentage keys:
-    percentageKeys <- c("Value (%)", "Exp (%)", "PnL (%)", "PnL (%Inv)")
+    percentageKeys <- c("Value (%)", "Exp (%)", "PnL (%)", "PnL (%Inv)", "PnL (Contr)")
 
     ## Get the indices of the percentage keys:
     percentageIdx <- lapply(percentageKeys, function(x) colnames(holdings) == x)
@@ -535,12 +537,14 @@ getHoldingsDetails <- function(holdings, colSelect, nav=NULL) {
 ##' This is a description.
 ##'
 ##' @param holdings The holdings data frame
+##' @param key The cash holdings key
+##' @param col The cash column name
 ##' @return A list with holdings summary information.
 ##' @export
-getHoldingsSummary <- function(holdings) {
+getHoldingsSummary <- function(holdings, col="Subtype", key="Cash") {
 
     ## Get the cash holdings:
-    cashHoldings <-  holdings[safeCondition(holdings, "Subtype", "Cash"), ]
+    cashHoldings <-  holdings[safeCondition(holdings, col, key), ]
 
     if (NROW(cashHoldings) != 0) {
         ## For empty cash names, replace by currency:
@@ -584,7 +588,7 @@ getHoldingsSummary <- function(holdings) {
     holdings[, c("Value", "Exposure", "PnL (Unrl)")] <- apply(holdings[, c("Value", "Exposure", "PnL (Unrl)")], MARGIN=2, function(x) trimws(beautify(x)))
 
     ## Beautify percentages:
-    holdings[, c("Value (%)", "Exp (%)", "PnL (%Inv)")] <- apply(holdings[, c("Value (%)", "Exp (%)", "PnL (%Inv)")], MARGIN=2, function(x) trimws(percentify(x)))
+    holdings[, c("Value (%)", "Exp (%)", "PnL (%Inv)", "PnL (Contr)")] <- apply(holdings[, c("Value (%)", "Exp (%)", "PnL (%Inv)", "PnL (Contr)")], MARGIN=2, function(x) trimws(percentify(x)))
 
     ## Replace unwanted strings with empty:
     holdings[is.na(holdings)] <- ""

@@ -89,3 +89,42 @@ requestableTickers <- function(session, date, zero, underlying, fldsByCtype, oth
          "resources"=resources)
 
 }
+
+
+##' A list with the mapping between bbg and decaf fields
+##'
+##' @return A list
+##' @export
+bbgDecafFieldMap <- list("BASE"=c("ID_ISIN"="isin",
+                                  "COUNTRY_FULL_NAME"="country",
+                                  "ISSUER"="issuer",
+                                  "INDUSTRY_SECTOR"="sector",
+                                  "RTG_SP_LT_LC_ISSUER_CREDIT"="sp_rating",
+                                  "RTG_SP_OUTLOOK"="sp_outlook",
+                                  "PRIMARY_EXCHANGE_NAME"="mic"),
+                         "BOND"=c("MATURITY"="expiry",
+                                  "CPN"="pxmain",
+                                  "FIRST_CPN_DT"="launch",
+                                  "CPN_FREQ"="frequency"),
+                         "OPT" =c("LAST_TRADEABLE_DT"="expiry", "OPT_STRIKE_PX"="pxmain"),
+                         "FUT" =c("LAST_TRADEABLE_DT"="last_tradable", "FUT_NOTICE_FIRST"="first_notice"))
+
+
+##' A list with the tranform functions for bbg results by field.
+##'
+##' @return A list
+##' @export
+transBBGResults <- list("LAST_TRADEABLE_DT"=function(x) {as.Date(x, format="%Y%m%d")},
+                        "FUT_NOTICE_FIRST"=function(x) {as.Date(x, format="%Y%m%d")},
+                        "MATURITY"=function(x) {as.Date(x, format="%Y%m%d")},
+                        "ID_ISIN"=function(x) {as.character(x)},
+                        "COUNTRY_FULL_NAME"=function(x){as.character(x)},
+                        "ISSUER"=function(x){as.character(x)},
+                        "INDUSTRY_SECTOR"=function(x){as.character(x)},
+                        "RTG_SP_LT_LC_ISSUER_CREDIT"=function(x){as.character(x)},
+                        "RTG_SP_OUTLOOK"=function(x){as.character(x)},
+                        "PRIMARY_EXCHANGE_NAME"=function(x){as.character(x)},
+                        "CPN"=function(x){as.numeric(x)},
+                        "FIRST_CPN_DT"=function(x) {as.Date(x, format="%Y%m%d")},
+                        "CPN_FREQ"=function(x) {as.integer(x)},
+                        "OPT_STRIKE_PX"=function(x) {as.numeric(x)})

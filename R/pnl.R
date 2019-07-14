@@ -83,6 +83,9 @@ pnlPreembleWrapper <- function(portfolio, startDate, endDate, session) {
     ## Get the portfolio:
     portfolio <- as.data.frame(getResource("portfolios", params=pParams, session=session))
 
+    ## Get the stocks:
+    stocks <- getStocks(portfolio, session, zero=1,endDate, c="portfolio")
+
     ## Get the resources:
     resources <- getResourcesByStock(stocks, session, getUnderlying=FALSE)
 
@@ -317,7 +320,7 @@ computePnL <- function(quantContext) {
 
         story[NROW(story), "PNL::TPnL"] <- sum(story[NROW(story), c("PNL::Unrls", "PNL::TIncome", "PNL::TReal")])
 
-        story[NROW(story), "PNL::POSROI"] <- story[NROW(story), "PNL::TPnL"] / tail(abs(story[which(story[-NROW(story), "PNL::CumInv"] != 0), "PNL::CumInv"]), 1)
+        ## story[NROW(story), "PNL::POSROI"] <- story[NROW(story), "PNL::TPnL"] / tail(abs(story[which(story[-NROW(story), "PNL::CumInv"] != 0), "PNL::CumInv"]), 1)
 
         story
 

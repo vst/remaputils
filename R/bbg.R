@@ -95,7 +95,7 @@ requestableTickers <- function(session, date, zero, underlying, fldsByCtype, oth
 ##'
 ##' @return A list
 ##' @export
-bbgDecafFieldMap <- list("BASE"=c("ID_ISIN"="isin",
+.bbgDecafFieldMap <- list("BASE"=c("ID_ISIN"="isin",
                                   "COUNTRY_FULL_NAME"="country",
                                   "ISSUER"="issuer",
                                   "INDUSTRY_SECTOR"="sector",
@@ -114,7 +114,7 @@ bbgDecafFieldMap <- list("BASE"=c("ID_ISIN"="isin",
 ##'
 ##' @return A list
 ##' @export
-transBBGResults <- list("LAST_TRADEABLE_DT"=function(x) {as.Date(x, format="%Y%m%d")},
+.transBBGResults <- list("LAST_TRADEABLE_DT"=function(x) {as.Date(x, format="%Y%m%d")},
                         "FUT_NOTICE_FIRST"=function(x) {as.Date(x, format="%Y%m%d")},
                         "MATURITY"=function(x) {as.Date(x, format="%Y%m%d")},
                         "ID_ISIN"=function(x) {as.character(x)},

@@ -1,3 +1,16 @@
+##' Extract unique column names to list
+##'
+##' This is a description.
+##'
+##' @param df The data frame
+##' @param colname The column to be extracted
+##' @return A list
+##' @export
+extractToList <- function(df, colname) {
+        lapply(unique(df[, colname]), function(x) df[x == df[, colname], ])
+}
+
+
 ##' This function checks if 2 numbers match
 ##'
 ##' This is a description.

@@ -239,6 +239,40 @@ getFutureExpiry <- function(bbgticker, weekday="Friday", nthWeekday=3){
 ##' @import rdecaf
 ##' @import jsonlite
 ##' @export
+createZCPNResource <- function(df, session){
+
+    ## Create the data frame:
+    dfx <- data.frame("symbol"=df[,"symbol"],
+                      "id"=NA,
+                      "isin"=safeColumn(df ,"isin"),
+                      "ctype"="ZCPN",
+                      "launch"=safeColumn(df, "launch"),
+                      "name"=df[,"name"],
+                      "ccymain"=df[,"ccymain"],
+                      "ticker"=safeColumn(df, "ticker"),
+                      "expiry"=df[,"maturity"],
+                      "quantity"=safeColumn(df, "pxfactor"),
+                      "frequency"=df[,"frequency"],
+                      "convday"=df[,"convday"])
+
+    ## Create the payload:
+    payload <- toJSON(apply(dfx, MARGIN=1, as.list), auto_unbox=TRUE, digits=10)
+
+    ## Post the resource:
+    postResource("resources", "imports", payload=payload, session=session)
+}
+
+
+##' A function to create share resources:
+##'
+##' This is a description.
+##'
+##' @param df The data-frame with the resource information
+##' @param session The rdecaf session.
+##' @return Returns the http post result.
+##' @import rdecaf
+##' @import jsonlite
+##' @export
 createShareResource <- function(df, session){
 
     ## Create the data frame:
@@ -365,6 +399,8 @@ createFXFwdResource <- function(df, session){
                       "ccyaltn"=df[,"ccyaltn"],
                       "expiry"=df[,"settlement"],
                       "id"=NA,
+                      "guid"=safeColumn(df, "guid"),
+                      "reference"=safeColumn(df, "reference"),
                       "ctype"="FXFWD",
                       "pxflip"=as.character(df[,"isFlip"]),
                       "pxmain"=df[,"pxmain"])

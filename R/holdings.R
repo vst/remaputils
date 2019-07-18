@@ -647,7 +647,8 @@ getPrintableHoldings <- function(portfolio,
     list("holdings"=formattedHoldings[, colselect],
          "consolidation"=consolidation,
          "rawHoldings"=enrichedHoldings,
-         "colselect"=colselect)
+         "colselect"=colselect,
+         "resources"=resources)
 }
 
 ##' TODO:

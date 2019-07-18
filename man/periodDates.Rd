@@ -4,7 +4,8 @@
 \alias{periodDates}
 \title{A function to produce dates in requested periodicity.}
 \usage{
-periodDates(periodLetter, yearsOfHistory = 3, endOfWeek = "Friday")
+periodDates(periodLetter, yearsOfHistory = 3, endOfWeek = "Friday",
+  date = Sys.Date())
 }
 \arguments{
 \item{periodLetter}{Any of "D", "W", "M", "Q", "Y"}
@@ -12,6 +13,8 @@ periodDates(periodLetter, yearsOfHistory = 3, endOfWeek = "Friday")
 \item{yearsOfHistory}{The amount of years to lookback. Default is 3.}
 
 \item{endOfWeek}{For weekly periodicity, the end of week day. Default is "Friday".}
+
+\item{date}{The date to traverse back from.}
 }
 \value{
 A sequence of dates for periodicity.

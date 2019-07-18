@@ -4,10 +4,12 @@
 \alias{dateOfPeriod}
 \title{A function to get the date of a specific verbosely expressed date (expressed by memnonic).}
 \usage{
-dateOfPeriod(memnonic = "D-0")
+dateOfPeriod(memnonic = "D-0", date = Sys.Date())
 }
 \arguments{
 \item{memnonic}{Follow the convention: [Period Letter] - [lookback], e.g "D-0" or "W-3".}
+
+\item{date}{The date to traverse back from.}
 }
 \value{
 The specific date of the date memnonic.

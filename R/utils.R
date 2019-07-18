@@ -952,12 +952,13 @@ safeTry <- function(x, nullToNa=TRUE){
 ##' @param periodLetter Any of "D", "W", "M", "Q", "Y"
 ##' @param yearsOfHistory The amount of years to lookback. Default is 3.
 ##' @param endOfWeek For weekly periodicity, the end of week day. Default is "Friday".
+##' @param date The date to traverse back from.
 ##' @return A sequence of dates for periodicity.
 ##' @export
-periodDates <- function(periodLetter, yearsOfHistory=3, endOfWeek="Friday"){
+periodDates <- function(periodLetter, yearsOfHistory=3, endOfWeek="Friday", date=Sys.Date()){
 
     ## Generate date sequence:
-    dateSeq <- seq(Sys.Date() - (365*yearsOfHistory), Sys.Date(), by=1)
+    dateSeq <- seq(date - (365*yearsOfHistory), date, by=1)
 
     ## The function map:
     functionMap <- list("D"=function(x){x},
@@ -985,12 +986,10 @@ periodDates <- function(periodLetter, yearsOfHistory=3, endOfWeek="Friday"){
 ##' This is a description
 ##'
 ##' @param memnonic Follow the convention: [Period Letter] - [lookback], e.g "D-0" or "W-3".
+##' @param date The date to traverse back from.
 ##' @return The specific date of the date memnonic.
 ##' @export
-dateOfPeriod <- function(memnonic="D-0"){
-
-    ## Get current date:
-    today <- Sys.Date()
+dateOfPeriod <- function(memnonic="D-0", date=Sys.Date()){
 
     ## Get the period letter:
     period <- strsplit(memnonic, "-")[[1]][1]
@@ -999,7 +998,7 @@ dateOfPeriod <- function(memnonic="D-0"){
     lag <- as.numeric(strsplit(memnonic, "-")[[1]][2])
 
     ## Get the period dates
-    series <- periodDates(period)
+    series <- periodDates(period, date=date)
 
     ## Apply lag and return:
     series[length(series) - lag]

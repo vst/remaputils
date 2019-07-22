@@ -333,11 +333,12 @@ createCashResource <- function(df, session){
 createLoanDepoResource <- function(df, session){
 
     ## Create the data frame:
-    dfx <- data.frame("symbol"=df[,"symbol"],
+    dfx <- data.frame("symbol"=safeColumn(df, "symbol"),
                       "id"=NA,
                       "ctype"=df[,"ctype"],
-                      "pxmain"=df[,"rate"],
-                      "launch"=df[,"commitment"],
+                      "pxmain"=df[,"pxmain"],
+                      "launch"=df[,"launch"],
+                      "reference"=safeColumn(df, "reference"),
                       "expiry"=df[,"expiry"],
                       "convday"=df[,"convday"],
                       "ccymain"=df[,"ccymain"])

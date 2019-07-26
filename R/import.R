@@ -419,6 +419,9 @@ pushOhlc <- function(symbol, close, date, session) {
                           "date"=date,
                           stringsAsFactors=FALSE)
 
+    ## Remove NA symbols:
+    ohlcObs <- ohlcObs[!is.na(ohlcObs[, "symbol"]), ]
+
     ## Create batches:
     batches <- createBatches(NROW(ohlcObs), 500)
 

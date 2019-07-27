@@ -32,14 +32,16 @@ bdlhs <- function (host, port, user, pass, flds, tcks, exe="bdlhs") {
 ##' Function to prepare ticker for request.
 ##'
 ##' @param session The decaf session.
-##' @param date The date to query stocks.
 ##' @param zero Should closed stocks be included? 1 = yes, - = no.
+##' @param date The date for the stocks.
 ##' @param underlying Should underlying instruments be included?
 ##' @param fldsByCtype The list with fields to be considered for each ctype.
 ##' @param other Shall OTHER assets be considered as well?
+##' @param field The field which should be considered in decaf resources.
+##' @param ohlc Should the ohlccode be considered as an id.
 ##' @return A list with a) tickers for price, b) tickers for reference, c) the resource data frame
 ##' @export
-requestableTickers <- function(session, date, zero, underlying, fldsByCtype, other=FALSE) {
+prepareBBGDLData <- function(session, zero=Sys.Date(), date, underlying, fldsByCtype, other=FALSE, field="symbol", ohlc=TRUE) {
 
     ## Prepare the params for the stock request:
     params <- list(page_size=-1, format="csv", date=date, zero=zero)
@@ -48,46 +50,93 @@ requestableTickers <- function(session, date, zero, underlying, fldsByCtype, oth
     stocks <- as.data.frame(rdecaf::getResource("stocks", params=params, session=session))
 
     ## Get the resources by stocks:
-    resources <- remaputils::getResourcesByStock(stocks, session, getUnderlying=TRUE)
+    resources <- remaputils::getResourcesByStock(stocks, session, getUnderlying=underlying)
 
     ## Consider other assets if required:
     if (other) {
+
+        ## Get OTHER resources:
         othersRes <- as.data.frame(rdecaf::getResource("resources", params=list(page_size=-1, format="csv", ctype="OTHER"), session=session))
-        othersRes <- othersRes[apply(mgrep(othersRes[, c("symbol")], c("Index", "Curncy")), MARGIN=1, function(x) any(x!="0")), ]
+
+        ## Grep Index and Curncy suffices:
+        othersRes <- othersRes[apply(mgrep(othersRes[, field], c("Index", "Curncy")), MARGIN=1, function(x) any(x!="0")), ]
+
+        ## Only consider OTHER resources which are still alive:
         expired <- othersRes[, "expiry"] < Sys.Date() - 1
+
+        ## Only consider OTHER resources which are still alive:
         expired <- ifelse(is.na(expired), FALSE, expired)
-        resources <- safeRbind(list(resources, othersRes[!expired, ]))
+
+        if (NROW(othersRes) > 0) {
+            ## Append OTHER ctypes to the resources:
+            resources <- safeRbind(list(resources, othersRes[!expired, ]))
+        }
     }
 
-    ## Get ohlc identifiers:
-    resources <- data.frame(resources, "priceIds"=ifelse(!is.na(resources[, "ohlccode"]), resources[, "ohlccode"], resources[, "symbol"]))
+    if (ohlc) {
+        ## Get ohlc identifiers:
+        resources <- data.frame(resources, "priceIds"=ifelse(!is.na(resources[, "ohlccode"]), resources[, "ohlccode"], resources[, field]))
+    } else {
+        resources <- data.frame(resources, "priceIds"=resources[, field])
+    }
 
     ## Check if identifer is bbg ticker:
     resources <- resources[isBBGTicker(as.character(resources[, "priceIds"])), ]
 
+    ## Initialise the ctypeFlds list:
+    ctypeFlds <- list()
+
     ## Check if all instruments have base field information:
-    baseInfo <- resources[, fldsByCtype[["BASE"]]]
+    ctypeFlds[["BASE"]] <- resources[, c("symbol", "priceIds", as.character(fldsByCtype[["BASE"]]))]
 
-    ## Check which ones have missing base information:
-    missingBaseInfo <- apply(baseInfo, MARGIN=1, function(x) any(is.na(x)))
+    ## Exclude the BASE field list element:
+    fldsByCtypex <- fldsByCtype[-1]
 
-    ## Exclude the base field information:
-    fldsByCtype <- fldsByCtype[!names(fldsByCtype) == "BASE"]
+    ## Iterate of the fields by ctype and append:
+    for (i in 1:length(fldsByCtypex)) {
 
-    ## Check for missing instrument-specific information:
-    missingSpecificInfo <- apply(do.call(cbind, lapply(1:length(fldsByCtype), function(i) {
+        ctypeRes  <- resources[resources[, "ctype"] == names(fldsByCtypex)[i], ]
+        ctypeFlds[[names(fldsByCtypex)[i]]] <- as.data.frame(ctypeRes[, c("symbol", "priceIds", as.character(fldsByCtypex[[i]]))], stringsAsFactors=FALSE)
 
-        isCtype <- resources[, "ctype"] == names(fldsByCtype)[i]
-        isMissing <- apply(resources[, fldsByCtype[[i]]], MARGIN=1, function(x) any(is.na(x)))
+    }
 
-        isCtype & isMissing
-    })), MARGIN=1, any)
+    ## 1: Only consider instruments with missing fields
+    ## 2: Rename column names to bbg memnonic
+    reference <- lapply(1:length(ctypeFlds), function(i) {
+
+        ## Return NULL if no instruments:
+        if (NROW(ctypeFlds[[i]]) == 0) {
+            return(NULL)
+        }
+
+        ## Get the column names:
+        colNames <- colnames(ctypeFlds[[i]])
+
+        ## Get the field names:
+        fldCtype <- fldsByCtype[[names(ctypeFlds)[i]]]
+
+        ##
+        ctypeFlds[[i]][, 3:NCOL(ctypeFlds[[i]])] <- t(apply(ctypeFlds[[i]][, -c(1, 2)], MARGIN=1, is.na))
+        ctypeFlds[[i]] <- ctypeFlds[[i]][apply(ctypeFlds[[i]][, -c(1, 2)], MARGIN=1, any), ]
+
+        if (NROW(ctypeFlds[[i]]) == 1) {
+            ctypeFlds[[i]][, c(1,2)] <- c(as.character(ctypeFlds[[i]][1, 1]), as.character(ctypeFlds[[i]][1, 2]))
+        } else {
+            ctypeFlds[[i]][, c(1,2)] <- as.data.frame(apply(ctypeFlds[[i]][, c(1,2)], MARGIN=2, as.character), stringsAsFactors=FALSE)
+        }
+
+        colnames(ctypeFlds[[i]]) <- c(colNames[c(1,2)], names(fldCtype)[match(colNames[3:NCOL(ctypeFlds[[i]])], fldCtype)])
+        ctypeFlds[[i]] <- as.data.frame(ctypeFlds[[i]], stringsAsFactors=FALSE)
+        ctypeFlds[[i]]
+    })
+
+    ## Name the reference list:
+    names(reference) <- names(fldsByCtype)
 
     ## Return ohlc id's with missing information:
-    list("reference"=as.character(resources[missingBaseInfo | missingSpecificInfo, "priceIds"]),
-         "prices"=as.character(resources[, "priceIds"]),
+    list("reference"=reference,
+         "prices"=resources[, c("symbol", "priceIds")],
          "resources"=resources)
-
 }
 
 

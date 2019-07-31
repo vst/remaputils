@@ -77,9 +77,6 @@ pictetEBankingNormalizer <- function(filePath, session) {
 
     data <- data[!is.na(data[, "accmain"]), ]
 
-    data <- data[!data[, "accmain"] == 25, ]
-    data <- data[!data[, "accmain"] == 30, ]
-
     ## Get the cash positions:
     cshIdx <- data[, "ASSETCLASS"] == "Cash" & data[, "SUBASSETCLASS"] == "Current accounts"  |
               data[, "ASSETCLASS"] == "Metals" & isNAorEmpty(as.character(data[, "UNDERLYING1FINANCIALINSTRUMENTTYPE"])) & isNAorEmpty(as.character(data[, "ISSUER"]))

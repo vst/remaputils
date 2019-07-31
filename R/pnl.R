@@ -356,7 +356,7 @@ computePnL <- function(quantContext) {
 
         isCls   <- story[, "PNL::isCls"]
 
-        isInv <- !isEnd & !isFee & !isInc
+        isInv <- !isEnd & !isFee & !isInc & !isCls
 
         if (story[isStart, "qQty"] == 0) {
             isStart[which(isInv)[2]] <- TRUE
@@ -393,8 +393,6 @@ computePnL <- function(quantContext) {
         income <- sum(as.numeric(story[, "PNL::Income"]))
         tofees <- sum(as.numeric(story[, "PNL::Fees"]))
         total <- unrlsd + realsd + income + tofees
-
-
 
         story <- list("PnLs"=story,
                       "Totals"=data.frame("Unrealised"=unrlsd,

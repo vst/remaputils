@@ -1,3 +1,225 @@
+##' A function which provides the YTD slice of the data frame.
+##'
+##' This is the description
+##'
+##' @param df The data frame with a 'date' column.
+##' @param date the report date.
+##' @return A data frame with the YTD slice of the data frame or NULL.
+##' @export
+getYTDSlice <- function(df, date) {
+
+    ## If df is NULL or no rows, return NULL
+    if (is.null(df) | NROW(df) == 0) {
+        return(NULL)
+    }
+
+    ## Get the year of the report date:
+    year <- substr(date, 1, 4)
+
+    ## If no year corresponds to year of report date, return NULL:
+    if (all(substr(df[, "date"], 1, 4) != year)) {
+        return(NULL)
+    }
+
+    ## Get the period change:
+    periodChange <- c(0, diff(as.numeric(substr(df[, "date"], 1,4)))) != 0
+
+    ## If none corresponds to the period change, set last to TRUE:
+    if (all(!periodChange)) {
+        periodChange[length(periodChange)] <- TRUE
+    }
+
+    ## Return the slice:
+    df[1:which(periodChange)[1],]
+}
+
+
+
+
+##' A function which provides the QTD slice of the data frame.
+##'
+##' This is the description
+##'
+##' @param df The data frame with a 'date' column.
+##' @param date the report date.
+##' @return A data frame with the QTD slice of the data frame or NULL.
+##' @export
+getQTDSlice <- function(df, date) {
+
+    ## If df is NULL or no rows, return NULL
+    if (is.null(df) | NROW(df) == 0) {
+        return(NULL)
+    }
+
+    ## Get the quarter-year for the report date:
+    qtrYear <- paste0(quarters(date), substr(date, 1,4))
+
+    ## Get the quarters of the dates:
+    qtrs <- quarters(df[, "date"])
+
+    ## If no quarter-year matches, return NULL:
+    if (all(paste0(qtrs, substr(date, 1, 4)) != qtrYear)) {
+        return(NULL)
+    }
+
+    ## Initialise the period change:
+    periodChange <- rep(FALSE, NROW(df))
+
+    ## Determine the index of the period changes:
+    periodChangeIdx <- !qtrs == c(tail(qtrs, -1), tail(qtrs , 1))
+
+    ## If no period change is identified, set the last
+    ## period change index to TRUE and return:
+    if (all(!periodChangeIdx)) {
+        periodChange[length(periodChange)] <- TRUE
+        return(df[1:which(periodChange)[1],])
+    }
+
+    ## Get the period change indices which are not the last observation:
+    shift <- which(periodChangeIdx) < length(periodChange)
+
+    ## Shift the period change index for non-last members and set to TRUE:
+    periodChange[which(periodChangeIdx)[shift] + 1] <- TRUE
+
+    ## Return the slice:
+    df[1:which(periodChange)[1],]
+}
+
+
+##' A function which provides the MTD slice of the data frame.
+##'
+##' This is the description
+##'
+##' @param df The data frame with a 'date' column.
+##' @param date the report date.
+##' @return A data frame with the MTD slice of the data frame or NULL.
+##' @export
+getMTDSlice <- function(df, date) {
+
+    ## If df is NULL or no rows, return NULL
+    if (is.null(df) | NROW(df) == 0) {
+        return(NULL)
+    }
+
+    ## Get the month-year of the report date:
+    monYear <- substr(date, 1, 7)
+
+    ## If no date matches the month-year of the report date, return NULL:
+    if (all(substr(df[, "date"], 1, 7) != monYear)) {
+        return(NULL)
+    }
+
+    ## Determine the indices with the period change:
+    periodChange <- c(0, diff(as.numeric(substr(df[, "date"], 6, 7)))) != 0
+
+    ## If no date corresponds to a period change, return NULL:
+    if (all(!periodChange)) {
+        return(NULL)
+    }
+
+    ## Return the slice:
+    df[1:which(periodChange)[1],]
+}
+
+
+##' A function which provides the WTD slice of the data frame.
+##'
+##' This is the description
+##'
+##' @param df The data frame with a 'date' column.
+##' @param date the report date.
+##' @return A data frame with the WTD slice of the data frame or NULL.
+##' @export
+getWTDSlice <- function(df, date) {
+
+    ## If df is NULL or no rows, return NULL
+    if (is.null(df) | NROW(df) == 0) {
+        return(NULL)
+    }
+
+    ## The distance in days of report date:
+    distance <- 7
+
+    ## Get the week of the day of report date:
+    dayOfWeek <- weekdays(date)
+
+    ## If target day falls on Sunday, set distance to 9:
+    if (dayOfWeek == "Sunday") {
+        dayOfWeek <- "Friday"
+        distance <- 9
+    }
+
+    ## If target day falls on Saturday, set distance to 8:
+    if (dayOfWeek == "Saturday") {
+        dayOfWeek <- "Friday"
+        distance <- 8
+    }
+
+    ## Determin which dates fall within the distance:
+    inWeek <- date - df[, "date"] <= distance
+
+    ## Determine which dates are within the week and are the same weekday name:
+    periodChange <- weekdays(df[, "date"]) == dayOfWeek & inWeek
+
+    ## Set the first to FALSE:
+    periodChange[1] <- FALSE
+
+    ## If no qualifies, set the last from within the week to TRUE:
+    if (all(!periodChange)) {
+        periodChange[tail(which(inWeek), 1)] <- TRUE
+    }
+
+    ## If none, qualified, return NULL:
+    if (all(!periodChange)) {
+        return(NULL)
+    }
+
+    ## Return the slice:
+    df[1:which(periodChange)[1],]
+}
+
+
+##' A function which provides the DTD slice of the data frame.
+##'
+##' This is the description
+##'
+##' @param df The data frame with a 'date' column.
+##' @param date the report date.
+##' @return A data frame with the DTD slice of the data frame or NULL.
+##' @export
+getDTDSlice <- function(df, date) {
+
+    ## If df is NULL or no rows, return NULL
+    if (is.null(df) | NROW(df) == 0) {
+        return(NULL)
+    }
+
+    ## The target date:
+    targetDay <- date - 1
+
+    ## If target day falls on Sunday, substract 2:
+    if (weekdays(targetDay) == "Sunday") {
+        targetDay <- targetDay - 2
+    }
+
+    ## If target day falls on Saturyday, substract 1:
+    if (weekdays(targetDay) == "Saturday") {
+        targetDay <- targetDay - 1
+    }
+
+    ## Which date corresponds to the target date:
+    periodChange <- df[, "date"] == targetDay
+
+    ## If no such date, return NULL:
+    if (all(!periodChange)) {
+        return(NULL)
+    }
+
+    ## Return the slice:
+    df[1:which(periodChange)[1],]
+}
+
+
 ##' Extract unique column names to list
 ##'
 ##' This is a description.
@@ -7,7 +229,7 @@
 ##' @return A list
 ##' @export
 extractToList <- function(df, colname) {
-        lapply(unique(df[, colname]), function(x) df[x == df[, colname], ])
+    lapply(unique(df[, colname]), function(x) df[x == df[, colname], ])
 }
 
 

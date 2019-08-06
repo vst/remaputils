@@ -27,7 +27,7 @@ getOhlcObsForSymbol <- function(session, symbol, lte=Sys.Date(), lookBack=30) {
 
     ## If no ohlc, return NULL:
     if (NROW(ohlc) == 0) {
-        return(NULL)
+        return(ohlc)
     }
 
     ## Filter our weekends and return:

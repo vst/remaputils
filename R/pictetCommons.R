@@ -246,7 +246,7 @@ pictetFileMappers <- function() {
                      "EXCOURS-VAL-EVAL"=list("name"="EXPONENT"),
                      "OPCOURS-VAL-DALI"=list("name"="OPERAND"),
                      "SIEXP-COURS-VAL-EVAL"=list("name"="EXPONENTSIGN"),
-                     "DSCOURS"=list("name"="PRCIEDATE")),
+                     "DSCOURS"=list("name"="PRICEDATE")),
          "L120"=list("NOCLI-DOS"=list("name"="CLIENTNO"),
                      "CLCC"=list("name"="ACCKEY"),
                      "COID-REC-EST-DALI"=list("name"="IDENTIFICATIONCODE"),

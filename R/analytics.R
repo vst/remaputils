@@ -1,94 +1,258 @@
+##' A function to retrieve and slice OHLC observations as per given period.
+##'
+##' This is the description
+##'
+##' @param symbols A vector of ohlcs symbols.
+##' @param session The rdecaf session.
+##' @param date The report date.
+##' @param periods A vector with desired period slices: 'DTD', 'WTD', 'MTD', 'QTD', 'YTD'
+##' @return A list with the slices per period.
+##' @export
+getSlicedOhlcs <- function(symbols, session, date, periods) {
+
+    ## Get the dateOfPeriod memnonic:
+    periodMemnonic <- sapply(periods, function(x) switch(x,
+                                                        "YTD"="Y-0",
+                                                        "QTD"="Q-0",
+                                                        "MTD"="M-0",
+                                                        "WTD"="W-1",
+                                                        "DTD"="D-0"))
+
+    ## Order the periods:
+    periodMemnonic <- orderByKey(periodMemnonic, c("Y", "Q", "M", "W", "D"))
+
+    ## Compute the look back:
+    lookBack <- as.numeric(date - dateOfPeriod(periodMemnonic[1], date)) + 27
+
+    ## Get the ohlcs:
+    ohlcs <- lapply(symbols, function(s) getOhlcObsForSymbol(session, s, lte=date, lookBack=lookBack))
+
+    ## Construct the functions:
+    myFun <- paste0("get", periods, "Slice")
+
+    ## Get the period ohlcs:
+    periodOhlcs <- lapply(myFun, function(fun) lapply(ohlcs, function(y) do.call(fun, list(y, date))))
+
+    ## Assign the symbols as names to each period list:
+    for (i in 1:length(periods)) {
+        names(periodOhlcs[[i]]) <- symbols
+    }
+
+    ## Assign the names:
+    names(periodOhlcs) <- periods
+
+    ## Done, return:
+    periodOhlcs
+
+}
+
+
+##' Provides the return statistics for a data frame with price and date column
+##'
+##' This is the description
+##'
+##' @param df The data frame.
+##' @param pxCol The name of the price column.
+##' @param dtCol The name of the date column.
+##' @param method The return calcuation method:'discrete', 'log'
+##' @param returnOnly Should only the Total Return be calculated?
+##' @return A data frame with the return statistics.
+##' @export
+computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=FALSE) {
+
+    ## Remove zero prices:
+    df <- df[df[, pxCol] != 0 | df[, pxCol] != "0", ]
+
+    ## If empty df, return NA's:
+    if (is.null(df) | NROW(df) == 0) {
+        return(data.frame("Return"=NA,
+                          "Return Annualized"=NA,
+                          "Volalitiy"=NA,
+                          "Vol Annualized"=NA,
+                          "Value-At-Risk"=NA,
+                          "Expected Shortfall"=NA,
+                          "Sharpe Ratio (STDEV)"=NA,
+                          "Sharpe Ratio (VaR)"=NA,
+                          "Sharpe Ratio (ES)"=NA,
+                          "Calmar Ratio"=NA,
+                          "Sortino Ratio"=NA,
+                          "Sterling Ratio"=NA,
+                          "Avg. Drawdown"=NA,
+                          "Max. Drawdown"=NA,
+                          "Avg. Recovery"=NA,
+                          "Skewness"=NA,
+                          "Kurtosis"=NA,
+                          "Quantile Ratio"=NA,
+                          check.names=FALSE,
+                          stringsAsFactors=FALSE))
+    }
+
+    ## XTSify:
+    ts <- xts::as.xts(as.numeric(df[, pxCol]), order.by=as.Date(df[, dtCol]))
+
+    ## Compute returns:
+    rets <- diff(log(ts))
+
+    ## If there are a few observations, return only Total Return:
+    if (NROW(df) < 7 | returnOnly) {
+        return(data.frame(##"Return"=sum(na.omit(rets)),
+                          "Return"=tail(as.numeric(ts), 1) / head(as.numeric(ts), 1) - 1,
+                          "Return Annualized"=NA,
+                          "Volalitiy"=NA,
+                          "Vol Annualized"=NA,
+                          "Value-At-Risk"=NA,
+                          "Expected Shortfall"=NA,
+                          "Sharpe Ratio (STDEV)"=NA,
+                          "Sharpe Ratio (VaR)"=NA,
+                          "Sharpe Ratio (ES)"=NA,
+                          "Calmar Ratio"=NA,
+                          "Sortino Ratio"=NA,
+                          "Sterling Ratio"=NA,
+                          "Avg. Drawdown"=NA,
+                          "Max. Drawdown"=NA,
+                          "Avg. Recovery"=NA,
+                          "Skewness"=NA,
+                          "Kurtosis"=NA,
+                          "Quantile Ratio"=NA,
+                          check.names=FALSE,
+                          stringsAsFactors=FALSE))
+    }
+
+    ## Compute standard deviation:
+    stdev <- PerformanceAnalytics::StdDev(rets)
+
+    ## Compute annualized return:
+    retsAnnual <- PerformanceAnalytics::Return.annualized(rets)
+
+    ## Compute annualized standard deviation:
+    stdevAnnual <- PerformanceAnalytics::sd.annualized(rets)
+
+    ## Compute the sharpe:
+    sharpe <- PerformanceAnalytics::SharpeRatio(rets)
+
+    ## Compute the calmar:
+    calmar <- PerformanceAnalytics::CalmarRatio(rets)
+
+    ## Compute the sortino:
+    sortino <- PerformanceAnalytics::SortinoRatio(rets)
+
+    ## Compute the sterling:
+    sterling <- PerformanceAnalytics::SterlingRatio(rets)
+
+    ## Compute the average recovery:
+    avgRecovery <- PerformanceAnalytics::AverageRecovery(rets)
+
+    ## Compute the average drawdown:
+    avgDrawdown <- PerformanceAnalytics::AverageDrawdown(rets)
+
+    ## Compute the maximum drawdown:
+    maxDrawdown <- PerformanceAnalytics::maxDrawdown(rets)
+
+    ## Compute the VaR:
+    var <- PerformanceAnalytics::VaR(rets)
+
+    ## Comput the Expected Shortfall
+    es <- PerformanceAnalytics::ES(rets)
+
+    ## Compute the skewness:
+    skew <- PerformanceAnalytics::skewness(rets)
+
+    ## Compute the skewness:
+    kurt <- PerformanceAnalytics::kurtosis(rets)
+
+    ## Quantile Ratio:
+    quantileRatio <- as.numeric(abs(quantile(as.numeric(na.omit(rets)))[2]) / abs(quantile(as.numeric(na.omit(rets)))[4]))
+
+    ## Construct data frame and return:
+    data.frame(##"Return"=sum(na.omit(rets)),
+               "Return"=tail(as.numeric(ts), 1) / head(as.numeric(ts), 1) - 1,
+               "Return Annualized"=as.numeric(retsAnnual),
+               "Volalitiy"=as.numeric(stdev),
+               "Vol Annualized"=as.numeric(stdevAnnual),
+               "Value-At-Risk"=as.numeric(var),
+               "Expected Shortfall"=as.numeric(es),
+               "Sharpe Ratio (STDEV)"=as.numeric(sharpe[1,1]),
+               "Sharpe Ratio (VaR)"=as.numeric(sharpe[2,1]),
+               "Sharpe Ratio (ES)"=as.numeric(sharpe[3,1]),
+               "Calmar Ratio"=as.numeric(calmar),
+               "Sortino Ratio"=as.numeric(sortino),
+               "Sterling Ratio"=as.numeric(sterling),
+               "Avg. Drawdown"=as.numeric(avgDrawdown),
+               "Max. Drawdown"=as.numeric(maxDrawdown),
+               "Avg. Recovery"=as.numeric(avgRecovery),
+               "Skewness"=as.numeric(skew),
+               "Kurtosis"=as.numeric(kurt),
+               "Quantile Ratio"=as.numeric(quantileRatio),
+               check.names=FALSE,
+               stringsAsFactors=FALSE)
+
+}
+
+
 ##' Provides the asset returns MTD and YTD including FX returns
 ##'
 ##' This is the description
 ##'
-##' @param portfolio The portfolio id.
+##' @param series The portfolio id.
+##' @param anchors The anchors
+##' @return A data frame with the asset returns.
+##' @export
+exfoliateSeries <- function(series, anchors) {
+
+
+
+
+}
+
+
+
+##' Provides the asset returns MTD and YTD including FX returns
+##'
+##' This is the description
+##'
 ##' @param date The date of consideration.
 ##' @param ccy The portfolio currency.
 ##' @param resources The resource data frame.
+##' @param periods A vector with periods: c('DTD', 'WTD', 'MTD', 'QTD', 'YTD').
+##' @param returnOnly Consider only Total Return?
 ##' @param session The rdecaf session.
 ##' @return A data frame with the asset returns.
 ##' @export
-getAssetReturns <- function(portfolio, date, ccy, resources, session) {
+getAssetReturns <- function(date, ccy, resources, periods, returnOnly, session) {
 
-    ## Construct the params:
-    params <- list("p"=portfolio,
-                   "start"=dateOfPeriod("Y-2"),
-                   "end"=date)
+    ## Get the slices ohlcs:
+    slicedOhlcs <- getSlicedOhlcs(resources[, "ohlcID"], session, date, periods)
 
-    ## Get the asset evolves:
-    assetReturns <- rdecaf::getResource("returnsgrid", params=params, session=session)
+    ## Get the returns:
+    returnStats <- lapply(slicedOhlcs, function(s) do.call(rbind, lapply(s, function(y) computeReturnStats(y, "close", "date", method="discrete", returnOnly=returnOnly))))
 
-    if (length(assetReturns) == 0) {
-        return(data.frame("symbol"=NA,
-                          "mtd"=NA,
-                          "ytd"=NA,
-                          "ccy"=NA,
-                          "ctype"=NA,
-                          "pair"=NA,
-                          "ytdFXRet"=NA,
-                          "mtdFXRet"=NA,
-                          "ytdTotal"=NA,
-                          "mtdTotal"=NA))
-
-    }
-
-    ## Prepare the asset returns data frame:
-    assetReturns <- do.call(rbind, lapply(assetReturns, function(x) {
-
-        ## Get the symbol start index:
-        symbolSttIdx <- head(which(strsplit(x[[1]], "")[[1]] == "["), 1) + 1
-
-        ## Get the symbol end index:
-        symbolEndIdx <- tail(which(strsplit(x[[1]], "")[[1]] == "]"), 1) - 1
-
-        ## Construct the data frame and return:
-        data.frame("symbol"=substr(x[[1]], symbolSttIdx, symbolEndIdx),
-                   "mtd"=x[[2]][[2]][["value"]],
-                   "ytd"=x[[2]][[3]][["value"]])
-    }))
-
-
-    ## Append the resource's ccymain:
-    assetReturns[, "ccy"] <-  resources[match(assetReturns[, "symbol"], resources[, "symbol"]), "ccymain"]
-
-    ## Append the resource's ctype:
-    assetReturns[, "ctype"] <-  resources[match(assetReturns[, "symbol"], resources[, "symbol"]), "ctype"]
-
-    ## Prepare the FX pairs:
-    assetReturns[, "pair"] <- paste0(assetReturns[, "ccy"], ccy)
+    ## Append the FX pair:
+    returnStats <- lapply(returnStats, function(x) data.frame(x, "pair"=as.character(paste0(resources[, "ccymain"], ccy)), check.names=FALSE))
 
     ## Get the unique FX pairs:
-    uniquePairs <-unique(assetReturns[, "pair"])
+    uniquePairs <-as.character(unique(returnStats[[1]][, "pair"]))
 
-    ## Get the ytd FX series:
-    ytdFX <- lapply(uniquePairs, function(x) getOhlcObsForSymbol(session, x, date, lookBack=date - dateOfPeriod("Y-0")))
+    ## Get the slices ohlcs:
+    slicedFX <- getSlicedOhlcs(uniquePairs, session, date, periods)
 
-    ## Get the mtd FX series:
-    mtdFX <- lapply(uniquePairs, function(x) getOhlcObsForSymbol(session, x, date, lookBack=date - dateOfPeriod("M-0")))
+    ## Get the returns:
+    returnFXStats <- lapply(slicedFX, function(s) do.call(rbind, lapply(s, function(y) computeReturnStats(y, "close", "date", method="discrete", returnOnly=returnOnly))))
 
-    ## Prepare the YTD FX returns:
-    ytdFXRet <- sapply(ytdFX, function(x) ifelse(NROW(x) == 0, 0, (head(x[, "close"], 1) / tail(x[, "close"], 1)) - 1))
-    names(ytdFXRet) <- uniquePairs
+    ## Append the FX and total returns:
+    returnStats <- lapply(1:length(returnStats), function(i) {
+        retval <- data.frame(returnStats[[i]],
+                             "fxRet"=returnFXStats[[i]][match(returnStats[[i]][, "pair"], rownames(returnFXStats[[i]])), "Return"],
+                             check.names=FALSE)
+        retval[is.na(retval[, "fxRet"]), "fxRet"] <- 0
+        retval[, "Total Return"] <- retval[, "Return"] + retval[, "fxRet"]
+        retval
+    })
 
-    ## Prepare the MTD FX returns:
-    mtdFXRet <- sapply(mtdFX, function(x) ifelse(NROW(x) == 0, 0, (head(x[, "close"], 1) / tail(x[, "close"], 1)) - 1))
-    names(mtdFXRet) <- uniquePairs
-
-    ## Append the YTD FX return to asset returns:
-    assetReturns[, "ytdFXRet"] <- ytdFXRet[match(assetReturns[, "pair"], names(ytdFXRet))]
-
-    ## Append the YTD FX return to asset returns:
-    assetReturns[, "mtdFXRet"] <- mtdFXRet[match(assetReturns[, "pair"], names(mtdFXRet))]
-
-    ## Compute Total YTD returns:
-    assetReturns[, "ytdTotal"] <- assetReturns[, "ytd"] + assetReturns[, "ytdFXRet"]
-
-    ## Compute Total MTD returns:
-    assetReturns[, "mtdTotal"] <- assetReturns[, "mtd"] + assetReturns[, "mtdFXRet"]
+    ## Name the list:
+    names(returnStats) <- periods
 
     ## Done, return
-    assetReturns
+    returnStats
 
 }
 

@@ -4,16 +4,18 @@
 \alias{getAssetReturns}
 \title{Provides the asset returns MTD and YTD including FX returns}
 \usage{
-getAssetReturns(portfolio, date, ccy, resources, session)
+getAssetReturns(date, ccy, resources, periods, returnOnly, session)
 }
 \arguments{
-\item{portfolio}{The portfolio id.}
-
 \item{date}{The date of consideration.}
 
 \item{ccy}{The portfolio currency.}
 
 \item{resources}{The resource data frame.}
+
+\item{periods}{A vector with periods: c('DTD', 'WTD', 'MTD', 'QTD', 'YTD').}
+
+\item{returnOnly}{Consider only Total Return?}
 
 \item{session}{The rdecaf session.}
 }

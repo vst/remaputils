@@ -22,8 +22,17 @@ getOhlcObsForSymbol <- function(session, symbol, lte=Sys.Date(), lookBack=30) {
                 "date__gte"=lte - lookBack,
                 "date__lte"=lte)
 
-    ## Get the ohlc observation and return data-frame:
-    as.data.frame(getResource("ohlcobservations", params=params, session=session))
+    ## Get the ohlc observation:
+    ohlc <- as.data.frame(getResource("ohlcobservations", params=params, session=session))
+
+    ## If no ohlc, return NULL:
+    if (NROW(ohlc) == 0) {
+        return(NULL)
+    }
+
+    ## Filter our weekends and return:
+    ohlc[weekdays(ohlc[, "date"]) != "Saturday" & weekdays(ohlc[, "date"]) != "Sunday", ]
+
 }
 
 

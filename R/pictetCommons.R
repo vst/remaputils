@@ -60,15 +60,16 @@ pictetEBankingNormalizer <- function(filePath, session) {
     sysAccounts <- as.data.frame(getResource("accounts", params=list("format"="csv", "page_size"=-1), session=session))
 
     ## Get the base file name:
-    fileName <- strsplit(tail(strsplit(filePath, "/")[[1]], 1), ".xlsx")[[1]]
+    ## fileName <- strsplit(tail(strsplit(filePath, "/")[[1]], 1), ".xlsx")[[1]]
 
     ## Convert to csv using libreoffice CLI:
     ## system(sprintf("/usr/lib/libreoffice/program/soffice --headless --convert-to csv --outdir /tmp/ %s ", filePath))
 
-    Sys.sleep(3)
+    ## Sys.sleep(3)
 
     ## Read the data:
-    data <- read.csv(paste0("/tmp/", fileName, ".csv"), header=TRUE, sep=",")
+    ## data <- read.csv(paste0("/tmp/", fileName, ".csv"), header=TRUE, sep=",")
+    data <- read.csv(filePath, header=TRUE, sep=",")
 
     ## Parse the column names:
     colnames(data) <- trimConcatenate(colnames(data))

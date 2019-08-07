@@ -147,6 +147,77 @@ pictetEBankingNormalizer <- function(filePath, session) {
 }
 
 
+##' This function quantizes the transfer actions based on pictet's eBanking transactin file.
+##'
+##' This is the description
+##'
+##' @param file The file path.
+##' @param resources The resources data frame.
+##' @param session The rdecaf session.
+##' @return Quantizes transfer actions. Return NULL
+##' @export
+pictetEBankTXNQuantizer <- function(file, resources, session) {
+
+    ## Read the transactions:
+    txns <- read.csv(file, header=TRUE, sep=",")
+
+    ## Parse the column names:
+    colnames(txns) <- trimConcatenate(colnames(txns))
+
+    ## Get the transfers:
+    txns <- txns[txns[, "TRANSACTIONCATEGORY"] == "Cash in/out" | txns[, "TRANSACTIONCATEGORY"] == "Securities in/out", ]
+
+    ## Get system accounts:
+    sysaccs <- as.data.frame(getResource("accounts", params=list("page_size"=-1, "format"="csv"), session=session))
+
+    ## Get the accmains:
+    txns[, "accmain"] <- sapply(as.character(txns[, "ACCOUNTNR"]), function(x) sysaccs[safeGrep(sysaccs[, "name"], x) == "1", "id"])
+
+    ## Get the qtymain:
+    qtymain <-  ifelse(txns[, "INSTRUMENT"] != "CASH",
+                       as.character(txns[, "NETAMOUNTINPOSITIONCURRENCYWITHOUTACCRUEDINCOME"]),
+                       as.character(txns[, "QUANTITY"]))
+
+    ## Get the resmain:
+    resmain <- ifelse(txns[, "INSTRUMENT"] != "CASH",
+                      as.character(txns[, "POSITIONCURRENCY"]),
+                      as.character(txns[, "TRADECURRENCY"]))
+
+    ## Get the transfers:
+    transfers <- data.frame("accmain"=txns[, "accmain"],
+                            "qtymain"=numerize(qtymain),
+                            "resmain"= resources[match(resmain, resources[, "symbol"]), "id"],
+                            "pxmain"=1,
+                            "ctype"=30,
+                            "commitment"=as.Date(as.character(txns[, "BOOKINGDATE"]), "%Y/%m/%d"),
+                            stringsAsFactors=FALSE)
+
+    ## Initialise the amendments:
+    amdnt <- transfers
+
+    ## Inverse the qtymain:
+    amdnt[, "qtymain"] <- amdnt[, "qtymain"] * -1
+
+    ## Set the amendment ctype:
+    amdnt[, "ctype"] <- 39
+
+    ## Combine all records:
+    records <- rbind(transfers, amdnt)
+
+    ## Get the guid's:
+    records[, "guid"] <- apply(records, MARGIN=1, function(x) digest(trimDws(paste0(x, collapse=""))))
+
+    ## Prepare the payload:
+    payload <- toJSON(list(actions=records), auto_unbox=TRUE, na="null", digits=10)
+
+    ## Push the
+    response <- pushPayload(payload=payload, session=session, import=FALSE, inbulk=TRUE, params=list(sync="True"))
+
+    ## Done, return NULL
+    return(NULL)
+
+}
+
 
 ##' A function to normalise the pictet flattened files for give ltype.
 ##'
@@ -384,6 +455,7 @@ pictetFileMappers <- function() {
                      "COOPER-MESP"=list("TXNCODE")),
          "L006"=list("NOCNTNR-AVQ"=list("CLIENTNO"),
                      "NOCNTNR-AVQ"=list("AVALOQNO"),
+                     "DSCPTA"=list("BOOKINGDATE"),
                      ##"CORUB-CC"=list("ACCTYPE"),
                      "DSOPER"=list("TRADEDATE"),
                      "DSVAL"=list("SETTLEMENT"),

@@ -407,7 +407,7 @@ createFXFwdResource <- function(df, session){
                       "pxmain"=df[,"pxmain"])
 
     ## Create the payload:
-    payload <- toJSON(apply(dfx, MARGIN=1, as.list), auto_unbox=TRUE, digits=10)
+    payload <- toJSON(dfx, auto_unbox=TRUE, digits=10)
 
     ## Post the resource:
     postResource("resources", "imports", payload=payload, session=session)

@@ -23,10 +23,10 @@ matchTradeIdentity <- function(tradeIdentities) {
         }
 
         ## Match the signs:
-        sgnMatch <- sign(trdIdty[["iTrade"]][, "qtymain"]) == sign(trdIdty[["dTrade"]][, "qtymain"])
+        sgnMatch <- sign(as.numeric(trdIdty[["iTrade"]][, "qtymain"])) == sign(as.numeric(trdIdty[["dTrade"]][, "qtymain"]))
 
         ## Match the numbers:
-        qtyMatch <- sapply(trdIdty[["dTrade"]][, "qtymain"], function(q) numberEquivalency(trdIdty[["iTrade"]][, "qtymain"], q))
+        qtyMatch <- sapply(as.numeric(trdIdty[["dTrade"]][, "qtymain"]), function(q) numberEquivalency(as.numeric(trdIdty[["iTrade"]][, "qtymain"]), q))
 
         ## If no match, return NULL
         if (!(sgnMatch & qtyMatch)) {

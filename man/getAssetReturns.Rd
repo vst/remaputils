@@ -4,7 +4,8 @@
 \alias{getAssetReturns}
 \title{Provides the asset returns MTD and YTD including FX returns}
 \usage{
-getAssetReturns(date, ccy, resources, periods, returnOnly, session)
+getAssetReturns(date, ccy, resources, periods, returnOnly, excludeWeekends,
+  session)
 }
 \arguments{
 \item{date}{The date of consideration.}
@@ -16,6 +17,8 @@ getAssetReturns(date, ccy, resources, periods, returnOnly, session)
 \item{periods}{A vector with periods: c('DTD', 'WTD', 'MTD', 'QTD', 'YTD').}
 
 \item{returnOnly}{Consider only Total Return?}
+
+\item{excludeWeekends}{Should the weekends be excluded? Default to TRUE.}
 
 \item{session}{The rdecaf session.}
 }

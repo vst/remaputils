@@ -4,7 +4,7 @@
 \alias{getSlicedOhlcs}
 \title{A function to retrieve and slice OHLC observations as per given period.}
 \usage{
-getSlicedOhlcs(symbols, session, date, periods)
+getSlicedOhlcs(symbols, session, date, periods, excludeWeekends = TRUE)
 }
 \arguments{
 \item{symbols}{A vector of ohlcs symbols.}
@@ -14,6 +14,8 @@ getSlicedOhlcs(symbols, session, date, periods)
 \item{date}{The report date.}
 
 \item{periods}{A vector with desired period slices: 'DTD', 'WTD', 'MTD', 'QTD', 'YTD'}
+
+\item{excludeWeekends}{Should the weekends be excluded? Default to TRUE.}
 }
 \value{
 A list with the slices per period.

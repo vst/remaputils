@@ -6,9 +6,10 @@
 ##' @param session The rdecaf session.
 ##' @param date The report date.
 ##' @param periods A vector with desired period slices: 'DTD', 'WTD', 'MTD', 'QTD', 'YTD'
+##' @param excludeWeekends Should the weekends be excluded? Default to TRUE.
 ##' @return A list with the slices per period.
 ##' @export
-getSlicedOhlcs <- function(symbols, session, date, periods) {
+getSlicedOhlcs <- function(symbols, session, date, periods, excludeWeekends=TRUE) {
 
     ## Get the dateOfPeriod memnonic:
     periodMemnonic <- sapply(periods, function(x) switch(x,
@@ -25,7 +26,7 @@ getSlicedOhlcs <- function(symbols, session, date, periods) {
     lookBack <- as.numeric(date - dateOfPeriod(periodMemnonic[1], date)) + 27
 
     ## Get the ohlcs:
-    ohlcs <- lapply(symbols, function(s) getOhlcObsForSymbol(session, s, lte=date, lookBack=lookBack))
+    ohlcs <- lapply(symbols, function(s) getOhlcObsForSymbol(session, s, lte=date, lookBack=lookBack, excludeWeekends))
 
     ## Construct the functions:
     myFun <- paste0("get", periods, "Slice")
@@ -215,13 +216,14 @@ exfoliateSeries <- function(series, anchors) {
 ##' @param resources The resource data frame.
 ##' @param periods A vector with periods: c('DTD', 'WTD', 'MTD', 'QTD', 'YTD').
 ##' @param returnOnly Consider only Total Return?
+##' @param excludeWeekends Should the weekends be excluded? Default to TRUE.
 ##' @param session The rdecaf session.
 ##' @return A data frame with the asset returns.
 ##' @export
-getAssetReturns <- function(date, ccy, resources, periods, returnOnly, session) {
+getAssetReturns <- function(date, ccy, resources, periods, returnOnly, excludeWeekends, session) {
 
     ## Get the slices ohlcs:
-    slicedOhlcs <- getSlicedOhlcs(resources[, "ohlcID"], session, date, periods)
+    slicedOhlcs <- getSlicedOhlcs(resources[, "ohlcID"], session, date, periods, excludeWeekends)
 
     ## Get the returns:
     returnStats <- lapply(slicedOhlcs, function(s) do.call(rbind, lapply(s, function(y) computeReturnStats(y, "close", "date", method="discrete", returnOnly=returnOnly))))

@@ -4,7 +4,8 @@
 \alias{getOhlcObsForSymbol}
 \title{This function retrievs the ohlc observations for a give symbol.}
 \usage{
-getOhlcObsForSymbol(session, symbol, lte = Sys.Date(), lookBack = 30)
+getOhlcObsForSymbol(session, symbol, lte = Sys.Date(), lookBack = 30,
+  excludeWeekends = TRUE)
 }
 \arguments{
 \item{session}{The session info for the instance to retrieve the ohlc observation from.}
@@ -14,6 +15,8 @@ getOhlcObsForSymbol(session, symbol, lte = Sys.Date(), lookBack = 30)
 \item{lte}{Less than or equal to this date. Default is Sys.Date(), meaning today.}
 
 \item{lookBack}{The number of days to look back from 'lte'. Default is 30 days.}
+
+\item{excludeWeekends}{Should the weekends be excluded? Default is TRUE.}
 }
 \value{
 A data frame with the symbosl ohlc observation.

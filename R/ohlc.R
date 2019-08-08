@@ -6,10 +6,11 @@
 ##' @param symbol The symbol to for which the ohlc observation is to be retrieved.
 ##' @param lte Less than or equal to this date. Default is Sys.Date(), meaning today.
 ##' @param lookBack The number of days to look back from 'lte'. Default is 30 days.
+##' @param excludeWeekends Should the weekends be excluded? Default is TRUE.
 ##' @return A data frame with the symbosl ohlc observation.
 ##' @import rdecaf
 ##' @export
-getOhlcObsForSymbol <- function(session, symbol, lte=Sys.Date(), lookBack=30) {
+getOhlcObsForSymbol <- function(session, symbol, lte=Sys.Date(), lookBack=30, excludeWeekends=TRUE) {
 
     ## Print some stuff:
     print(sprintf("Retrieving ohlc observations for: %s", as.character(symbol)))
@@ -30,8 +31,13 @@ getOhlcObsForSymbol <- function(session, symbol, lte=Sys.Date(), lookBack=30) {
         return(ohlc)
     }
 
-    ## Filter our weekends and return:
-    ohlc[weekdays(ohlc[, "date"]) != "Saturday" & weekdays(ohlc[, "date"]) != "Sunday", ]
+    if (excludeWeekends) {
+        ## Filter our weekends and return:
+        ohlc <- ohlc[weekdays(ohlc[, "date"]) != "Saturday" & weekdays(ohlc[, "date"]) != "Sunday", ]
+    }
+
+    ## Done, return
+    ohlc
 
 }
 

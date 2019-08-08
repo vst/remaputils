@@ -2,6 +2,48 @@
 ##'
 ##' This is a description
 ##'
+##' @param symbols A vector with symbols.
+##' @param ltes A vector with dates. Less than or equal to this date.
+##' @param lookBack The number of days to look back from 'lte'. Default is 30 days.
+##' @param excludeWeekends Should the weekends be excluded? Default is TRUE.
+##' @param session The rdecaf session.
+##' @return A list with result.
+##' @export
+getOhlcObsWrapper <- function(symbols, ltes, lookBack, excludeWeekends, session) {
+
+    ## Run for each symbol:
+    lapply(1:length(symbols), function(i) {
+
+        ## Get the symbol:
+        symbol <- symbols[i]
+
+        ## Get the lte date:
+        lte <- ltes[i]
+
+        ## If NA lte, return NA:
+        if (is.na(lte)) {
+            return(NA)
+        }
+
+        ## Get the price:
+        px <- head(getOhlcObsForSymbol(session, symbol, lte, lookBack=1, FALSE)[, "close"], 1)
+
+        ## If length 0, return NA:
+        if (length(px) == 0) {
+            return(NA)
+        }
+
+        ## Done, return px:
+        px
+
+    })
+}
+
+
+##' This function retrievs the ohlc observations for a give symbol.
+##'
+##' This is a description
+##'
 ##' @param session The session info for the instance to retrieve the ohlc observation from.
 ##' @param symbol The symbol to for which the ohlc observation is to be retrieved.
 ##' @param lte Less than or equal to this date. Default is Sys.Date(), meaning today.

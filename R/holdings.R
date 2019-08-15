@@ -125,8 +125,10 @@ getEnrichedHoldings <- function(holdings, nav, gav, regions, resources, addTagsB
 
     }
 
-    ## All 'Money' subtypes to 'Cash'.
-    holdings[safeCondition(holdings, "Subtype", "Money"), "Subtype"] <- "Cash"
+    if (any(safeCondition(holdings, "Subtype", "Money"))) {
+        ## All 'Money' subtypes to 'Cash'.
+        holdings[safeCondition(holdings, "Subtype", "Money"), "Subtype"] <- "Cash"
+    }
 
     ## Enrich the holdings data-frame and return:
     retval <- data.frame(holdings,

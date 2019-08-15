@@ -1768,6 +1768,11 @@ classify <- function(df){
 ##' @return A vector with TRUE or FALSE
 ##' @export
 safeCondition <- function(df, col, condition){
+
+    if (all(is.na(df[, col]))) {
+        return(rep(FALSE, NROW(df)))
+    }
+
     hasCondition <- df[,col] == condition
     ifelse(is.na(hasCondition), FALSE, hasCondition)
 }

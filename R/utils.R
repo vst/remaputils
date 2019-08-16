@@ -1233,9 +1233,10 @@ dateOfPeriod <- function(memnonic="D-0", date=Sys.Date()){
 ##' This is a description.
 ##'
 ##' @param x A list with data frames.
+##' @param convertToString Shall all values be converted to strings. Default is FALSE.
 ##' @return A single data frame.
 ##' @export
-safeRbind <- function(x){
+safeRbind <- function(x, convertToString=FALSE){
 
     if (length(x) == 0) {
         return(NULL)
@@ -1268,6 +1269,11 @@ safeRbind <- function(x){
 
         ## Compute the ending row given current data-frames dimension:
         eRow <- NROW(ca) + sRow - 1
+
+        ## Convert values to string if required:
+        if (convertToString) {
+            ca <- apply(ca, MARGIN=2, as.character)
+        }
 
         ## Assign current data-frame to the main df.
         df[sRow:eRow, colnames(ca)] <- ca

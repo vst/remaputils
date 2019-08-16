@@ -4,10 +4,12 @@
 \alias{safeRbind}
 \title{A function to safely rbind a list with data frames.}
 \usage{
-safeRbind(x)
+safeRbind(x, convertToString = FALSE)
 }
 \arguments{
 \item{x}{A list with data frames.}
+
+\item{convertToString}{Shall all values be converted to strings. Default is FALSE.}
 }
 \value{
 A single data frame.

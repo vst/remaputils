@@ -1272,7 +1272,7 @@ safeRbind <- function(x, convertToString=FALSE){
 
         ## Convert values to string if required:
         if (convertToString) {
-            ca <- apply(ca, MARGIN=2, as.character)
+            ca <- dfToStrings(ca)
         }
 
         ## Assign current data-frame to the main df.
@@ -1284,6 +1284,31 @@ safeRbind <- function(x, convertToString=FALSE){
 
     ## Return:
     data.frame(df, stringsAsFactors=FALSE, check.names=FALSE)
+}
+
+
+##' This function converts data frame into matrix with strings
+##'
+##' This is a description.
+##'
+##' @param df The data frame.
+##' @return A matrix with strings.
+##' @export
+dfToStrings <- function(df) {
+
+    ## If single row, apply & transpose:
+    if (NROW(df) == 1) {
+        df <- t(apply(df, MARGIN=2, as.character))
+
+    }
+
+    ## If multiple rows, apply:
+    if (NROW(df) > 1) {
+        df <- apply(df, MARGIN=2, as.character)
+    }
+
+    ## Done, return:
+    return(df)
 }
 
 

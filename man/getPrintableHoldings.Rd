@@ -6,7 +6,8 @@
 \usage{
 getPrintableHoldings(portfolio, ccy, date, dtype, toplevel, sublevel,
   customTop, colselect, regions, summaryaddon, addTagsBy = NULL,
-  childDefaults = TRUE, charLimit = 30, session, ...)
+  childDefaults = TRUE, charLimit = 30, orderByKeys = c("Expiry",
+  "CCY", "Exposure", "Name"), session, ...)
 }
 \arguments{
 \item{portfolio}{The portfolio id}
@@ -34,6 +35,8 @@ getPrintableHoldings(portfolio, ccy, date, dtype, toplevel, sublevel,
 \item{childDefaults}{TODO}
 
 \item{charLimit}{TODO}
+
+\item{orderByKeys}{TODO}
 
 \item{session}{The rdecaf session}
 

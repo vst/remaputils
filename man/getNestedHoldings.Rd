@@ -5,7 +5,8 @@
 \title{A function to generate a nested holdings data-frame}
 \usage{
 getNestedHoldings(holdings, levels, toplevel = "Subtype",
-  sublevels = c("CCY", "Country"))
+  sublevels = c("CCY", "Country"), orderByKeys = c("Expiry", "CCY",
+  "Exposure", "Name"))
 }
 \arguments{
 \item{holdings}{The ordered holdings.}
@@ -15,6 +16,8 @@ getNestedHoldings(holdings, levels, toplevel = "Subtype",
 \item{toplevel}{TODO}
 
 \item{sublevels}{TODO}
+
+\item{orderByKeys}{Based on which columns should the final grouping be ordered?Defaults: Expiry, CCY, Exposure, Name and decreasing TRUE?}
 }
 \value{
 Returns the nested holdings data-frame.

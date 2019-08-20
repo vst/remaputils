@@ -386,9 +386,10 @@ getOrderedHoldings <- function(holdings, toplevel="Subtype", sublevels=c("CCY", 
 ##' @param levels TODO
 ##' @param toplevel TODO
 ##' @param sublevels TODO
+##' @param orderByKeys Based on which columns should the final grouping be ordered?Defaults: Expiry, CCY, Exposure, Name and decreasing TRUE?
 ##' @return Returns the nested holdings data-frame.
 ##' @export
-getNestedHoldings <- function(holdings, levels, toplevel="Subtype", sublevels=c("CCY", "Country")){
+getNestedHoldings <- function(holdings, levels, toplevel="Subtype", sublevels=c("CCY", "Country"), orderByKeys=c("Expiry", "CCY", "Exposure", "Name")) {
 
     ## If no security holdings, return NULL:
     if (is.null(holdings)) {
@@ -473,14 +474,31 @@ getNestedHoldings <- function(holdings, levels, toplevel="Subtype", sublevels=c(
         ## Identify the indices for the final grouping keys' positions (excluding header and footer)
         holdingsIdx <- which(holdings[, finalKeyIdx] == key & holdings[, "isHeader"] == "FALSE") ##& holdings[, "isFooter"] == "FALSE")
 
-        ## Reorder the positions and assign back:
-        holdings[holdingsIdx, ] <- holdings[holdingsIdx,][order(holdings[holdingsIdx, "Expiry"],
-                                                                holdings[holdingsIdx, "CCY"],
-                                                                as.numeric(holdings[holdingsIdx, "Exposure"]),
-                                                                holdings[holdingsIdx, "Name"],
-                                                                decreasing=TRUE), ]
+        orderList <- list()
 
-        ##holdings[holdingsIdx, ] <- holdings[holdingsIdx, ][do.call(order, lapply(apply(holdings[holdingsIdx, c("Expiry", "CCY", "Exposure", "Name")], MARGIN=2, function(x) list(x)), unlist)), ]
+        for (orderBy in orderByKeys) {
+
+            if (orderBy == "Exposure") {
+                orderList[[orderBy]] <- as.numeric(holdings[holdingsIdx, orderBy])
+            } else {
+                orderList[[orderBy]] <- holdings[holdingsIdx, orderBy]
+            }
+        }
+
+        ## Shall the ordering be decreasing?
+        decreasing <- as.logical(sapply(orderByKeys, function(x) switch(x, "Expiry"=FALSE, "CCY"=FALSE, "Exposure"=TRUE, "Name"=FALSE)))
+
+        ## Reorder the positions and assign back:
+        holdings[holdingsIdx, ] <- holdings[holdingsIdx, ][do.call(order, c(orderList, "decreasing"=decreasing)), ]
+
+        ## ## Reorder the positions and assign back:
+        ## holdings[holdingsIdx, ] <- holdings[holdingsIdx,][order(holdings[holdingsIdx, "Expiry"],
+        ##                                                         holdings[holdingsIdx, "CCY"],
+        ##                                                         as.numeric(holdings[holdingsIdx, "Exposure"]),
+        ##                                                         holdings[holdingsIdx, "Name"],
+        ##                                                         decreasing=TRUE), ]
+
+        ## holdings[holdingsIdx, ] <- holdings[holdingsIdx, ][do.call(order, lapply(apply(holdings[holdingsIdx, c("Expiry", "CCY", "Exposure", "Name")], MARGIN=2, function(x) list(x)), unlist)), ]
 
     }
 
@@ -540,6 +558,7 @@ getFormattedHoldings <- function(holdings){
 ##' @param addTagsBy TODO
 ##' @param childDefaults TODO
 ##' @param charLimit TODO
+##' @param orderByKeys TODO
 ##' @param session The rdecaf session
 ##' @param ... Additional parameters
 ##' @return A data-frame with the printable format of holdings
@@ -557,6 +576,7 @@ getPrintableHoldings <- function(portfolio,
                                  addTagsBy=NULL,
                                  childDefaults=TRUE,
                                  charLimit=30,
+                                 orderByKeys=c("Expiry", "CCY", "Exposure", "Name"),
                                  session, ...){
 
     ## Get additional arguments:
@@ -626,7 +646,7 @@ getPrintableHoldings <- function(portfolio,
     orderedHoldings <- getOrderedHoldings(enrichedHoldings, toplevel=toplevel, sublevels=sublevel, customTop=customTop, args)
 
     ## Get the nested holdings:
-    nestedHoldings <- getNestedHoldings(orderedHoldings[["holdings"]], toplevel=toplevel, sublevels=sublevel)
+    nestedHoldings <- getNestedHoldings(orderedHoldings[["holdings"]], toplevel=toplevel, sublevels=sublevel, orderByKeys=orderByKeys)
 
     ## Append the cash holdings:
     nestedHoldings <- appendCash(orderedHoldings, nestedHoldings)

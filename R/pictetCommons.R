@@ -133,7 +133,7 @@ pictetEBankingNormalizer <- function(filePath, session) {
     secPositions[, "refCcy"] <- secPositions[, "REFERENCECURRENCY"]
     secPositions[, "QTY"] <- secPositions[, "QUANTITY"]
     secPositions[, "CLIENTNO"] <- secPositions[, "ACCOUNTNR"]
-    secPositions[, "PXCOST"] <- secPositions[,"NETUNITCOSTINPOSITIONCURRENCY"]
+    secPositions[, "PXCOST"] <- secPositions[,"GROSSUNITCOSTINPOSITIONCURRENCY"]
 
     missingPrice <- is.na(secPositions[, "PXLAST"])
     secPositions <- secPositions[!missingPrice, ]

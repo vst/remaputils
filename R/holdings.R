@@ -488,6 +488,10 @@ getNestedHoldings <- function(holdings, levels, toplevel="Subtype", sublevels=c(
         ## Shall the ordering be decreasing?
         decreasing <- as.logical(sapply(orderByKeys, function(x) switch(x, "Expiry"=FALSE, "CCY"=FALSE, "Exposure"=TRUE, "Name"=FALSE)))
 
+        if (length(orderByKeys) > 1) {
+            decreasing = TRUE
+        }
+
         ## Reorder the positions and assign back:
         holdings[holdingsIdx, ] <- holdings[holdingsIdx, ][do.call(order, c(orderList, "decreasing"=decreasing)), ]
 

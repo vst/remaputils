@@ -533,6 +533,7 @@ pictetSecTypeMap <- function() {
          "BOND_FUT"=list("ctype"="FUT"),
          "MISC_SH"=list("ctype"="SHRE"),
          "MET_FUT"=list("ctype"="FUT"),
+         "MET_OPT"=list("ctype"="OPT"),
          "COM_FUT"=list("ctype"="FUT"),
          "SP_HYBR"=list("ctype"="SP"),
          "SH_OPT"=list("ctype"="OPT"),

@@ -500,7 +500,7 @@ getHoldingsDetails <- function(holdings, colSelect, nav=NULL) {
     suppressWarnings(holdings[, priceIdx] <- apply(holdings[, priceIdx], MARGIN=2, function(x) round(x, 4)))
 
     ## Define the monetary keys:
-    monetaryKeys <- c("QTY", "Value", "Exposure", "Accrd", "PnL (Unrl)")
+    monetaryKeys <- c("QTY", "PX Cost", "PX Last", "Value", "Exposure", "Accrd", "PnL (Unrl)")
 
     ## Get the indices of the monetary keys:
     monetaryIdx <- apply(mgrep(colnames(holdings), monetaryKeys), MARGIN=1, function(x) any(x != "0"))

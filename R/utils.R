@@ -1334,7 +1334,7 @@ beautify <- function(number, nsmall=0){
 ##' @return A string of percentage:
 ##' @export
 percentify <- function(number, digit=2){
-    paste0(round(as.numeric(number) * 100, digit), " %")
+    paste0(format(round(as.numeric(number) * 100, digit), nsmall=digit), " %")
 }
 
 

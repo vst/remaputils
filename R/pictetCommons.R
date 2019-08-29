@@ -106,6 +106,7 @@ pictetEBankingNormalizer <- function(filePath, session) {
     cshPositions[, "ACCOUNTNAME"] <- cshPositions[, "SUBASSETCLASS"]
     cshPositions[, "ACCOUNTCURRENCY"] <- cshPositions[, "POSITIONCURRENCY"]
     cshPositions[, "QTY"] <- cshPositions[, "QUANTITY"]
+    cshPositions[, "QTYSIGN"] <- ifelse(cshPositions[, "QUANTITY"] < 0, "-", "+")
     cshPositions[, "CLIENTNO"] <- cshPositions[, "ACCOUNTNR"]
 
     ## Map the instrument type to the PicLink SECQTYPEALQ convetion:

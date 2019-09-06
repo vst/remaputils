@@ -1,4 +1,3 @@
-
 ##' Gets the previous NAN either using external or internal valuations.
 ##'
 ##' This is a description.
@@ -423,6 +422,8 @@ getHoldingsDetails <- function(holdings, colSelect, nav=NULL) {
             holdings[, "Name"] <- gsub(subname, "", holdings[, "Name"])
         }
     }
+
+    holdings[substr(holdings[, c("Name")], nchar(holdings[, "Name"])-2, nchar(holdings[, "Name"])) == " NA", "Name"] <- " NA"
 
     ## Trim all the names:
     holdings[, "Name"] <- trimws(holdings[, "Name"])

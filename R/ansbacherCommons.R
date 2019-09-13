@@ -16,6 +16,8 @@ ansbacherSecTypeMapper <- function() {
                     "stype"=NA),
          "200"=list("ctype"="BOND",
                     "stype"=NA),
+         "203"=list("ctype"="BOND",
+                    "stype"=NA),
          "300"=list("ctype"="SHRE",
                     "stype"="Fixed Income"),
          "120"=list("ctype"="FXFWD",

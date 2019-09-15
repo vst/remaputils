@@ -1,3 +1,36 @@
+##' Delete resources by identifier, either symbol, isin or id.
+##'
+##' This is the description
+##'
+##' @param identifier A vector with identifier
+##' @param idType The type of identifier, either symbol, isin or id.
+##' @param resources The resources data frame.
+##' @param excludeCols A vector with resource columns to apply a filter
+##' @param excludeVals A vector with values to filter out from resource column.
+##' @param session The rdecaf session.
+##' @return NULL
+##' @export
+deleteResourcesByIdentifier <- function(identifier, idType, resources, excludeCols=NULL, excludeVals=NULL, session) {
+
+    ## First, get the resources to be deleted:
+    deletable <- resources[match(identifier, resources[, idType]), ]
+
+    ## Iterate over resource columns to be excluded from consideration:
+    if (!is.null(excludeCols)) {
+        for (i in 1:length(excludeCols)) {
+            ## Exclude
+            deletable <- deletable[deletable[, excludeCols[i]] != excludeVals[i], ]
+        }
+    }
+
+    ## Iterate and delete:
+    for (id in deletable[, "id"]) {
+        print(paste0("Deleting resource: ", id))
+        response <- deleteResource("resources", payload=list(id), session=session)
+    }
+}
+
+
 ##' For trade identity candidates, infer matches
 ##'
 ##' This is the description

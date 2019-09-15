@@ -156,6 +156,15 @@ getPositionsByGrp <- function(holdings, col) {
 ##' @export
 centeredColorScale <- function(values, positiveRange=c("lightgreen", "darkgreen"), negativeRange=c("orangered3", "coral"), stepsno=15) {
 
+    ## If length is 1, be neutral and return:
+    if (length(values) == 1) {
+        return(data.frame("value"=values,
+                          "idx"=1,
+                          "class"=1,
+                          "col"=ifelse(values < 0, "#FF7F50", "#006400"),
+                          stringsAsFactors=FALSE))
+    }
+
     ## Get the color range for positive values:
     posColors <- colorRampPalette(positiveRange)(stepsno)
 

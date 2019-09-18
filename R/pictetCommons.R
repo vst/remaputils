@@ -408,6 +408,7 @@ pictetFileMappers <- function() {
                      "CH-FWT"=list("name"="SWISSTAX"),
                      "OTH-TAX"=list("name"="OTHRTAX"),
                      "MTBRUT-MONOP"=list("name"="GRSAMOUNT"),
+                     "MTFTOT-MONOP"=list("name"="TOTAMOUNT"),
                      "SIMONT-BRUT-MONOP"=list("name"="GRSAMOUNTSIGN"),
                      "MTNET-INTERM-MON-CC"=list("name"="NETAMOUNT"),
                      "SIMONT-NET-INTERM-MON-CC"=list("name"="NETAMOUNTSIGN"),

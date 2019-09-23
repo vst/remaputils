@@ -338,11 +338,10 @@ beanbagNAVTable <- function (x, inception, pxinfo) {
                paste0(beautify(x[["currentNAV"]]), " ", x[["ccy"]]),
                paste0(beautify(x[["currentGAV"]]), " ", x[["ccy"]]),
                paste0(beautify(x[["previousNAV"]]), " ", x[["ccy"]]),
-               ##paste0(beautify(x[["currentNAV"]] - x[["previousNAV"]]), " ", x[["ccy"]]),
-               paste(pxinfo[, "noshares"], collapse=", "),
-               paste(pxinfo[, "isin"], collapse=", "),
+               paste(pxinfo[, "noshares"], collapse = ", "),
+               paste(pxinfo[, "isin"], collapse = ", "),
                x[["navshare"]],
-               sapply(pxinfo[,"ytdext"], function(x) ifelse(is.na(x), NA, percentify(x))))
+               safeNull(sapply(pxinfo[,"ytdext"], function(x) ifelse(is.na(x), NA, percentify(x)))))
 
     ## Make the data frame:
     df1 <- data.frame("Name"=names, "Value"=value, check.rows=FALSE, check.names=FALSE, stringsAsFactors=FALSE)

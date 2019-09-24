@@ -1,3 +1,85 @@
+##' A function to prepare a data frame with all positions by ctype and holding period
+##'
+##' This is the description
+##'
+##' @param ctype The ctype.
+##' @param resources The rdecaf resources data frame.
+##' @param portfolios The rdecaf portfolios data frame.
+##' @param accounts The rdecaf accounts data frame.
+##' @param session The rdecaf session.
+##' @return A data frame with all holding periods.
+##' @export
+getOpenPositionByCtype <- function(ctype, resources, portfolios, accounts, session) {
+
+    ## Get the future resources:
+    ctypeResources <- resources[resources[, "ctype"] == ctype, ]
+
+    ## Get the trades by futures:
+    ctypeTrades <- lapply(ctypeResources[, "id"], function(id) as.data.frame(getResource("trades", params=list(format="csv", page_size=-1, resmain=id), session=.SESSION)))
+
+    ## Extract each future trade by account:
+    openPositionData <- do.call(rbind, lapply(ctypeTrades, function(f) {
+
+        ## If no trade by account, return NULL:
+        if (NROW(f) == 0){
+            return(NULL)
+        }
+
+        ## For each future, extract trades by account and prepare open future position data:
+        do.call(rbind, lapply(extractToList(f, "accmain"), function(x) {
+
+            ## Order trades data frame by commitment:
+            x <- x[order(x[, "commitment"]), ]
+
+            ## Compute the positions:
+            x[, "position"] <- cumsum(x[, "qtymain"])
+
+            ## Append the accmain:
+            x[, "account"] <- paste(x[, "accmain"], resources[match(x[, "resmain"], resources[, "id"]), "isin"], "PnL Acc")
+
+            ## Append the security ccy:
+            x[, "secccy"] <- resources[match(x[, "resmain"], resources[, "id"]), "ccymain"]
+
+            ## Append the closing trades:
+            x[x[, "position"] == 0, "closes"] <- as.character(x[x[, "position"] == 0, "commitment"])
+
+            ## Compute the open, close index values:
+            indices <- c(-1, diff(abs(x[, "position"]) == 0))
+
+            ## Get the open indices:
+            startIdx <- which(indices == -1)
+
+            ## Get the close indices:
+            endIdx <- which(indices == 1)
+
+            ## If no close, set to NA:
+            if (length(endIdx) ==0) {
+                endIdx <- NA
+            }
+
+            ## Flatten the open position period and data:
+            retval <- do.call(rbind, lapply(1:length(startIdx), function(i) data.frame("open"=x[startIdx[i], "commitment"],
+                                                                                       "close"=x[endIdx[i], "commitment"],
+                                                                                       "pnlAcct"=x[startIdx[i], "account"],
+                                                                                       "secccy"=x[startIdx[i], "secccy"],
+                                                                                       "portfolio"=accounts[match(x[, "accmain"][1], accounts[, "id"]), "portfolio"],
+                                                                                       "accmain"=x[startIdx[i], "accmain"],
+                                                                                       "resmain"=x[startIdx[i], "resmain"])))
+
+            ## Append the reference currency:
+            retval <- data.frame(retval, "rccy"=portfolios[match(retval[, "portfolio"], portfolios[, "id"]), "rccy"])
+
+            ## Done, return:
+            retval
+
+        }))
+    }))
+
+    ## Done, return:
+    return(openPositionData)
+}
+
+
 ##' A function to retrieve and slice OHLC observations as per given period.
 ##'
 ##' This is the description

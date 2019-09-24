@@ -325,14 +325,18 @@ extendPositionByClosedQuants <- function(quants, positions, resources) {
 ##' @export
 computePnL <- function(quantContext) {
 
-    if (length(quantContext) == 0){
+    if (length(quantContext) == 0) {
         return(NULL)
     }
 
     retval <- lapply(1:NROW(quantContext), function(row) {
 
-
         story <- quantContext[[row]]
+
+        if (all(story[, "qQty"] == "0")) {
+            return(list("PnLs"=NULL,
+                        "Totals"=NULL))
+        }
 
         story[, "PNL::isInc"] <- !apply(mgrep(story[, "type"], c("Dividend", "Coupon")), MARGIN=1, function(x) all(x == "0"))
         story[, "PNL::isFee"] <- !apply(mgrep(story[, "type"], c("Fee")), MARGIN=1, function(x) all(x == "0"))
@@ -403,7 +407,6 @@ computePnL <- function(quantContext) {
                                           "ROI"=total / story[tail(which(isInv),1), "PNL::CumInv"]))
 
     })
-
 
     names(retval) <- names(quantContext)
 

@@ -71,3 +71,35 @@ juliusbaerPosColumnMappers <- function() {
          "V104"="FWDRATE",
          "V17"="INTEREST")
 }
+
+
+##' A function to return the column mappers
+##'
+##' This is the description
+##'
+##' @return Returns a list with the column mappers.
+##' @export
+juliusbaerTraColumnMappers <- function() {
+    ## Columns to be selected:
+    list("V2"="RECTYPE",
+         "V3"="ADVISNO",
+         "V4"="ACCOUNT",
+         "V9"="REFCCY",
+         "V10"="TELEKURS",
+         "V11"="SECDESC",
+         "V12"="ISIN",
+         "V14"="TRADECCY",
+         "V17"="TXNTYPE",
+         "V18"="TXNTYPE2",
+         "V19"="ISPERF",
+         "V20"="QTY",
+         "V21"="DIRECTION",
+         "V23"="PXMAIN",
+         "V24"="PXFACTOR",
+         "V26"="PXCCY",
+         "V27"="BOOKDATE",
+         "V28"="VALUEDATE",
+         "V32"="NETAMOUNT",
+         "V50"="TRADEDATE",
+         "V55"="SECCCY")
+}

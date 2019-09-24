@@ -1,3 +1,105 @@
+##' This function creates a ficticious PnL account and settles the Future pnl T-1
+##'
+##' This is the description
+##'
+##' @param futurePositions The openPositions data frame coming from getOpenpositionbyctype.
+##' @param accounts The accounts data frame from rdecaf.
+##' @param resources The resources data frame.
+##' @param session The rdecaf session.
+##' @return NULL
+##' @export
+settleFuturePnL <- function(futurePositions, accounts, resources, session) {
+
+    ## Apply:
+    apply(futurePositions, MARGIN=1, function(row) {
+
+        ## Is this closed?
+        close <- !is.na(row["close"])
+
+        ## if not closed, set close to Sys.Date()
+        if (is.na(row["close"])) {
+            row["close"] <- Sys.Date()
+        }
+
+        ## Get the dates for which we need to know the PnL:
+        pnlDates <- seq(as.Date(row["open"]), as.Date(row["close"]) -1, 1)
+
+        ## Get the dates to which we need to post the pnls:
+        conDates <- seq(as.Date(row["open"]) + 1, as.Date(row["close"]), 1)
+
+        ## Get the closing date of the
+        clsDates <- row["close"]
+
+        ## Has account:
+        row["pnlAccId"] <- accounts[match(row["pnlAcct"], accounts[, "name"]), "id"]
+
+        if (is.na(row["pnlAccId"])) {
+            ## Create the accounts:
+            payload <- toJSON(list("name"=row["pnlAcct"],
+                                   "rccy"=row["secccy"],
+                                   "portfolio"=trimws(row["portfolio"]),
+                                   "custodian"="2",
+                                   "atype"=NA), auto_unbox=TRUE)
+
+            row["pnlAccId"] <- postResource("accounts", payload=payload, session=session)[["id"]]
+            accounts <- as.data.frame(getResource("accounts", params=list("page_size"=-1, "format"="csv"), session=session))
+        }
+
+
+        for (i in 1:length(pnlDates)) {
+
+            params <- list(c="portfolio", i=trimws(row["portfolio"]), ccy=row["rccy"], date=as.character(pnlDates[i]))
+            consolidation <- getResource("consolidation", params=params, session=session)
+            holdings <- consolidation[["holdings"]]
+            pnls <- data.frame("pnl"=holdings[[match(row["resmain"], sapply(holdings, function(x) x[["artifact"]][["id"]]))]][["valuation"]][["value"]][["net"]][["org"]],
+                               "pnlDate"=pnlDates[i])
+
+            params <- list(c="account", i=trimws(row["pnlAccId"]), ccy=row["secccy"], date=as.character(conDates[i]))
+            consolidation <- getResource("consolidation", params=params, session=session)
+            cons <- data.frame("balance"=consolidation[["nav"]],
+                               "balanceDate"=conDates[i])
+
+            difference <- (-pnls[, "pnl"]) - cons[, "balance"]
+
+            if (abs(difference) > 0.1) {
+
+                if (close & row["close"] == conDates[i]) {
+                    next
+                }
+
+                payload <- toJSON(list("accmain"=row["pnlAccId"],
+                                       "commitment"=conDates[i],
+                                       "id"=NA,
+                                       "resmain"=resources[match(row["secccy"], resources[, "symbol"]), "id"],
+                                       "ctype"="20",
+                                       "notes"="Daily Future PnL Settlement",
+                                       "qtymain"=-pnls[,"pnl"] - cons[,"balance"],
+                                       "pxmain"=1), auto_unbox=TRUE)
+                response <- postResource("trades", payload=payload, session=session)
+            }
+        }
+
+        if (close & abs(cons[, "balance"]) > 0.1) {
+            params <- list(c="account", i=trimws(row["pnlAccId"]), ccy=row["secccy"], date=as.character(row["close"]))
+            consolidation <- getResource("consolidation", params=params, session=session)
+            cons <- data.frame("balance"=consolidation[["nav"]],
+                               "balanceDate"=conDates[i])
+
+            payload <- toJSON(list("accmain"=row["pnlAccId"],
+                                   "commitment"=row["close"],
+                                   "id"=NA,
+                                   "resmain"=resources[match(row["secccy"], resources[, "symbol"]), "id"],
+                                   "ctype"="20",
+                                   "notes"="Closing of Future Position: PnL Account Reset",
+                                   "qtymain"=-cons[, "balance"],
+                                   "pxmain"=1), auto_unbox=TRUE)
+            response <- postResource("trades", payload=payload, session=session)
+        }
+
+    })
+}
+
+
 ##' Delete resources by identifier, either symbol, isin or id.
 ##'
 ##' This is the description

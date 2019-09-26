@@ -385,12 +385,37 @@ getPerformance <- function(portfolio, start, end, freq="daily", session) {
                    "end"=end,
                    "frequency"=freq)
 
+
+    print(paste0("Retrieving performance data for portfolio: ", portfolio))
+
     ## Get the asset evolves:
     performance <- rdecaf::getResource("performance", params=params, session=session)
+
+    auxfun <- function() {
+        retval <- data.frame("MTD"=rep(NA, 4),
+                             "YTD"=rep(NA, 4),
+                             "Y1"=rep(NA, 4),
+                             "Y2"=rep(NA, 4),
+                             "Y3"=rep(NA, 4))
+        cYear <- as.numeric(substr(Sys.Date(), 1, 4))
+        colnames(retval) <- c("MTD", "YTD", as.character(cYear-1), as.character(cYear-2), as.character(cYear-3))
+        rownames(retval) <- c("return", "maxddown", "stdev", "sharpe")
+        return(retval)
+    }
+
+    if (length(performance[["returns"]][["index"]]) == 0) {
+        return(list("series"=NA,
+                    "stats"=auxfun()))
+    }
 
     ## Get the performance index series:
     series <- xts::as.xts(unlist(performance[["indexed"]][["data"]]),
                           order.by=as.Date(unlist(performance[["indexed"]][["index"]])))
+
+    if (all(series == 1)) {
+        return(list("series"=NA,
+                    "stats"=auxfun()))
+    }
 
     ## Get the stats:
     stats <- t(safeRbind(lapply(performance[["statistics"]][["univariate"]][["portfolios"]][[1]][["stats"]], function(x) do.call(cbind, x[["stats"]]))))

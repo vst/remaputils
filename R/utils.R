@@ -1,3 +1,31 @@
+##' A function to match a vector with a data frame with multiple columns.
+##'
+##' This is the description
+##'
+##' @param matchFrom The vector to be matched.
+##' @param matchTo The data frame to be matched to.
+##' @return A vector with the matching indices.
+##' @export
+mmatch <- function(matchFrom, matchTo) {
+
+    ## Initialise the matching index vector with NA's.
+    matchIdx <- rep(NA, NROW(matchFrom))
+
+    ## Iterate over the the matchTo data.frame by columns:
+    for (col in 1:NCOL(matchTo)) {
+
+        ## Match the current column of matchTo:
+        matchIdxT <- match(matchFrom, matchTo[, col])
+
+        ## Replace NA's in the matching index with the current matching index of current matchTo column:
+        matchIdx <- ifelse(is.na(matchIdx), matchIdxT, matchIdx)
+    }
+
+    ## Done, return:
+    return(matchIdx)
+}
+
+
 ##' A function which provides the YTD slice of the data frame.
 ##'
 ##' This is the description

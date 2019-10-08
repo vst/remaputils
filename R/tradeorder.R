@@ -1,3 +1,78 @@
+##' A function to email execution & booking report.
+##'
+##' This is the description
+##'
+##' @param trdOrdExecutions The trade order executions data-frame.
+##' @param data The incoming external execution data.
+##' @param fldMap A list with the field mappings between trade order execution and incoming execution data.
+##' @param emailContent The content parameters of the email.
+##' @param session The rdecaf session.
+##' @return NULL
+##' @export
+emailExecutionReport <- function(trdOrdExecutions, data, fldMap, emailContent, session) {
+
+    ## Append the order id:
+    trdOrdExecutions[, "order"] <- data[match(trdOrdExecutions[, "allocation"], data[, fldMap[["allocation"]]]), fldMap[["order"]]]
+
+    ## Append the symbol:
+    trdOrdExecutions[, "symbol"] <- data[match(trdOrdExecutions[, "allocation"], data[, fldMap[["allocation"]]]), fldMap[["symbol"]]]
+
+    ## Append the direction:
+    trdOrdExecutions[, "direction"] <- data[match(trdOrdExecutions[, "allocation"], data[, fldMap[["allocation"]]]), fldMap[["direction"]]]
+
+    ## Append the trade date:
+    trdOrdExecutions[, "tradedate"] <- data[match(trdOrdExecutions[, "allocation"], data[, fldMap[["allocation"]]]), fldMap[["date"]]]
+
+    ## Construct the trade links:
+    tradeLink <- paste0(gsub("api", "", session[["location"]]), "trade/details/", trdOrdExecutions[, "booking"])
+    orderLink <- paste0(gsub("api", "", session[["location"]]), "trading/tradeorder/details/", trdOrdExecutions[, "order"])
+
+    ## Construct the report email data-frame:
+    result <- data.frame("Trade"=tradeLink,
+                         "Order"=orderLink,
+                         "Symbol"=trdOrdExecutions[, "symbol"],
+                         "Direction"=trdOrdExecutions[, "direction"],
+                         "Trade Date"=trdOrdExecutions[, "tradedate"],
+                         "QTY"=beautify(as.character(round(as.numeric(trdOrdExecutions[, "quantity"]), 2)), nsmall=2),
+                         "PX"=beautify(as.character(round(as.numeric(trdOrdExecutions[, "pricenet"]), 2)), nsmall=2),
+                         check.names=FALSE,
+                         stringsAsFactors=FALSE)
+
+    ## HTMLize the links:
+    result[, "Trade"] <- paste0("<a href='", result[, "Trade"], "'>LINK</a>")
+    result[, "Trade"] <- ifelse(is.na(trdOrdExecutions[, "booking"]), NA, result[, "Trade"])
+    result[, "Order"] <- paste0("<a href='", result[, "Order"], "'>LINK</a>")
+
+    ## Generate the outlier table as HTML and convert to string:
+    result <- as.character(emailHTMLTable(result,
+                                          provider="DECAF",
+                                          caption="Executed & Booked Trades",
+                                          sourceType="API"))
+
+    ## Clean the HTML text:
+    result <- gsub("&#62;LINK&#60;/a&#62;", ">LINK<aya/a>", result)
+    result <- gsub("&#60;a href", "<a href", result)
+
+    .UPDATETEXT <- list("GREETINGPLACEHOLDER"=emailContent[["greeting"]],
+                        "EMAILBODYPLACEHOLDER"="We have executed & booked trades in the system. ",
+                        "CALLTOACTIONPLACEHOLDER"="Go to System",
+                        "DEPLOYMENT"=emailContent[["deployment"]],
+                        "URLPLACEHOLDER"=emailContent[["url"]],
+                        "FINALPARAGRAPHPLACEHOLDER"="Please contact us if you experience any issues or have questions/feedback.",
+                        "ADDRESSPLACEHOLDER"="",
+                        "GOODBYEPLACEHOLDER"="Best Regards,<br>DECAF TEAM",
+                        "ADDENDUMPLACEHOLDER"=result)
+
+    emailParams[["emailList"]] <- emailContent[["emaillist"]]
+
+    syncUpdateEmail(template=readLines("../assets/update_email.html"),
+                    updateText=.UPDATETEXT,
+                    emailParams=emailParams,
+                    subject=" DECAF Trade Execution Update: ")
+
+}
+
+
 ##' A function to retrieve trade order data objects.
 ##'
 ##' This is the description

@@ -217,9 +217,8 @@ getExchangeRatePairs <- function(mainFX, minorFX) {
     ## Extend the request data frame with symbol and ticker:
     reqPairs <- data.frame(reqPairs,
                            "symbol"=apply(reqPairs, MARGIN=1, function(x) paste0(x, collapse="")),
-                           "ticker"=paste0(apply(reqPairs, MARGIN=1, function(x) paste0(x, collapse="")), " Curcny"),
+                           "ticker"=paste0(apply(reqPairs, MARGIN=1, function(x) paste0(x, collapse="")), " Curncy"),
                            stringsAsFactors=FALSE)
-
 
     ## Get the grid for all currencies:
     allPairs <- expand.grid(c(mainFX, minorFX), c(mainFX, minorFX))

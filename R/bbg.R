@@ -29,151 +29,364 @@ bdlhs <- function (host, port, user, pass, flds, tcks, exe="bdlhs") {
 }
 
 
-##' Function to prepare ticker for request.
+##' A function to provide the transformations for bbg results.
 ##'
-##' @param session The decaf session.
-##' @param zero Should closed stocks be included? 1 = yes, - = no.
-##' @param date The date for the stocks.
-##' @param underlying Should underlying instruments be included?
-##' @param fldsByCtype The list with fields to be considered for each ctype.
-##' @param other Shall OTHER assets be considered as well?
-##' @param field The field which should be considered in decaf resources.
-##' @param ohlc Should the ohlccode be considered as an id.
-##' @return A list with a) tickers for price, b) tickers for reference, c) the resource data frame
+##' @return A list with the memnonic as the name of the list and the function as the element.
 ##' @export
-prepareBBGDLData <- function(session, zero=Sys.Date(), date, underlying, fldsByCtype, other=FALSE, field="symbol", ohlc=TRUE) {
+bbgTransformFuns <- function() {
+    list("LAST_TRADEABLE_DT"=function(x) {as.Date(x, format="%Y%m%d")},
+         "FUT_NOTICE_FIRST"=function(x) {as.Date(x, format="%Y%m%d")},
+         "MATURITY"=function(x) {as.Date(x, format="%Y%m%d")},
+         "ID_ISIN"=function(x) {as.character(x)},
+         "NAME"=function(x) {as.character(x)},
+         "SECURITY_TYPE"=function(x) {as.character(x)},
+         "FUND_ASSET_CLASS_FOCUS"=function(x) {as.character(x)},
+         "MIFID_UNDERLYING_ASSET_CLASS"=function(x) {as.character(x)},
+         "COUNTRY_FULL_NAME"=function(x){as.character(x)},
+         "ISSUER"=function(x){as.character(x)},
+         "INDUSTRY_SECTOR"=function(x){as.character(x)},
+         "RTG_SP_LT_LC_ISSUER_CREDIT"=function(x){as.character(x)},
+         "RTG_SP_OUTLOOK"=function(x){as.character(x)},
+         "PRIMARY_EXCHANGE_NAME"=function(x){as.character(x)},
+         "CPN"=function(x){as.numeric(x)},
+         "FIRST_CPN_DT"=function(x) {as.Date(x, format="%Y%m%d")},
+         "CPN_FREQ"=function(x) {as.integer(x)},
+         "OPT_STRIKE_PX"=function(x) {as.numeric(x)})
+}
 
-    ## Prepare the params for the stock request:
-    params <- list(page_size=-1, format="csv", date=date, zero=zero)
 
-    ## Get the stocks:
-    stocks <- as.data.frame(rdecaf::getResource("stocks", params=params, session=session))
+##' A function to build the reference data request object.
+##'
+##' @param resources The resources data frame.
+##' @param bbgFields The list of bbg field mappings.
+##' @param forceAux Are the aux fields to be forced?
+##' @return Either a list with the reference data object or NULL.
+##' @export
+referenceFieldRequestBuilder <- function(resources, bbgFields, forceAux=FALSE) {
 
-    ## Get the resources by stocks:
-    resources <- remaputils::getResourcesByStock(stocks, session, getUnderlying=underlying)
+    ## Is there a base field mapping?
+    base  <- !is.null(bbgFields[["BASE"]])
 
-    ## Consider other assets if required:
-    if (other) {
+    ## Is there a ctype field mapping?
+    ctype <- !is.null(bbgFields[["CTYPE"]])
 
-        ## Get OTHER resources:
-        othersRes <- as.data.frame(rdecaf::getResource("resources", params=list(page_size=-1, format="csv", ctype="OTHER"), session=session))
+    ## Are there aux type request?
+    aux   <- !is.null(bbgFields[["AUXS"]])
 
-        ## Grep Index and Curncy suffices:
-        othersRes <- othersRes[apply(mgrep(othersRes[, field], c("Index", "Curncy")), MARGIN=1, function(x) any(x!="0")), ]
+    ## If nothing to be requested, return NULL:
+    if (!base & !aux & !ctype) {
+        return(NULL)
+    }
 
-        ## Only consider OTHER resources which are still alive:
-        expired <- othersRes[, "expiry"] < Sys.Date() - 1
+    ## Initialise the return value:
+    referenceFlds <- list()
 
-        ## Only consider OTHER resources which are still alive:
-        expired <- ifelse(is.na(expired), FALSE, expired)
+    ## Check if all instruments have base field information:
+    referenceFlds[["id"]] <- resources[, c("symbol", "priceIds", "ctype")]
 
-        if (NROW(othersRes) > 0) {
-            ## Append OTHER ctypes to the resources:
-            resources <- safeRbind(list(resources, othersRes[!expired, ]))
+    ## If base information is to be retrieved, add fields to be called.
+    if (base) {
+
+        ## Determine which fields are missing in the system resources:
+        referenceFlds[["fld"]] <- cbind(referenceFlds[["fld"]], apply(resources[, bbgFields[["BASE"]]], MARGIN=2, isNAorEmpty))
+
+        ## Append the additional bbg memnonics:
+        referenceFlds[["bbg"]] <- c(referenceFlds[["bbg"]], names(bbgFields[["BASE"]]))
+    }
+
+    ## If ctype-specific fields are to be called, add fields:
+    if (ctype) {
+        ## Hebele:
+        for (i in 1:length(bbgFields[["CTYPE"]])) {
+
+            ## Get the current ctype bbg fields:
+            currentType <- bbgFields[["CTYPE"]][i]
+
+             ## Resources which are current ctype:
+            isCtype <- resources[, "ctype"] == names(currentType)
+
+            ## If no such ctype, next:
+            if (!any(isCtype)) {
+                next
+            }
+
+            ## Are fields for current ctype empty?
+            fld <- apply(resources[isCtype, currentType[[1]]], MARGIN=2, isNAorEmpty)
+
+            ## Initialise the appendable data-frame with all FALSE:
+            appendable <- data.frame(matrix(FALSE, NROW(referenceFlds[["id"]]), NCOL(fld)))
+
+            ## Add column name to appendable:
+            colnames(appendable) <- colnames(fld)
+
+            ## Set fields for current ctype in appendable:
+            appendable[isCtype, ] <- fld
+
+            ## Append to reference fields:
+            referenceFlds[["fld"]] <- as.data.frame(cbind(referenceFlds[["fld"]], as.matrix(appendable)), check.names=FALSE)
+
+            ## Append the bbg memnonics:
+            referenceFlds[["bbg"]] <- c(referenceFlds[["bbg"]], names(currentType[[1]]))
         }
     }
 
-    if (ohlc) {
-        ## Get ohlc identifiers:
-        resources <- data.frame(resources, "priceIds"=ifelse(!is.na(resources[, "ohlccode"]), resources[, "ohlccode"], resources[, field]))
-    } else {
-        resources <- data.frame(resources, "priceIds"=resources[, field])
+    ## Either base or ctype-specific fields are to be called, reduce to empty fields:
+    if (!is.null(referenceFlds[["fld"]])) {
+
+        ## For which instruments to we need to request data?
+        requestableResrcs <- apply(referenceFlds[["fld"]], MARGIN=1, any)
+
+        ## For which fields to we need to request data?
+        requestableFields <- apply(referenceFlds[["fld"]], MARGIN=2, any)
+
+        ## Filter in resources id's for which we need to request data:
+        referenceFlds[["id"]] <- referenceFlds[["id"]][requestableResrcs, ]
+
+        ## Filter in resources for which we need to request data:
+        referenceFlds[["fld"]] <- data.frame(referenceFlds[["fld"]][requestableResrcs, ], check.names=FALSE)
+
+        ## Filter in fields for which we need to request data:
+        referenceFlds[["fld"]] <- data.frame(referenceFlds[["fld"]][, requestableFields], check.names=FALSE)
+
+        ## Filter in bbg memnonic for which we need to request data:
+        referenceFlds[["bbg"]] <- referenceFlds[["bbg"]][requestableFields]
+
     }
+
+    ## If aux is TRUE, append aux:
+    if (aux & (NROW(referenceFlds[["fld"]]) != 0 | forceAux)) {
+
+        ## Initialise the appendable matrix:
+        appendable <- data.frame(matrix(FALSE, NROW(referenceFlds[["id"]]), length(names(bbgFields[["AUXS"]]))))
+        colnames(appendable) <- names(bbgFields[["AUXS"]])
+
+        ## For each aux memomnic (column), append to fields to be called.
+        for (col in 1:NCOL(appendable)) {
+            mgrepRetval <- mgrep(referenceFlds[["id"]][, "ctype"], bbgFields[["AUXS"]][[col]])
+            appendable[, col] <- apply(mgrepRetval, MARGIN=1, function(x) any(x != "0"))
+        }
+
+        ## Prepare the appendable data frame:
+        appendable <- appendable[, apply(appendable, MARGIN=2, function(x) any(x))]
+
+        ## Extend the bbg memnonics to be called:
+        referenceFlds[["bbg"]] <- c(referenceFlds[["bbg"]], colnames(appendable))
+
+        ## Prepare the column names:
+        colnames(appendable) <- paste0("_AUXS_", colnames(appendable))
+
+        ## Append aux data frame to reference fields:
+        referenceFlds[["fld"]] <- as.data.frame(cbind(referenceFlds[["fld"]], as.matrix(appendable)), check.names=FALSE)
+
+    }
+
+    ## If no fields are to be called, return NULL:
+    if (is.null(referenceFlds[["fld"]])) {
+        return(NULL)
+    }
+
+    ## Parse the column names:
+    colnames(referenceFlds[["fld"]]) <- mgsub(colnames(referenceFlds[["fld"]]), c("\\.1", "\\.2", "\\.3"))
+
+    ## Done, return
+    referenceFlds
+
+}
+
+
+##' A function to build the requestable currency pairs and the entire combinations of currencies
+##'
+##' @param mainFX A vector with the main currencies
+##' @param minorFX A vector with the minor currencies.
+##' @return A list with the requestable currency pairs and all combinations.
+##' @export
+getExchangeRatePairs <- function(mainFX, minorFX) {
+
+    ## Get the grid of the main currency pairs:
+    mainPairs <- expand.grid(mainFX, mainFX)
+
+    ## Exclude the diagonals:
+    mainPairs <- mainPairs[apply(mainPairs, MARGIN=1, function(x) x[1] != x[2]), ]
+
+    ## Prepare the fx request data frame
+    ## NOTE: Append the minor currency vs 'USD' to the main currency pairs:
+    reqPairs <- data.frame("main"=c(as.character(mainPairs[, 1]), rep("USD", length(minorFX))),
+                           "altn"=c(as.character(mainPairs[, 2]), minorFX),
+                           stringsAsFactors=FALSE)
+
+    ## Extend the request data frame with symbol and ticker:
+    reqPairs <- data.frame(reqPairs,
+                           "symbol"=apply(reqPairs, MARGIN=1, function(x) paste0(x, collapse="")),
+                           "ticker"=paste0(apply(reqPairs, MARGIN=1, function(x) paste0(x, collapse="")), " Curcny"),
+                           stringsAsFactors=FALSE)
+
+
+    ## Get the grid for all currencies:
+    allPairs <- expand.grid(c(mainFX, minorFX), c(mainFX, minorFX))
+
+    ## Exclude the diagonals:
+    allPairs <- allPairs[apply(allPairs, MARGIN=1, function(x) x[1] != x[2]), ]
+
+    ## Prepare the data frame for all currency pairs:
+    allPairs <- data.frame("main"=as.character(allPairs[, 1]),
+                           "altn"=as.character(allPairs[, 2]),
+                           stringsAsFactors=FALSE)
+
+    ## Extend the data frame with the symbol:
+    allPairs <- data.frame(allPairs,
+                           "symbol"=apply(allPairs, MARGIN=1, function(x) paste0(x, collapse="")))
+
+
+    ## Done, return:
+    return(list("requestPairs"=reqPairs,
+                "allPairs"=allPairs))
+
+}
+
+
+##' A function to build the requestable currency pairs and the entire combinations of currencies
+##'
+##' @param session The rdecaf session.
+##' @param date The date.
+##' @param zero The zero parameter for stocks.
+##' @param underlying Shall underlying be included if stocks are to be considered?
+##' @param bbgFields The list of bbg field mappings.
+##' @param resources The entire resource data frame.
+##' @param byStock Should the request data be based on stocks only?
+##' @param exclCtypes Which ctypes should be excluded from consideration?
+##' @return A list with the reference request data objest and the resources.
+##' @export
+getRequestDataReference <- function(session,
+                                    date,
+                                    zero,
+                                    underlying,
+                                    bbgFields,
+                                    resources,
+                                    byStock=TRUE,
+                                    exclCtypes=c=("CCY", "LOAN", "FXFWD", "DEPO")) {
+
+    ## If by stock, get resources by stock:
+    if (byStock) {
+
+        ## Prepare the params for the stock request:
+        params <- list(page_size=-1, format="csv", date=date, zero=zero)
+
+        ## Get the stocks:
+        stocks <- as.data.frame(rdecaf::getResource("stocks", params=params, session=session))
+
+        if (NROW(stocks) == 0) {
+            ## Return ohlc id's with missing information:
+            return(list("reference"=NULL,
+                        "resources"=resources))
+        }
+
+        ## Get the resources by stocks:
+        resources <- remaputils::getResourcesByStock(stocks, session, getUnderlying=TRUE)
+    }
+
+    ## Get the price ID's:
+    priceIDs <- ifelse(!isNAorEmpty(resources[, "ohlccode"]), as.character(resources[, "ohlccode"]), as.character(resources[, "symbol"]))
+
+    ## Append the price ID's
+    resources <- data.frame(resources, "priceIds"=priceIDs, stringsAsFactors=FALSE)
 
     ## Check if identifer is bbg ticker:
     resources <- resources[isBBGTicker(as.character(resources[, "priceIds"])), ]
 
-    ## Initialise the ctypeFlds list:
-    ctypeFlds <- list()
+    ## Exclude ctypes from resources:
+    resources <- resources[!apply(mgrep(resources[, "ctype"], exclCtypes), MARGIN=1, function(x) any(x != "0")), ]
 
-    ## Check if all instruments have base field information:
-    ctypeFlds[["BASE"]] <- resources[, c("symbol", "priceIds", as.character(fldsByCtype[["BASE"]]))]
+    ## Get the reference Flds
+    reference <- referenceFieldRequestBuilder(resources, bbgFields, forceAux=FALSE)
 
-    ## Exclude the BASE field list element:
-    fldsByCtypex <- fldsByCtype[-1]
+    ## Done, return
+    return(list("reference"=reference,
+                "resources"=resources))
 
-    ## Iterate of the fields by ctype and append:
-    for (i in 1:length(fldsByCtypex)) {
-
-        ctypeRes  <- resources[resources[, "ctype"] == names(fldsByCtypex)[i], ]
-        ctypeFlds[[names(fldsByCtypex)[i]]] <- as.data.frame(ctypeRes[, c("symbol", "priceIds", as.character(fldsByCtypex[[i]]))], stringsAsFactors=FALSE)
-
-    }
-
-    ## 1: Only consider instruments with missing fields
-    ## 2: Rename column names to bbg memnonic
-    reference <- lapply(1:length(ctypeFlds), function(i) {
-
-        ## Return NULL if no instruments:
-        if (NROW(ctypeFlds[[i]]) == 0) {
-            return(NULL)
-        }
-
-        ## Get the column names:
-        colNames <- colnames(ctypeFlds[[i]])
-
-        ## Get the field names:
-        fldCtype <- fldsByCtype[[names(ctypeFlds)[i]]]
-
-        ##
-        ctypeFlds[[i]][, 3:NCOL(ctypeFlds[[i]])] <- t(apply(ctypeFlds[[i]][, -c(1, 2)], MARGIN=1, is.na))
-        ctypeFlds[[i]] <- ctypeFlds[[i]][apply(ctypeFlds[[i]][, -c(1, 2)], MARGIN=1, any), ]
-
-        if (NROW(ctypeFlds[[i]]) == 1) {
-            ctypeFlds[[i]][, c(1,2)] <- c(as.character(ctypeFlds[[i]][1, 1]), as.character(ctypeFlds[[i]][1, 2]))
-        } else {
-            ctypeFlds[[i]][, c(1,2)] <- as.data.frame(apply(ctypeFlds[[i]][, c(1,2)], MARGIN=2, as.character), stringsAsFactors=FALSE)
-        }
-
-        colnames(ctypeFlds[[i]]) <- c(colNames[c(1,2)], names(fldCtype)[match(colNames[3:NCOL(ctypeFlds[[i]])], fldCtype)])
-        ctypeFlds[[i]] <- as.data.frame(ctypeFlds[[i]], stringsAsFactors=FALSE)
-        ctypeFlds[[i]]
-    })
-
-    ## Name the reference list:
-    names(reference) <- names(fldsByCtype)
-
-    ## Return ohlc id's with missing information:
-    list("reference"=reference,
-         "prices"=resources[, c("symbol", "priceIds")],
-         "resources"=resources)
 }
 
 
-##' A list with the mapping between bbg and decaf fields
+##' A function to build the requestable currency pairs and the entire combinations of currencies
 ##'
-##' @return A list
+##' @param session The rdecaf session.
+##' @param date The date.
+##' @param zero The zero parameter for stocks.
+##' @param underlying Shall underlying be included if stocks are to be considered?
+##' @param fx If exchange rate prices are to be called, provide a vector with main currencies, otherwise NULL.
+##' @param resources The entire resource data frame.
+##' @param priceTag Force resources which this tag to be considered.
+##' @param byStock Should the request data be based on stocks only?
+##' @return A list with the reference request data objest and the resources.
 ##' @export
-.bbgDecafFieldMap <- list("BASE"=c("ID_ISIN"="isin",
-                                  "COUNTRY_FULL_NAME"="country",
-                                  "ISSUER"="issuer",
-                                  "INDUSTRY_SECTOR"="sector",
-                                  "RTG_SP_LT_LC_ISSUER_CREDIT"="sp_rating",
-                                  "RTG_SP_OUTLOOK"="sp_outlook",
-                                  "PRIMARY_EXCHANGE_NAME"="mic"),
-                         "BOND"=c("MATURITY"="expiry",
-                                  "CPN"="pxmain",
-                                  "FIRST_CPN_DT"="launch",
-                                  "CPN_FREQ"="frequency"),
-                         "OPT" =c("LAST_TRADEABLE_DT"="expiry", "OPT_STRIKE_PX"="pxmain"),
-                         "FUT" =c("LAST_TRADEABLE_DT"="last_tradable", "FUT_NOTICE_FIRST"="first_notice"))
+getRequestDataPrice <- function(session, date, zero, underlying, fx=NULL, resources, priceTag, byStock) {
 
+    ## Benchmark Stuff!
+    tagsColumns <- data.frame(resources[, safeGrep(colnames(resources), "tags") == "1"])
 
-##' A list with the tranform functions for bbg results by field.
-##'
-##' @return A list
-##' @export
-.transBBGResults <- list("LAST_TRADEABLE_DT"=function(x) {as.Date(x, format="%Y%m%d")},
-                        "FUT_NOTICE_FIRST"=function(x) {as.Date(x, format="%Y%m%d")},
-                        "MATURITY"=function(x) {as.Date(x, format="%Y%m%d")},
-                        "ID_ISIN"=function(x) {as.character(x)},
-                        "COUNTRY_FULL_NAME"=function(x){as.character(x)},
-                        "ISSUER"=function(x){as.character(x)},
-                        "INDUSTRY_SECTOR"=function(x){as.character(x)},
-                        "RTG_SP_LT_LC_ISSUER_CREDIT"=function(x){as.character(x)},
-                        "RTG_SP_OUTLOOK"=function(x){as.character(x)},
-                        "PRIMARY_EXCHANGE_NAME"=function(x){as.character(x)},
-                        "CPN"=function(x){as.numeric(x)},
-                        "FIRST_CPN_DT"=function(x) {as.Date(x, format="%Y%m%d")},
-                        "CPN_FREQ"=function(x) {as.integer(x)},
-                        "OPT_STRIKE_PX"=function(x) {as.numeric(x)})
+    ## Append taged resources:
+    tagsPriceIds <- resources[apply(tagsColumns, MARGIN=1, function(x) any(x == priceTag)), "symbol"]
+
+    ## If by stock, get resources by stock:
+    if (byStock) {
+
+        ## Prepare the params for the stock request:
+        params <- list(page_size=-1, format="csv", date=date, zero=zero)
+
+        ## Get the stocks:
+        stocks <- as.data.frame(rdecaf::getResource("stocks", params=params, session=session))
+
+        if (NROW(stocks) == 0) {
+            ## Return ohlc id's with missing information:
+            return(NULL)
+        }
+
+        ## Get the resources by stocks:
+        resources <- remaputils::getResourcesByStock(stocks, session, getUnderlying=TRUE)
+    }
+
+    ## Get the price ID's:
+    priceIDs <- as.character(ifelse(!isNAorEmpty(resources[, "ohlccode"]), as.character(resources[, "ohlccode"]), as.character(resources[, "symbol"])))
+
+    ## Append the price ID's
+    resources <- data.frame(resources, "priceIds"=priceIDs, stringsAsFactors=FALSE)
+
+    ## Check if identifer is bbg ticker:
+    resources <- resources[isBBGTicker(as.character(resources[, "priceIds"])), ]
+
+    ## Determine which resources have not yet expired:
+    isAlive <-  as.Date(as.character(resources[, "horizon"])) > Sys.Date() -1
+    isAlive <- ifelse(is.na(isAlive), TRUE, isAlive)
+
+    ## Filter resources which have not expired yet:
+    resources <- resources[isAlive, ]
+
+    ## Combine the resource price ids and the price ids for resources with tags:
+    priceIds <- c(resources[, "priceIds"], tagsPriceIds)
+
+    ## If fx is not NULL, append exchange rate symbols to price ids:
+    if (!is.null(fx)) {
+
+        ## Assign the vector with main currencies to the ccymain:
+        ccymains <- fx
+
+        ## Get the ccymain's from the resource data frame:
+        ccyminor <- c(unique(resources[, "ccymain"]), "TRY")
+
+        ## Get the minor currencies:
+        ccyminor <- ccyminor[is.na(match(ccyminor, ccymains))]
+
+        ## Get to exchange rate pairs object:
+        exchangePairs <- getExchangeRatePairs(ccymains, ccyminor)
+
+        ## Append the requestable exchange rate pairs to price id's:
+        priceIds <- c(priceIds, exchangePairs[["requestPairs"]][, "ticker"])
+
+        ## Assign the exchange rate pairs object to fx:
+        fx <- exchangePairs
+    }
+
+    ## Return ohlc id's with missing information:
+    list("prices"=as.character(priceIds),
+         "fx"=fx,
+         "resources"=resources)
+}

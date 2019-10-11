@@ -263,7 +263,7 @@ getRequestDataReference <- function(session,
                                     bbgFields,
                                     resources,
                                     byStock=TRUE,
-                                    exclCtypes=c=("CCY", "LOAN", "FXFWD", "DEPO")) {
+                                    exclCtypes=c("CCY", "LOAN", "FXFWD", "DEPO")) {
 
     ## If by stock, get resources by stock:
     if (byStock) {

@@ -39,7 +39,8 @@ bbgTransformFuns <- function() {
          "MATURITY"=function(x) {as.Date(x, format="%Y%m%d")},
          "ID_ISIN"=function(x) {as.character(x)},
          "NAME"=function(x) {as.character(x)},
-         "SECURITY_TYPE"=function(x) {as.character(x)},
+         "SECURITY_TYP"=function(x) {as.character(x)},
+         "SECURITY_TYP2"=function(x) {as.character(x)},
          "FUND_ASSET_CLASS_FOCUS"=function(x) {as.character(x)},
          "MIFID_UNDERLYING_ASSET_CLASS"=function(x) {as.character(x)},
          "COUNTRY_FULL_NAME"=function(x){as.character(x)},
@@ -371,7 +372,7 @@ getRequestDataPrice <- function(session, date, zero, underlying, fx=NULL, resour
         ccymains <- fx
 
         ## Get the ccymain's from the resource data frame:
-        ccyminor <- c(unique(resources[, "ccymain"]), "TRY")
+        ccyminor <- c(unique(resources[, "ccymain"]), "TRY", "NOK", "BRL")
 
         ## Get the minor currencies:
         ccyminor <- ccyminor[is.na(match(ccyminor, ccymains))]
@@ -390,4 +391,211 @@ getRequestDataPrice <- function(session, date, zero, underlying, fx=NULL, resour
     list("prices"=as.character(priceIds),
          "fx"=fx,
          "resources"=resources)
+}
+
+
+##' A function to treat the results of a bbgdl price request.
+##'
+##' @param result The result data frame as obtained from bdhls.
+##' @param reqData The original request data from getRequestDataPrice.
+##' @param noCents If noCents, prices in cents will be divided by 100. Default is TRUE.
+##' @return A list with the ohlc observations and invalid symbols.
+##' @export
+treatBBGResultsPrice <- function(result, reqData, noCents=TRUE) {
+
+    if (is.null(result)) {
+        return(NULL)
+    }
+
+    ## The price fields to be requested:
+    priceFlds <- c("PX_LAST",
+                   "LAST_UPDATE",
+                   "QUOTED_CRNCY",
+                   "PX_YEST_CLOSE",
+                   "PX_YEST_DT")
+
+    ## Set columns characters:
+    for (col in c("ID", priceFlds)) {
+        result[, col] <- as.character(result[, col])
+    }
+
+    ## Prepare the PX_LAST observations:
+    obs <- data.frame("symbol"=result[, "ID"],
+                      "date"=Sys.Date(),
+                      "close"=result[, "PX_LAST"],
+                      "last_update"=result[, "LAST_UPDATE"],
+                      "quoted_ccy"=result[, "QUOTED_CRNCY"],
+                      stringsAsFactors=FALSE)
+
+    ## Append the PX_YEST observations to PX_LAST:
+    obs <- rbind(obs, data.frame("symbol"=result[, "ID"],
+                                 "date"=Sys.Date(),
+                                 "close"=result[, "PX_YEST_CLOSE"],
+                                 "last_update"=result[, "PX_YEST_DT"],
+                                 "quoted_ccy"=result[, "QUOTED_CRNCY"],
+                                 stringsAsFactors=FALSE))
+
+    ## Invalid symbols:
+    invalids <- obs[, "close"] == "N.A." | isNAorEmpty(trimws(obs[, "close"]))
+
+    ## Extract symbol from obs to list:
+    obsBySymbol <- extractToList(obs, "symbol")
+
+    ## Determine the invalid symbols in list:
+    invalidSymbols <- do.call(rbind, lapply(obsBySymbol, function(x) x[all(x[, "close"] == "N.A." | isNAorEmpty(x[, "close"])), ]))
+
+    ## Valid observations:
+    obs <- obs[!invalids,]
+
+    ## When last update date is missing, replace with system date:
+    obs[is.na(obs[, "last_update"]), "last_update"] <- as.character(gsub("-", "", Sys.Date()))
+
+    ## Parse the date info from LAST_UPDATE:
+    dates <- as.Date(obs[, "last_update"], format="%Y%m%d")
+
+    ## Parse the date for ohlc observation:
+    obs[, "date"] <- ifelse(is.na(dates), as.character(Sys.Date()), as.character(dates))
+
+    ##  If noCents, then divide any close for which the quoted currency has lower case by 100:
+    if (noCents) {
+        ## When lower case in quoted currency exists, divide close by 100:
+        isCents <- grepl("[a-z]", obs[, "quoted_ccy"])
+        obs[isCents, "close"] <- as.numeric(obs[isCents, "close"]) / 100
+    }
+
+    ## Remove column:
+    obs[, "last_update"] <- NULL
+    obs[, "quoted_ccy"] <- NULL
+
+    ## If fx object in request data is not null, treat the FX:
+    if (!is.null(reqData[["fx"]])) {
+
+        ## First, we need to transform the bbg ticker to a valid decaf fx symbol:
+        ## ############################################################################
+
+        ## Match the symbol in the result (i.e bbg ticker) with the request data ticker:
+        matchIdx <- match(obs[, "symbol"], reqData[["fx"]][["requestPairs"]][, "ticker"])
+
+        ## Use the matching index to get the symbol:
+        obs[!is.na(matchIdx), "symbol"] <- reqData[["fx"]][["requestPairs"]][matchIdx[!is.na(matchIdx)], "symbol"]
+
+        ## Second, we need to compute the fx crosses:
+        ## ############################################################################
+
+        ## Get all pairs:
+        allPairs <- reqData[["fx"]][["allPairs"]]
+
+        ## Extract obs to list by date:
+        obsByDate <- extractToList(obs, "date")
+
+        ## For each obs by date, run compute FX crosses:
+        obs <- rbind(obs, do.call(rbind, lapply(obsByDate, function(x) computeFXCrosses(allPairs, x))))
+
+    }
+
+    ## Done, return:
+    return(list("ohlc"=obs,
+                "invalidSymbols"=invalidSymbols))
+
+}
+
+
+##' A function to compute FX crosses. It assume 'USD' as anchor currency and that inverses of rate for anchor vs minor is provided.
+##'
+##' @param allPairs A data frame with all the currency pairs. Requires "main", "altn" and "symbol" columns.
+##' @param pricedPairs A data frame with the priced currency pairs. Requires "symbol", "close" and "date" columns.
+##' @return A list with the ohlc observations and invalid symbols.
+##' @export
+computeFXCrosses <- function(allPairs, pricedPairs) {
+
+    ## Initialise the date and close columns in allPairs:
+    allPairs[, c("date", "close")] <- NA
+
+    ## Match the symbols between all pairs and priced pairs.
+    matchIdx <- match(allPairs[, "symbol"], pricedPairs[, "symbol"])
+
+    ## Add the closes of the priced exchange rates to the matching all pairs closes:
+    allPairs[!is.na(matchIdx), "close"] <- pricedPairs[matchIdx[!is.na(matchIdx)], "close"]
+
+    ## Add the dates of the priced exchange rates to the matching all pairs dates:
+    allPairs[!is.na(matchIdx), "date"] <- pricedPairs[matchIdx[!is.na(matchIdx)], "date"]
+
+    ## NA closes in all pairs are, hence, crosses:
+    allPairs[, "cross"] <- ifelse(is.na(allPairs[, "close"]), TRUE, FALSE)
+
+    ## Get the crosses:
+    crosses <- allPairs[allPairs[, "cross"], ]
+
+    ## Get the mains:
+    mains <- allPairs[!allPairs[, "cross"], ]
+
+    ## Iterate over the crosses rows:
+    for (row in 1:NROW(crosses)) {
+
+        ## Get the current cross:
+        cross <- crosses[row, ]
+
+        ## Get the first leg of the cross rate:
+        cross1 <- mains[mains[, "altn"] == cross[, "main"] & mains[, "main"] == "USD", "close"]
+
+        ## Get the second leg of the cross rate:
+        cross2 <- mains[mains[, "altn"] == cross[, "altn"] & mains[, "main"] == "USD", "close"]
+
+        ## Get the corresponding date:
+        date <- mains[mains[, "altn"] == cross[, "altn"] & mains[, "main"] == "USD", "date"]
+
+        ## Compute the cross close and append to the crosses rate:
+        crosses[row, "close"] <- round(as.numeric(cross2) / as.numeric(cross1), 8)
+
+        ## Append the date:
+        crosses[row, "date"] <- date
+    }
+
+    ## Done, return
+    return(crosses[, c("symbol", "date", "close")])
+}
+
+
+##' A function to email the BBGDL price update report.
+##'
+##' @param ohlc The list object coming from treatBBGResultsPrice.
+##' @param emailContent A list with the email contents. Expects "greeting", "deployment", "url".
+##' @param emailParams A list with the email parameters.
+##' @param reportText An optional report text to override the default text. Default is NULL.
+##' @param session The rdecaf session.
+##' @return NULL
+##' @export
+emailBBGDLPxReport <- function(ohlc, emailContent, emailParams, reportText=NULL, session) {
+
+    if (is.null(reportText)) {
+        baseText <- paste0("We ran BBG DL price request just now. ",
+                           "%s instruments were successfully updated. ",
+                           "%s instruments were not. Below is a list",
+                           " with unpriced symbols. Please check the symbols!")
+
+        reportText <- sprintf(baseText,
+                              length(unique(ohlc[["ohlc"]][, "symbol"])),
+                              length(unique(ohlc[["invalidSymbols"]])))
+
+    }
+
+    ## Construct the content of the alert email:
+    .UPDATETEXT <- list("GREETINGPLACEHOLDER"=emailContent[["greeting"]],
+                        "EMAILBODYPLACEHOLDER"="This is a autogenerated alert for USS BBG DL Price Requests.",
+                        "CALLTOACTIONPLACEHOLDER"="Go to System",
+                        "DEPLOYMENT"=emailContent[["deployment"]],
+                        "URLPLACEHOLDER"=emailContent[["url"]],
+                        "FINALPARAGRAPHPLACEHOLDER"=reportText,
+                        "ADDRESSPLACEHOLDER"="",
+                        "GOODBYEPLACEHOLDER"="Best Regards,<br>DECAF TEAM",
+                        "ADDENDUMPLACEHOLDER"=emailHTMLTable(ohlc[["invalidSymbols"]][!duplicated(ohlc[["invalidSymbols"]]),],
+                                                             provider="BBG",
+                                                             caption="No prices!",
+                                                             sourceType="API"))
+
+    ## Run sync email report:
+    syncUpdateEmail(template=readLines("../assets/update_email.html"),
+                    updateText=.UPDATETEXT,
+                    emailParams=emailParams,
+                    subject=" BBG DL Alert: ")
 }

@@ -1467,7 +1467,7 @@ excludeRowsWithKeys <- function(data, field, keys){
 isNAorEmpty <- function(str){
 
     aux <- function(x) {
-        is.na(x) | nchar(x) == 0
+        is.na(x) | nchar(x) == 0 | x == " "
     }
 
     if (is.null(str)) {

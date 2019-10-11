@@ -253,6 +253,7 @@ getExchangeRatePairs <- function(mainFX, minorFX) {
 ##' @param bbgFields The list of bbg field mappings.
 ##' @param resources The entire resource data frame.
 ##' @param byStock Should the request data be based on stocks only?
+##' @param forceAux Are the aux fields to be forced?
 ##' @param exclCtypes Which ctypes should be excluded from consideration?
 ##' @return A list with the reference request data objest and the resources.
 ##' @export
@@ -263,6 +264,7 @@ getRequestDataReference <- function(session,
                                     bbgFields,
                                     resources,
                                     byStock=TRUE,
+                                    forceAux=FALSE,
                                     exclCtypes=c("CCY", "LOAN", "FXFWD", "DEPO")) {
 
     ## If by stock, get resources by stock:
@@ -297,7 +299,7 @@ getRequestDataReference <- function(session,
     resources <- resources[!apply(mgrep(resources[, "ctype"], exclCtypes), MARGIN=1, function(x) any(x != "0")), ]
 
     ## Get the reference Flds
-    reference <- referenceFieldRequestBuilder(resources, bbgFields, forceAux=FALSE)
+    reference <- referenceFieldRequestBuilder(resources, bbgFields, forceAux=forceAux)
 
     ## Done, return
     return(list("reference"=reference,

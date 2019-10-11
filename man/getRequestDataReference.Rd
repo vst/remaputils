@@ -5,8 +5,8 @@
 \title{A function to build the requestable currency pairs and the entire combinations of currencies}
 \usage{
 getRequestDataReference(session, date, zero, underlying, bbgFields,
-  resources, byStock = TRUE, exclCtypes = c("CCY", "LOAN", "FXFWD",
-  "DEPO"))
+  resources, byStock = TRUE, forceAux = FALSE, exclCtypes = c("CCY",
+  "LOAN", "FXFWD", "DEPO"))
 }
 \arguments{
 \item{session}{The rdecaf session.}
@@ -22,6 +22,8 @@ getRequestDataReference(session, date, zero, underlying, bbgFields,
 \item{resources}{The entire resource data frame.}
 
 \item{byStock}{Should the request data be based on stocks only?}
+
+\item{forceAux}{Are the aux fields to be forced?}
 
 \item{exclCtypes}{Which ctypes should be excluded from consideration?}
 }

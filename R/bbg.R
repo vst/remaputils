@@ -210,8 +210,8 @@ getExchangeRatePairs <- function(mainFX, minorFX) {
 
     ## Prepare the fx request data frame
     ## NOTE: Append the minor currency vs 'USD' to the main currency pairs:
-    reqPairs <- data.frame("main"=c(as.character(mainPairs[, 1]), rep("USD", length(minorFX))),
-                           "altn"=c(as.character(mainPairs[, 2]), minorFX),
+    reqPairs <- data.frame("main"=c(as.character(mainPairs[, 1]), rep("USD", length(minorFX)), minorFX),
+                           "altn"=c(as.character(mainPairs[, 2]), minorFX, rep("USD", length(minorFX))),
                            stringsAsFactors=FALSE)
 
     ## Extend the request data frame with symbol and ticker:

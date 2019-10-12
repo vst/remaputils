@@ -514,6 +514,11 @@ computeFXCrosses <- function(allPairs, pricedPairs) {
     ## Match the symbols between all pairs and priced pairs.
     matchIdx <- match(allPairs[, "symbol"], pricedPairs[, "symbol"])
 
+    ## If no matches, return NULL:
+    if (all(is.na(matchIdx))) {
+        return(NULL)
+    }
+
     ## Add the closes of the priced exchange rates to the matching all pairs closes:
     allPairs[!is.na(matchIdx), "close"] <- pricedPairs[matchIdx[!is.na(matchIdx)], "close"]
 

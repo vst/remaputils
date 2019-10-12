@@ -372,7 +372,7 @@ getRequestDataPrice <- function(session, date, zero, underlying, fx=NULL, resour
         ccymains <- fx
 
         ## Get the ccymain's from the resource data frame:
-        ccyminor <- c(unique(resources[, "ccymain"]), "TRY", "NOK", "BRL")
+        ccyminor <- unique(resources[, "ccymain"])
 
         ## Get the minor currencies:
         ccyminor <- ccyminor[is.na(match(ccyminor, ccymains))]

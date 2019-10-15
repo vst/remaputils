@@ -1,3 +1,92 @@
+##' A function to indicate the last week day within a specific periodicity.
+##'
+##' This is the description
+##'
+##' @param dates A vector with dates.
+##' @param day The weekday to be considered ("Monday", "Tuesday", ... ,"Friday", etc.)
+##' @param period The periodicity give in single letter ("W", "M", "Q", "Y").
+##' @return The date frame with the lastDayOfPeriod boolean column.
+##' @export
+getLastDayOfPeriod <- function(dates, day, period) {
+
+    ## Get the last date:
+    lastDate <- tail(dates, 1)
+
+    ## Get the period memnonic:
+    periodMemnonic <- paste0(switch(period, weekly="W", monthly="M", quarterly="Q", yearly="Y"), "-0")
+
+    ## Get the period function:
+    pFun <- list("weekly"=function(x){cumsum(weekdays(x) == "Friday")},
+                 "monthly"=function(x){months(x)},
+                 "quarterly"=function(x){quarters(x)},
+                 "yearly"=function(x){substr(x, 1,4)})
+
+    ## Add 365 days to last date provided create a sequence 1 year ahead:
+    auxSeries <- seq(lastDate, lastDate + 365, 1)
+
+    ## Run the period function:
+    pSeries <- do.call(pFun[[period]], list(auxSeries))
+
+    ## Determine the next ending date of period:
+    auxPeriodEnd <- as.Date(auxSeries[which(!duplicated(pSeries))[2]])
+
+    ## Append missing dates to complete current period:
+    datesx <- c(dates, seq(lastDate + 1, dateOfPeriod(periodMemnonic, auxPeriodEnd), 1))
+
+    ##: TODO:
+    datesx <- data.frame("dates"=as.character(datesx), "period"=cumsum(!duplicated(do.call(pFun[[period]], list(datesx)))))
+
+    ## Mark the days of the dates which are our target day:
+    datesx[, "days"] <- weekdays(as.Date(as.character(datesx[, "dates"]))) == day
+
+    ## For each unique period, find the last day which is our target day:
+    lastDayOfPeriod <- do.call(c, lapply(unique(datesx[, "period"]), function(x) as.character(tail(datesx[datesx[, "period"] == x & datesx[, "days"], 1], 1))))
+
+    ## Match last day of period dates with our original dates vector:
+    dateMatch <- match(dates, as.Date(lastDayOfPeriod))
+
+    ## Append the last day of period column to dates:
+    dates <- data.frame(dates, "lastDayOfPeriod"=FALSE)
+
+    ## Market the last days in period:
+    dates[!is.na(dateMatch), "lastDayOfPeriod"] <- TRUE
+
+    ## Done, return:
+    return(dates)
+
+}
+
+
+##' A function aggregates a value column by a second column and transforms it to xts class.
+##'
+##' This is the description
+##'
+##' @param x A data frame with the columns names as ascribed to aggColumn and aggBy.
+##' @param aggColumn The name of the column to be aggregated.
+##' @param aggBy The name of the column to be aggregated by.
+##' @param fallbackDate If data frame has NROW==0, we need a fallback date.
+##' @return A time-series object of class xts.
+##' @export
+aggregateAndXTSify <- function(x, aggColumn="qtymain", aggBy="commitment", fallbackDate=Sys.Date()) {
+
+    ## If data frame is empty, mask values:
+    if (NROW(x) == 0) {
+        x <- data.frame("V1"=0, "V2"=fallbackDate)
+        colnames(x) <- c(aggColumn, aggBy)
+    }
+
+    ## Aggregate the values:
+    x <- aggregate(as.numeric(x[, aggColumn]), list(x[, aggBy]), sum)
+
+    ## Assign the column names:
+    colnames(x) <- c(aggBy, aggColumn)
+
+    ## Tranform to xts and return:
+    xts::as.xts(as.numeric(x[, aggColumn]), order.by=x[, aggBy])
+
+}
+
+
 ##' A function to match a vector with a data frame with multiple columns.
 ##'
 ##' This is the description

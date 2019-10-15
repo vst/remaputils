@@ -1,3 +1,133 @@
+##' This function gets the portfolio information give a portfolio id.
+##'
+##' This is the description
+##'
+##' @param portfolio The portfolio id.
+##' @param session The rdecaf session.
+##' @return A data frame with the portfolio details.
+##' @export
+getPortfolio <- function(portfolio, session) {
+    ## Set the parameters:
+    params <- list("id"=portfolio,
+                   "format"="csv",
+                   "page_size"=-1)
+
+    as.data.frame(getResource("portfolios", params=params, session=session))
+}
+
+
+##' This function gets the investments for a portfolio.
+##'
+##' This is the description
+##'
+##' @param portfolio The portfolio id.
+##' @param session The rdecaf session.
+##' @return A data frame with the portfolio's investment trades.
+##' @export
+getInvestments <- function(portfolio, session) {
+    ## Set the parameters:
+    params <- list("accmain__portfolio"=portfolio,
+                   "ctype"="35",
+                   "format"="csv",
+                   "page_size"=-1)
+
+    as.data.frame(getResource("trades", params=params, session=session))
+
+}
+
+
+##' This function gets the external valuations for a portfolio.
+##'
+##' This is the description
+##'
+##' @param portfolio The portfolio id.
+##' @param session The rdecaf session.
+##' @return A data frame with the portfolio's external valuations.
+##' @export
+getExternalValuation <- function(portfolio, session) {
+    params <- list("page_size"=-1, "format"="csv", "portfolio"=portfolio)
+    data.frame(getResource("externalvaluations", params=params, session=session))
+}
+
+
+##' This function gets the pconsolidations for a portfolio.
+##'
+##' This is the description
+##'
+##' @param portfolio The portfolio id.
+##' @param session The rdecaf session.
+##' @return A list with the pconsolidations for the portfolio.
+##' @export
+getPconsolidation <- function(portfolio, session) {
+    ## Set the parameters:
+    params <- list("portfolio"=portfolio,
+                   "shareclass__isnull"="False",
+                   "page_size"=-1)
+
+    ## Get the report:
+    report <- getResource("pconsolidations", params=params, session=session)
+
+}
+
+##' This function gets the partial journal entries for a specific account id.
+##'
+##' This is the description
+##'
+##' @param id The account id.
+##' @param session The rdecaf session.
+##' @return A data frame with the partial journal entries.
+##' @export
+getPJournalsByAccount <- function(id, session) {
+    ## Set the parameters:
+    params <- list("accmain"=id,
+                   "ctype"="300",
+                   "format"="csv",
+                   "page_size"=-1)
+
+    as.data.frame(getResource("trades", params=params, session=session))
+
+}
+
+
+##' This function executes a job give a portfolio id and pools the result until finished.
+##'
+##' This is the description
+##'
+##' @param id The portfolio id.
+##' @param session The rdecaf session.
+##' @param maxWait The maximum waiting time in seconds.
+##' @return NULL
+##' @export
+executeValuationAndPool <- function(id, session, maxWait=900) {
+
+    ## Post the horses job for portfolio:
+    job <- getResource(paste0("jobs/valuations/portfolios/", id), session=session)
+
+    ## Assign the state of the job:
+    state <- job[["state"]]
+
+    ## Get the job id:
+    jobID <- job[["id"]]
+
+    ## Total time waited for horses:
+    timeWaited <- 0
+
+    ## If state still Pending, wait another 3 seconds:
+    while (state == "PENDING" & timeWaited < maxWait) {
+
+        Sys.sleep(3)
+
+        job <- getResource(paste0("jobs/", jobID), session=session)
+
+        state <- job[["state"]]
+        timeWaited <- timeWaited + 3
+
+        print(paste0("Elapsed time: ", timeWaited, " secs. Still Waiting ..."))
+
+    }
+}
+
+
 ##' This function creates a ficticious PnL account and settles the Future pnl T-1
 ##'
 ##' This is the description

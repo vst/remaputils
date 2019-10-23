@@ -212,7 +212,7 @@ getFutureExpiry <- function(bbgticker, weekday="Friday", nthWeekday=3){
     tickerYear <- as.numeric(substr(bbgticker, nLoc, nLoc))
 
     ## Add a decade of the ticker's decade year is smaller than current decades year:
-    if (tickerYear > as.numeric(substr(Sys.Date(), 4,4))) {
+    if (tickerYear < as.numeric(substr(Sys.Date(), 4, 4))) {
         decade <- decade + 10
     }
 

@@ -178,7 +178,7 @@ getFutureExpiry <- function(bbgticker, weekday="Friday", nthWeekday=3){
 
         ## Ticker for active instruments follow the convention of single digit year, therefore
         ## the year is indicated as an integer from 1 to 9 in ticker.
-        pos  <- unlist(sapply(seq(1, 9, 1), function(n) gregexpr(as.character(n), bbgticker)))
+        pos  <- unlist(sapply(0:9, function(n) gregexpr(as.character(n), bbgticker)))
 
         ## Identify the location of the matching integer:
         nLoc <- pos[which(pos != -1)]
@@ -189,7 +189,7 @@ getFutureExpiry <- function(bbgticker, weekday="Friday", nthWeekday=3){
 
         ## Ticker for active instruments follow the convention of single digit year, therefore
         ## the year is indicated as an integer from 1 to 9 in ticker.
-        nLoc <- sapply(seq(1, 9, 1), function(n) unlist(lapply(gregexpr(as.character(n), bbgticker), function(x) x[1])))
+        nLoc <- sapply(0:9, function(n) unlist(lapply(gregexpr(as.character(n), bbgticker), function(x) x[1])))
 
         ## Set unmatched characters to Inf:
         nLoc[nLoc == -1] <- Inf
@@ -207,6 +207,16 @@ getFutureExpiry <- function(bbgticker, weekday="Friday", nthWeekday=3){
     ## Compute the year. The convention of single digit year indication requires an
     ## inference of the start of the current decade.
     decade <- as.numeric(paste0(substr(Sys.Date(), 1, 3), "0"))
+
+    ## Get the tickers year in decade:
+    tickerYear <- as.numeric(substr(bbgticker, nLoc, nLoc))
+
+    ## Add a decade of the ticker's decade year is smaller than current decades year:
+    if (tickerYear > as.numeric(substr(Sys.Date(), 4,4))) {
+        decade <- decade + 10
+    }
+
+    ## Compute the year in full digits:
     year <- decade + as.numeric(substr(bbgticker, nLoc, nLoc))
 
     ## Construct the year month %Y%m:

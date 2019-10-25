@@ -155,9 +155,10 @@ performancePreemble <- function(perfMeta, session) {
 ##' @param x The data frame with following columns: "perfFeeTotal", "resmain", "pacc", "sc".
 ##' @param session The rdecaf session.
 ##' @param aTypeName The name of the analytical type.
+##' @param isAuto Flag to set the record to AUTO. Default is FALSE.
 ##' @return NULL
 ##' @export
-performanceFeeAccountant <- function(x, session, aTypeName="Performance Fees") {
+performanceFeeAccountant <- function(x, session, aTypeName="Performance Fees", isAuto=FALSE) {
 
     ## Compute the qtymain (i.e difference of total liabilities)
     qtymain <- as.numeric(diff(x[, "perfFeeTotal"]))
@@ -172,7 +173,7 @@ performanceFeeAccountant <- function(x, session, aTypeName="Performance Fees") {
                           "accmain"=as.numeric(x[, "pacc"]),
                           "ctype"=300,
                           "atype"=paste0("dcf:analyticaltype?name=", aTypeName),
-                          "is_auto"=TRUE,
+                          "is_auto"=isAuto,
                           "shrcls"=as.numeric(x[, "sc"])[1],
                           "notes"="AUTO-PJE:Performance",
                           "pxmain"=1,

@@ -65,6 +65,9 @@ dbRemapCountryTreater <- function(countries, countrymaps) {
     ## Write the correct country name:
     countries[!is.na(flatMatch)] <- unlist(countryMap[flatMatch[!is.na(flatMatch)], "name"])
 
+    ##:
+    countries <- ifelse(is.na(countries), "Notavailable", countries)
+
     ## Capitalise country names:
     capitalised <- capitalise(countries)
 

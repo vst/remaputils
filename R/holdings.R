@@ -266,6 +266,10 @@ getFlatHoldings <- function(x, charLimit=30){
                              ifelse(h[, "QTY"] > 0, 1, -1) * (h[, "PX Val (Ref)"] / h[, "PX Inv (Ref)"] - 1),
                              h[, "PnL (%Inv)"])
 
+        h[, "PnL (%Inv)"] <- ifelse(h[, "Type"] == "FX Forward",
+                                    h[, "PnL (Unrl)"] / abs(h[, "Exposure"]),
+                                    h[, "PnL (%Inv)"])
+
         ## Return:
         return(h)
 

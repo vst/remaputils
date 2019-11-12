@@ -385,6 +385,12 @@ getPerformance <- function(portfolio, start, end, freq="daily", session) {
                    "end"=end,
                    "frequency"=freq)
 
+    ## Construct the params:
+    params <- list("portfolios"=portfolio,
+                   "start"=dateOfPeriod("Y-0"),
+                   "end"=end,
+                   "frequency"=freq)
+
 
     print(paste0("Retrieving performance data for portfolio: ", portfolio))
 
@@ -412,10 +418,10 @@ getPerformance <- function(portfolio, start, end, freq="daily", session) {
     series <- xts::as.xts(unlist(performance[["indexed"]][["data"]]),
                           order.by=as.Date(unlist(performance[["indexed"]][["index"]])))
 
-    if (all(series == 1)) {
-        return(list("series"=NA,
-                    "stats"=auxfun()))
-    }
+    ## if (all(series == 1)) {
+    ##     return(list("series"=NA,
+    ##                 "stats"=auxfun()))
+    ## }
 
     ## Get the stats:
     stats <- t(safeRbind(lapply(performance[["statistics"]][["univariate"]][["portfolios"]][[1]][["stats"]], function(x) do.call(cbind, x[["stats"]]))))

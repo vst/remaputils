@@ -4,8 +4,8 @@
 \alias{getAssetReturns}
 \title{Provides the asset returns MTD and YTD including FX returns}
 \usage{
-getAssetReturns(date, ccy, resources, periods, returnOnly, excludeWeekends,
-  session)
+getAssetReturns(date, ccy, resources, priceField = "ohlcID", periods,
+  returnOnly, excludeWeekends, session)
 }
 \arguments{
 \item{date}{The date of consideration.}
@@ -13,6 +13,8 @@ getAssetReturns(date, ccy, resources, periods, returnOnly, excludeWeekends,
 \item{ccy}{The portfolio currency.}
 
 \item{resources}{The resource data frame.}
+
+\item{priceField}{The name of the price field in resources.}
 
 \item{periods}{A vector with periods: c('DTD', 'WTD', 'MTD', 'QTD', 'YTD').}
 

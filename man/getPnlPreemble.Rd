@@ -4,8 +4,8 @@
 \alias{getPnlPreemble}
 \title{A function to provide the pnl preemble.}
 \usage{
-getPnlPreemble(posBeg, posEnd, resources, quants, trades, portfolio,
-  session)
+getPnlPreemble(posBeg, posEnd, resources, quants, trades, portfolio, fxobs,
+  ccy, session)
 }
 \arguments{
 \item{posBeg}{The beginning period positions from getFlatHoldings.}
@@ -19,6 +19,10 @@ getPnlPreemble(posBeg, posEnd, resources, quants, trades, portfolio,
 \item{trades}{The trades data frame.}
 
 \item{portfolio}{The portfolio id.}
+
+\item{fxobs}{The fx rates.}
+
+\item{ccy}{The portfolio currency.}
 
 \item{session}{The rdecaf session.}
 }

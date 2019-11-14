@@ -1,3 +1,265 @@
+##' This function computes the ytd monthly returns using the pconsolidation's internal navs.
+##'
+##' @param holdings The holdings data frame from getFlatHoldings.
+##' @param ccy The portfolio currency.
+##' @return The fx forward hedge adjusted currency exposure
+##' @export
+##'
+computeCurrencyExposure <- function(holdings, ccy) {
+
+    ## Get the FX Forwards holdings:
+    fxfwd <- holdings[holdings[, "Type"] == "FX Forward", ]
+
+    ## Get the non FX Forward holdings:
+    holds <- holdings[holdings[, "Type"] != "FX Forward", ]
+
+    ## Aggregate exposure by currency:
+    aggs <- aggregate(as.numeric(holds[, "Exposure"]), list(holds[, "CCY"]), sum)
+
+    ## Compute the percentages:
+    aggs[,2] <- aggs[,2] / sum(holds[, "Exposure"])
+
+    ## If no FX Forward holding, create a ficitios data frame:
+    if (NROW(fxfwd) == 0) {
+        fxAgg <- data.frame("1"="HEBELE", "2"=0)
+    } else {
+        ## If FX Forward holdings exists, compute it's exposure:
+        fxfwd[, "expPer"] <- (fxfwd[, "Exposure"] - fxfwd[, "Value"]) / sum(holds[, "Exposure"])
+
+        ## Aggregate fx forward exposure by currency:
+        fxAgg <- aggregate(fxfwd[, "expPer"], list(fxfwd[, "CCY"]), sum)
+    }
+
+    ## Compute the addjustment based on fx fowards aggregates:
+    aggs[, "adj"] <- fxAgg[match(aggs[,1], fxAgg[,1]), 2]
+
+    ## Set NA's to 0:
+    aggs[, "adj"] <- ifelse(is.na(aggs[, "adj"]), 0, aggs[, "adj"])
+
+    ## Match the currencies with the portfolio currency:
+    xMatch <- match(ccy, aggs[,1])
+
+    ## If no matching currency, assume no hedge of FX Forward:
+    if (all(is.na(xMatch))) {
+        aggs[, "adj"] <- 0
+    } else {
+        ## If match, compute the adjustment to exposure to the FX Forward hedge:
+        aggs[xMatch, "adj"] <- sum(fxAgg[, 2]) * -1
+    }
+
+    ## Compute the final exposure:
+    aggs[, "final"] <- aggs[,2] + aggs[, 3]
+
+        ## Prepare and parse the table:
+    ccyExp <- data.frame("Currency"=aggs[,1], "Exposure"=percentify(aggs[, "final"]))
+    ccyExp <- ccyExp[ccyExp[,2] != "0 %", ]
+    ccyExp <- ccyExp[ccyExp[,1] != "XAU", ]
+    ccyExp <- ccyExp[ccyExp[,1] != "XAG", ]
+    ccyExp <- ccyExp[ccyExp[,1] != "XPT", ]
+
+    ## Set the column to NULL:
+    colnames(ccyExp) <- NULL
+    ## Set the rows to NULL:
+    rownames(ccyExp) <- NULL
+
+    ## Done, return:
+    ccyExp
+
+}
+
+
+##' This function computes the ytd monthly returns using the pconsolidation's internal navs.
+##'
+##' @param intPrice The internal price series.
+##' @param date The date of the report.
+##' @param session The rdecaf session.
+##' @return A list with the return objects.
+##' @export
+##'
+getInternalMonthlyReturns <- function(intPrice, date, session) {
+
+    ## The start date:
+    startDate <- dateOfPeriod("Y-0", date)
+
+    ## Get the month period dates:
+    monthlyDates <- periodDates("M", date=date)
+
+    ## Filter out dates earlier than the start date:
+    monthlyDates <- monthlyDates[monthlyDates >= startDate]
+
+    ## XTS the internal price:
+    intPrice <- xts::as.xts(intPrice[, "price"], order.by=as.Date(intPrice[, "date"]))
+
+    ## Filter in relevant dates:
+    intPrice <- intPrice[zoo::index(intPrice) >= startDate, ]
+
+    ## If the internal price start date is later than the period start date,
+    ## create sequence till internal start date:
+    if (zoo::index(intPrice)[1] > dateOfPeriod("Y-0")) {
+
+        ## Create the date series to be appended:
+        new <- seq(dateOfPeriod("Y-0"), zoo::index(intPrice)[1], 1)
+
+        ## Remove last date:
+        new <- new[-length(new)]
+
+        ## Append the additional dates and prices:
+        intPrice <- rbind(xts::as.xts(rep(100, length(new)), order.by=new), intPrice)
+
+    }
+
+    ## Get the internal returns:
+    returns <- diff(log(intPrice))
+
+    ## Set NA returns to 0:
+    returns[is.na(returns)] <- 0
+
+    ## Append periodic column:
+    returns <- cbind("internal"=returns, "periodic"=0)
+
+    ## Get the dates to be handled:
+    months <- unique(c(monthlyDates, date))
+
+    ## Fill the missing ohlc returns with internal monthly returns:
+    for (i in 1:(length(months)-1)) {
+        mIdx <- which(zoo::index(returns) == months[i+1])
+        nIdx <- which(zoo::index(returns) == months[i])
+        returns[mIdx, "periodic"] <- sum(returns[(mIdx):(nIdx+1), "internal"])
+    }
+
+    ## Compute the cumulative returns:
+    returns <- cbind(returns, "cumrets"=cumsum(as.numeric(returns[, "periodic"])))
+
+    ## Initialse the Monthly table:
+    df <- initDF(c("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"))
+
+    ## Compute the monthly returns:
+    mrets <- as.numeric(xts::apply.monthly(returns[, "periodic"], sum))[-1]
+
+    ## Assign monthly returns to the monthly table:
+    df[1:length(mrets)] <- mrets
+
+    ## Parse the monthly returns:
+    monthlyrets <- t(data.frame(paste0(sprintf("%.2f", df*100), " %")))
+
+    ## Remove strings:
+    monthlyrets[monthlyrets=="NA %"] <- "   "
+
+    ## Rename columns:
+    colnames(monthlyrets) <- colnames(df)
+    rownames(monthlyrets) <- NULL
+
+    ## Done, return:
+    list("mretsRaw"=df,
+         "mretsTable"=monthlyrets,
+         "ytdRaw"=sum(mrets),
+         "ytdPrint"=percentify(sum(mrets), 2),
+         "returns"=returns)
+}
+
+
+##' This function removes NA's and optionally detects and remove outliers.
+##'
+##' @param df The data frame with the price and date columns.
+##' @param dCol The column name of the date.
+##' @param pCol The column name of the price.
+##' @param quantile The quantile for the outlier detection
+##' @param surpressPlot TODO
+##' @return Cleaned price series
+##' @import tseries
+##' @export
+##'
+treatPriceSeries <- function(df, dCol, pCol, quantile=0.998, surpressPlot=FALSE){
+
+    ## Return NULL if df is NULL:
+    if (is.null(df)) {
+        return(df)
+    }
+
+    ## Return NULL if not enought observations:
+    if (NROW(df) < 5) {
+        return(df)
+    }
+
+    ## Ensure price column is numeric:
+    df[, pCol] <- as.numeric(df[, pCol])
+
+    ## Ensure no zeros:
+    df[df[, "close"] == 0, "close"] <- 0.00001
+
+    ## Remove NA's and replace with last observable value:
+    price <- xts::as.xts(df[, pCol], order.by=as.Date(df[, dCol]))
+
+    ## Store the orignal NA removed series:
+    originalPrice <- price
+
+    ## Compute the original returns using the simple method:
+    originalRets <- as.numeric(timeSeries::returns(price, "simple"))
+
+    ## Replace NA for first observations with the mean return:
+    originalRets[is.na(originalRets)] <- 0
+
+    ## Compute the returns for our analysis using compoung method:
+    rets  <- as.numeric(timeSeries::returns(price, "compound"))
+
+    ## Replace NA for first observations with the mean return:
+    ## rets[is.na(rets)]  <- as.numeric(mean(na.omit(rets)))
+    rets[is.na(rets)]  <- 0
+
+    ## Create the GARCH(1,1) object using fixed a0, a1, b1 parameters:
+    garchObj <- list("order"=c("p"=1, "q"=1),
+                     "residuals"=rets*100,
+                     "call"=call("garch", x=rets, order = c(1, 1)),
+                     "coef"=c("a0"=0, "a1"=0.08, "b1"=0.90),
+                     "series"=as.character("rets"))
+
+    ## Assign the GARCH class:
+    class(garchObj) <- "garch"
+
+    ## library(tseries)
+
+    ## Fit the GARCH object to the returns and get the estimated conditional volatility:
+    fittedGarch <- predict(garchObj, rets)[,1]
+
+    ## First estimate will be our square-root of squared return:
+    fittedGarch[1] <- sqrt(rets[1]^2)
+
+    ## Compute the residuals, squared returns less the estimated variance:
+    residuals <- rets^2 - fittedGarch^2
+
+    ## Compute the density of the residuals:
+    resDensity <- density(residuals)
+
+    ## Sample the residuals using the density bandwidth parameter:
+    resDraw <- rnorm(100000, sample(as.numeric(residuals), size = 100000, replace = TRUE), resDensity$bw)
+
+    ## Calculate the cut-off residuals using quantile parameter:
+    cutOff <- quantile(resDraw, quantile)
+
+    ## Get the index of outliers:
+    outlierIndex  <- which(residuals^2 > cutOff)
+
+    ## Set original return outlier index to zero:
+    originalRets[outlierIndex] <- 0
+
+    ## Reconstruct the price series:
+    price <- xts::as.xts(cumprod(1 + originalRets) * as.numeric(originalPrice[1]), order.by=zoo::index(originalPrice))
+
+    if (surpressPlot == FALSE) {
+        ## Run the outlier plot:
+        outlierPlot(originalPrice, price, outlierIndex)
+        readline(prompt = "Pause. Press <Enter> to continue...")
+        dev.off()
+    }
+
+    ## Reassign the treated price series:
+    df[, pCol] <- as.numeric(price)[match(df[, dCol], zoo::index(price))]
+
+    ## Done, return:
+    df
+}
+
+
 ##' A function to prepare a data frame with all positions by ctype and holding period
 ##'
 ##' This is the description
@@ -18,15 +280,15 @@ getOpenPositionByCtype <- function(ctype, resources, portfolios, accounts, sessi
     ctypeTrades <- lapply(ctypeResources[, "id"], function(id) as.data.frame(getResource("trades", params=list(format="csv", page_size=-1, resmain=id), session=.SESSION)))
 
     ## Extract each future trade by account:
-    openPositionData <- do.call(rbind, lapply(ctypeTrades, function(f) {
+    openPositionData <- do.call(rbind, lapply(ctypeTrades, function(ctypeTrade) {
 
         ## If no trade by account, return NULL:
-        if (NROW(f) == 0){
+        if (NROW(ctypeTrade) == 0){
             return(NULL)
         }
 
         ## For each future, extract trades by account and prepare open future position data:
-        do.call(rbind, lapply(extractToList(f, "accmain"), function(x) {
+        do.call(rbind, lapply(extractToList(ctypeTrade, "accmain"), function(x) {
 
             ## Order trades data frame by commitment:
             x <- x[order(x[, "commitment"]), ]
@@ -288,7 +550,6 @@ exfoliateSeries <- function(series, anchors) {
 }
 
 
-
 ##' Provides the asset returns MTD and YTD including FX returns
 ##'
 ##' This is the description
@@ -296,16 +557,19 @@ exfoliateSeries <- function(series, anchors) {
 ##' @param date The date of consideration.
 ##' @param ccy The portfolio currency.
 ##' @param resources The resource data frame.
+##' @param priceField The name of the price field in resources.
 ##' @param periods A vector with periods: c('DTD', 'WTD', 'MTD', 'QTD', 'YTD').
 ##' @param returnOnly Consider only Total Return?
 ##' @param excludeWeekends Should the weekends be excluded? Default to TRUE.
 ##' @param session The rdecaf session.
 ##' @return A data frame with the asset returns.
 ##' @export
-getAssetReturns <- function(date, ccy, resources, periods, returnOnly, excludeWeekends, session) {
+getAssetReturns <- function(date, ccy, resources, priceField="ohlcID", periods, returnOnly, excludeWeekends, session) {
 
     ## Get the slices ohlcs:
-    slicedOhlcs <- getSlicedOhlcs(resources[, "ohlcID"], session, date, periods, excludeWeekends)
+    slicedOhlcs <- getSlicedOhlcs(resources[, priceField], session, date, periods, excludeWeekends)
+
+    slicedOhlcs <- lapply(slicedOhlcs, function(x) lapply(x, function(z) treatPriceSeries(z, "date", "close", quantile=0.998, surpressPlot=TRUE)))
 
     ## Get the returns:
     returnStats <- lapply(slicedOhlcs, function(s) do.call(rbind, lapply(s, function(y) computeReturnStats(y, "close", "date", method="discrete", returnOnly=returnOnly))))
@@ -335,8 +599,40 @@ getAssetReturns <- function(date, ccy, resources, periods, returnOnly, excludeWe
     ## Name the list:
     names(returnStats) <- periods
 
+    ## Get the last available price dates:
+    lastPxDate <- do.call(rbind, lapply(slicedOhlcs, function(x) do.call(rbind, lapply(1:length(x), function(i) {
+
+        ## If Null, return very early date:
+        if (is.null(x[[i]])) {
+            return(data.frame("Last PX Dt"=as.character("1990-01-01"),
+                              "Symbol"=names(x)[i],
+                              check.names=FALSE))
+        }
+
+        ## Append:
+        data.frame("Last PX Dt"=as.character(max(x[[i]][, "date"][x[[i]][, "date"] <= date])),
+                   "Symbol"=x[[i]][1, "symbol"],
+                   check.names=FALSE)
+    }))))
+
+    ## Aggregate the dates by 'max':
+    lastPxDate <- aggregate(as.Date(lastPxDate[, "Last PX Dt"]), list(lastPxDate[, "Symbol"]), max)
+
+    ## Append the column names:
+    colnames(lastPxDate) <- c("symbol", "date")
+
+    ## Append last available price dates to the main return stats
+    returnStats <- lapply(returnStats, function(x) data.frame(x,
+                                                              "lastPxDate"=lastPxDate[match(rownames(x), lastPxDate[, "symbol"]), "date"],
+                                                              check.names=FALSE,
+                                                              stringsAsFactors=FALSE))
+
     ## Done, return
-    returnStats
+    return(list("returnStats"=returnStats,
+                "posObs"=slicedOhlcs,
+                "fxObs"=slicedFX,
+                "lastPxDate"=lastPxDate))
+
 
 }
 

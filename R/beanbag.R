@@ -325,7 +325,6 @@ beanbagNAVTable <- function (x, inception, pxinfo) {
                paste0("NAV (", x[["date"]], ")"),
                paste0("GAV (", x[["date"]], ")"),
                paste0("NAV (", x[["previousDate"]], ")"),
-               ##"Change",
                "#Shares",
                "ISIN",
                "NAV/Share",
@@ -340,7 +339,7 @@ beanbagNAVTable <- function (x, inception, pxinfo) {
                paste0(beautify(x[["previousNAV"]]), " ", x[["ccy"]]),
                paste(pxinfo[, "noshares"], collapse = ", "),
                paste(pxinfo[, "isin"], collapse = ", "),
-               x[["navshare"]],
+               safeNull(x[["navshare"]]),
                safeNull(sapply(pxinfo[,"ytdext"], function(x) ifelse(is.na(x), NA, percentify(x)))))
 
     ## Make the data frame:

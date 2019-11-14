@@ -8,16 +8,26 @@
 ##' @param quants The quants data frame.
 ##' @param trades The trades data frame.
 ##' @param portfolio The portfolio id.
+##' @param fxobs The fx rates.
+##' @param ccy The portfolio currency.
 ##' @param session The rdecaf session.
 ##' @return A list with the pnl preemble.
 ##' @export
-getPnlPreemble <- function(posBeg, posEnd, resources, quants, trades, portfolio, session) {
+getPnlPreemble <- function(posBeg, posEnd, resources, quants, trades, portfolio, fxobs, ccy, session) {
 
     ## Filter the quants:
     quants <- quants[quants[, "ctype"] != 700, ]
 
     ## Filter the trades:
     trades <- trades[trades[, "ctype"] != 300, ]
+
+    if (NROW(quants) == 0) {
+        quants <- initDF(colnames(quants))
+    }
+
+    if (NROW(trades) == 0) {
+        trades <- initDF(colnames(trades))
+    }
 
     ## Append the trade resources for each quant:
     quants <- data.frame(quants, trades[match(quants[, "trade"], trades[, "id"]), c("resmain", "resaltn", "resundr")])
@@ -63,6 +73,25 @@ getPnlPreemble <- function(posBeg, posEnd, resources, quants, trades, portfolio,
 
     ## Append the resource quantity:
     quants[, "resqty"] <- resources[match(quants[, "qRes"], resources[, "id"]), "quantity"]
+
+    ## Append the currency pair:
+    quants[, "fx"] <- paste0(resources[match(quants[, "symbol"], resources[, "symbol"]), "ccymain"], ccy)
+
+    matchedFX <- fxobs[match(quants[, "fx"], names(fxobs))]
+
+    quants[, "fxrate"] <- do.call(c, lapply(1:NROW(quants), function(i) {
+
+        matchedDates <- match(quants[i, "date"], matchedFX[[i]][, "date"])
+
+        if (is.na(matchedDates)) {
+            return(1)
+        }
+
+        matchedFX[[i]][matchedDates, "close"]
+    }))
+
+    quants[, "valamt(org)"] <- quants[, "valamt"]
+    quants[, "valamt"] <- quants[, "valamt"] * quants[, "fxrate"]
 
     return(list("extendedQuants"=quants,
                 "extendedPosBeg"=posBeg,
@@ -325,10 +354,12 @@ extendPositionByClosedQuants <- function(quants, positions, resources) {
 ##' @export
 computePnL <- function(quantContext) {
 
+    ## If no context is provided, return NULL:
     if (length(quantContext) == 0) {
         return(NULL)
     }
 
+    ## HEBELE:
     retval <- lapply(1:NROW(quantContext), function(row) {
 
         story <- quantContext[[row]]
@@ -392,10 +423,14 @@ computePnL <- function(quantContext) {
         }
 
 
-        unrlsd <- as.numeric(story[NROW(story), "valamt"])-as.numeric(story[NROW(story), "PNL::CumInv"])
+        unrlsd <- as.numeric(story[NROW(story), "valamt"]) - as.numeric(story[NROW(story), "PNL::CumInv"])
+
         realsd <- sum(as.numeric(story[, "PNL::Real"]))
+
         income <- sum(as.numeric(story[, "PNL::Income"]))
+
         tofees <- sum(as.numeric(story[, "PNL::Fees"]))
+
         total <- unrlsd + realsd + income + tofees
 
         story <- list("PnLs"=story,

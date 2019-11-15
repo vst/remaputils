@@ -4,12 +4,22 @@
 ##'
 ##' @param perfMeta A list with the performance fee meta data.
 ##' @param session The rdecaf session.
+##' @param useExternal Should the external valuation table be used?
 ##' @return A xts data frame with the performance fee preemble.
 ##' @export
-performancePreemble <- function(perfMeta, session) {
+performancePreemble <- function(perfMeta, session, useExternal=FALSE) {
+
+    getPJournalsByAccount <- function (id, session) {
+        params <- list(account= id, format = "csv", page_size = -1)
+        as.data.frame(getResource("quants", params = params, session = session))
+    }
 
     ## Get the partial journal entries of the performance fee accounts:
     pjournals <- getPJournalsByAccount(perfMeta[["accid"]], session)
+
+    if (NROW(pjournals) > 0) {
+        pjournals <- pjournals[pjournals[, "ctype"] == 700, ]
+    }
 
     ## Get portfolio report:
     pconsol <- getPconsolidation(perfMeta[["portid"]], session)
@@ -24,8 +34,12 @@ performancePreemble <- function(perfMeta, session) {
     scTs <- scTs[scTs[, "sclass"] == perfMeta[["scid"]], ]
 
     ## Get the external valuation for shareclass:
-    extvaluation <- getExternalValuation(perfMeta[["portid"]], session)
-    extvaluation <- extvaluation[extvaluation[, "shareclass"] == perfMeta[["scid"]], ]
+    if (useExternal) {
+        extvaluation <- getExternalValuation(perfMeta[["portid"]], session)
+        if (NROW(extvaluation) != 0) {
+            extvaluation <- extvaluation[extvaluation[, "shareclass"] == perfMeta[["scid"]], ]
+        }
+    }
 
     ## Get the investments for shareclass:
     investments <- getInvestments(perfMeta[["portid"]], session)
@@ -49,9 +63,9 @@ performancePreemble <- function(perfMeta, session) {
 
     ## Aggregate (sum) journal values by date and xtsify:
     pJournal <- aggregateAndXTSify("x"=pjournals,
-                                   "aggColumn"="qtymain",
-                                   "aggBy"="commitment",
-                                   "fallbackDate"=zoo::index(scTsXts)[1])
+                                    "aggColumn"="quantity",
+                                    "aggBy"="commitment",
+                                    "fallbackDate"=zoo::index(scTsXts)[1])
 
     ## Append the cumulative partial journal entries:
     scTsXts <- cbind(scTsXts, "pjr"=cumsum(pJournal))
@@ -64,21 +78,25 @@ performancePreemble <- function(perfMeta, session) {
 
     ## Get the subscriptions for shareclass:
     scSubs <- subscriptions[subscriptions[, "shrcls"] == as.numeric(scTsXts[1, "sc"]), ]
+    scSubs <- cbind(scSubs, "noshares"=scSubs[, "qtymain"] / scSubs[, "pxnavs"])
 
     ## Get the redemptions for shareclass:
     scRedm <- redemptions[redemptions[, "shrcls"] == as.numeric(scTsXts[1, "sc"]), ]
+    scRedm <- cbind(scRedm, "noshares"=scRedm[, "qtymain"] / scRedm[, "pxnavs"])
 
     ## Aggregate (sum) subscriptions by date and xtsify:
+    scSubsShrs <- aggregateAndXTSify(scSubs, "aggColumn"="noshares", "aggBy"="commitment","fallbackDate"=zoo::index(scTsXts)[1])
     scSubs <- aggregateAndXTSify(scSubs, "aggColumn"="qtymain", "aggBy"="commitment","fallbackDate"=zoo::index(scTsXts)[1])
 
     ## Aggregate (sum) redemptions by date and xtsify:
+    scRedmShrs <- aggregateAndXTSify(scRedm, "aggColumn"="noshares", "aggBy"="commitment","fallbackDate"=zoo::index(scTsXts)[1])
     scRedm <- aggregateAndXTSify(scRedm, "aggColumn"="qtymain", "aggBy"="commitment","fallbackDate"=zoo::index(scTsXts)[1])
 
     ## XTSify subscriptions and append:
-    scTsXts <- cbind(scTsXts, "subs"=scSubs)
+    scTsXts <- cbind(scTsXts, "subs"=scSubs, "subsShrs"=scSubsShrs)
 
     ## XTSify redemptions and append:
-    scTsXts <- cbind(scTsXts, "redm"=scRedm)
+    scTsXts <- cbind(scTsXts, "redm"=scRedm, "redmShrs"=scRedmShrs)
 
     ## Trim the time series:
     scTsXts <- scTsXts[which(!is.na(scTsXts[, "subs"]))[1]:NROW(scTsXts), ]
@@ -86,16 +104,15 @@ performancePreemble <- function(perfMeta, session) {
     ## XTSify benchmark and append:
     scTsXts <- cbind(scTsXts, "benchmark"=benchmark[zoo::index(benchmark) >= zoo::index(scTsXts)[1], ])
 
-    ## If no external valuation, mask:
-    if (NROW(extvaluation) == 0) {
-        scextval <- data.frame("nav"=NA, "date"=zoo::index(scTsXts)[1])
+    if (useExternal) {
+        ## If no external valuation, mask:
+        if (NROW(extvaluation) == 0) {
+            scextval <- data.frame("nav"=NA, "date"=zoo::index(scTsXts)[1])
+        } else {
+            ## Get the external valuation for shareclass:
+            scextval <- extvaluation[extvaluation[, "shareclass"] == as.numeric(scTsXts[1, "sc"]), ]
+        }
     } else {
-        ## Get the external valuation for shareclass:
-        scextval <- extvaluation[extvaluation[, "shareclass"] == as.numeric(scTsXts[1, "sc"]), ]
-    }
-
-    ## If no external valuation, mask:
-    if (NROW(scextval) == 0) {
         scextval <- data.frame("nav"=NA, "date"=zoo::index(scTsXts)[1])
     }
 
@@ -120,9 +137,12 @@ performancePreemble <- function(perfMeta, session) {
 
     ## Set NA subscriptions to 0:
     scTsXts[is.na(scTsXts[, "subs"]), "subs"] <- 0
-
     ## Set NA redemptions to 0:
     scTsXts[is.na(scTsXts[, "redm"]), "redm"] <- 0
+    ## Set NA subscriptions to 0:
+    scTsXts[is.na(scTsXts[, "subsShrs"]), "subsShrs"] <- 0
+    ## Set NA redemptions to 0:
+    scTsXts[is.na(scTsXts[, "redmShrs"]), "redmShrs"] <- 0
 
     ## Get stichted nav and append:
     scTsXts <- cbind(scTsXts, "navS"=as.numeric(ifelse(is.na(scTsXts[, "navE"]), scTsXts[, "nav"], scTsXts[, "navE"])))
@@ -146,7 +166,6 @@ performancePreemble <- function(perfMeta, session) {
     return(scTsXts)
 
 }
-
 
 ##' This function prepares the payload and syncs the PJE's to the performance fee account.
 ##'

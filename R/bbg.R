@@ -144,7 +144,11 @@ referenceFieldRequestBuilder <- function(resources, bbgFields, forceAux=FALSE) {
         referenceFlds[["id"]] <- referenceFlds[["id"]][requestableResrcs, ]
 
         ## Filter in resources for which we need to request data:
-        referenceFlds[["fld"]] <- data.frame(referenceFlds[["fld"]][requestableResrcs, ], check.names=FALSE)
+        if (sum(requestableResrcs) == 1) {
+            referenceFlds[["fld"]] <- data.frame(t(referenceFlds[["fld"]][requestableResrcs, ]), check.names = FALSE)
+        } else {
+            referenceFlds[["fld"]] <- data.frame(referenceFlds[["fld"]][requestableResrcs, ], check.names = FALSE)
+        }
 
         ## Filter in fields for which we need to request data:
         referenceFlds[["fld"]] <- data.frame(referenceFlds[["fld"]][, requestableFields], check.names=FALSE)

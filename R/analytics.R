@@ -2,13 +2,17 @@
 ##'
 ##' @param holdings The holdings data frame from getFlatHoldings.
 ##' @param ccy The portfolio currency.
+##' @param resources The resources data frame.
 ##' @return The fx forward hedge adjusted currency exposure
 ##' @export
 ##'
-computeCurrencyExposure <- function(holdings, ccy) {
+computeCurrencyExposure <- function(holdings, ccy, resources) {
 
     ## Get the FX Forwards holdings:
     fxfwd <- holdings[holdings[, "Type"] == "FX Forward", ]
+
+    ## Get the main and alternative currency of the forwards:
+    resCCYs <- resources[match(fxfwd[, "ID"], resources[, "id"]), c("ccymain", "ccyaltn")]
 
     ## Get the non FX Forward holdings:
     holds <- holdings[holdings[, "Type"] != "FX Forward", ]
@@ -21,14 +25,29 @@ computeCurrencyExposure <- function(holdings, ccy) {
 
     ## If no FX Forward holding, create a ficitios data frame:
     if (NROW(fxfwd) == 0) {
-        fxAgg <- data.frame("1"="HEBELE", "2"=0)
-    } else {
-        ## If FX Forward holdings exists, compute it's exposure:
-        fxfwd[, "expPer"] <- (fxfwd[, "Exposure"] - fxfwd[, "Value"]) / sum(holds[, "Exposure"])
+        ccyExp <- data.frame("Currency"=aggs[,1], "Exposure"=percentify(aggs[, 2]))
+        ccyExp <- ccyExp[ccyExp[,2] != "0 %", ]
+        ccyExp <- ccyExp[ccyExp[,1] != "XAU", ]
+        ccyExp <- ccyExp[ccyExp[,1] != "XAG", ]
+        ccyExp <- ccyExp[ccyExp[,1] != "XPT", ]
+        ## Set the column to NULL:
+        colnames(ccyExp) <- NULL
+        ## Set the rows to NULL:
+        rownames(ccyExp) <- NULL
 
-        ## Aggregate fx forward exposure by currency:
-        fxAgg <- aggregate(fxfwd[, "expPer"], list(fxfwd[, "CCY"]), sum)
+        return(ccyExp)
+
     }
+
+    ## Infer the non portfolio currency and append:
+    riskCCY <- lapply(1:NROW(resCCYs), function(i) resCCYs[i, is.na(match(resCCYs[i, ], ccy))])
+    fxfwd[, "XCCY"] <- sapply(riskCCY, function(x) ifelse(length(x) > 1, NA, x))
+
+    ## If FX Forward holdings exists, compute it's exposure:
+    fxfwd[, "expPer"] <- (fxfwd[, "Exposure"] - fxfwd[, "Value"]) / sum(holds[, "Exposure"])
+
+    ## Aggregate fx forward exposure by currency:
+    fxAgg <- aggregate(fxfwd[, "expPer"], list(fxfwd[, "XCCY"]), sum)
 
     ## Compute the addjustment based on fx fowards aggregates:
     aggs[, "adj"] <- fxAgg[match(aggs[,1], fxAgg[,1]), 2]
@@ -50,7 +69,7 @@ computeCurrencyExposure <- function(holdings, ccy) {
     ## Compute the final exposure:
     aggs[, "final"] <- aggs[,2] + aggs[, 3]
 
-        ## Prepare and parse the table:
+    ## Prepare and parse the table:
     ccyExp <- data.frame("Currency"=aggs[,1], "Exposure"=percentify(aggs[, "final"]))
     ccyExp <- ccyExp[ccyExp[,2] != "0 %", ]
     ccyExp <- ccyExp[ccyExp[,1] != "XAU", ]
@@ -93,6 +112,7 @@ getInternalMonthlyReturns <- function(intPrice, date, session) {
     ## Filter in relevant dates:
     intPrice <- intPrice[zoo::index(intPrice) >= startDate, ]
 
+
     ## If the internal price start date is later than the period start date,
     ## create sequence till internal start date:
     if (zoo::index(intPrice)[1] > dateOfPeriod("Y-0")) {
@@ -110,6 +130,7 @@ getInternalMonthlyReturns <- function(intPrice, date, session) {
 
     ## Get the internal returns:
     returns <- diff(log(intPrice))
+    ##returns <- xts::as.xts(as.numeric(diff(intPrice)) / c(NA, tail(as.numeric(intPrice), -1)), order.by=zoo::index(intPrice))
 
     ## Set NA returns to 0:
     returns[is.na(returns)] <- 0
@@ -124,17 +145,22 @@ getInternalMonthlyReturns <- function(intPrice, date, session) {
     for (i in 1:(length(months)-1)) {
         mIdx <- which(zoo::index(returns) == months[i+1])
         nIdx <- which(zoo::index(returns) == months[i])
-        returns[mIdx, "periodic"] <- sum(returns[(mIdx):(nIdx+1), "internal"])
+        returns[mIdx, "periodic"] <- as.numeric(tail(cumprod(1+returns[(mIdx):(nIdx+1), "internal"]) - 1, 1))
     }
 
     ## Compute the cumulative returns:
-    returns <- cbind(returns, "cumrets"=cumsum(as.numeric(returns[, "periodic"])))
+    returns <- cbind(returns, "cumrets"=cumprod(1 + as.numeric(returns[, "internal"]))-1)
 
     ## Initialse the Monthly table:
     df <- initDF(c("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"))
 
     ## Compute the monthly returns:
-    mrets <- as.numeric(xts::apply.monthly(returns[, "periodic"], sum))[-1]
+    ## mrets <- as.numeric(xts::apply.monthly(returns[, "periodic"], sum))[-1]
+    if (all(returns[, "periodic"] == 0)) {
+        mrets <- rep(NA, length(months))
+    } else {
+        mrets <- as.numeric(returns[returns[, "periodic"] != 0, "periodic"])
+    }
 
     ## Assign monthly returns to the monthly table:
     df[1:length(mrets)] <- mrets
@@ -152,8 +178,8 @@ getInternalMonthlyReturns <- function(intPrice, date, session) {
     ## Done, return:
     list("mretsRaw"=df,
          "mretsTable"=monthlyrets,
-         "ytdRaw"=sum(mrets),
-         "ytdPrint"=percentify(sum(mrets), 2),
+         "ytdRaw"=tail(cumprod(1+mrets) -1, 1),
+         "ytdPrint"=percentify(tail(cumprod(1+mrets) -1, 1),2),
          "returns"=returns)
 }
 

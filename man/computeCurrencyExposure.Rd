@@ -4,12 +4,14 @@
 \alias{computeCurrencyExposure}
 \title{This function computes the ytd monthly returns using the pconsolidation's internal navs.}
 \usage{
-computeCurrencyExposure(holdings, ccy)
+computeCurrencyExposure(holdings, ccy, resources)
 }
 \arguments{
 \item{holdings}{The holdings data frame from getFlatHoldings.}
 
 \item{ccy}{The portfolio currency.}
+
+\item{resources}{The resources data frame.}
 }
 \value{
 The fx forward hedge adjusted currency exposure

@@ -129,8 +129,8 @@ getInternalMonthlyReturns <- function(intPrice, date, session) {
     }
 
     ## Get the internal returns:
-    returns <- diff(log(intPrice))
-    ##returns <- xts::as.xts(as.numeric(diff(intPrice)) / c(NA, tail(as.numeric(intPrice), -1)), order.by=zoo::index(intPrice))
+    ## returns <- diff(log(intPrice))
+    returns <- PerformanceAnalytics::CalculateReturns(intPrice, method = c("discrete"))
 
     ## Set NA returns to 0:
     returns[is.na(returns)] <- 0
@@ -175,11 +175,14 @@ getInternalMonthlyReturns <- function(intPrice, date, session) {
     colnames(monthlyrets) <- colnames(df)
     rownames(monthlyrets) <- NULL
 
+    ## Get the YTD
+    ytd <- (as.numeric(tail(intPrice, 1)) - 100) / 100
+
     ## Done, return:
     list("mretsRaw"=df,
          "mretsTable"=monthlyrets,
-         "ytdRaw"=tail(cumprod(1+mrets) -1, 1),
-         "ytdPrint"=percentify(tail(cumprod(1+mrets) -1, 1),2),
+         "ytdRaw"=ytd,
+         "ytdPrint"=percentify(ytd, 2),
          "returns"=returns)
 }
 

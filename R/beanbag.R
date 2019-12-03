@@ -26,12 +26,10 @@ getPreviousNAV <- function(portfolio, date, ccy, period, external, session) {
                         "date"=previousDate))
         }
 
-        extVal <- extVal[!is.na(extVal[, "shareclass"]),]
-
-
-
         ## If any shareclass exists, construct NAV from shareclass sums:
         if (any(!is.na(extVal[, "shareclass"]))) {
+
+            extVal <- extVal[!is.na(extVal[, "shareclass"]),]
 
             ## Iterate over shareclasses:
             lastVals <- do.call(rbind, lapply(1:length(unique(extVal[, "shareclass"])), function(i) {

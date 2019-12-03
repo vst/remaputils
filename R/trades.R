@@ -2,6 +2,112 @@
 ##'
 ##' This is the description
 ##'
+##' @param ctype The trade ctype.
+##' @param portfolio The portfolio id.
+##' @param gte Great than date.
+##' @param session The rdecaf session.
+##' @return A data frame with the trades for desired ctype.
+##' @export
+getTradeByCtypeForPortfolio <- function(ctype, portfolio, gte=NULL, session) {
+
+    ## Construct the params:
+    params <- list("format"="csv", "page_size"=-1, "ctype"=ctype, "accmain__portfolio"=portfolio, "commitment__gte"=gte)
+
+    ## Get and return:
+    as.data.frame(getResource("trades", params=params, session=session))
+}
+
+
+##' A function to sync trades in batches
+##'
+##' This is the description
+##'
+##' @param trades The trades data frame.
+##' @param ccy The currency to convert valamt's to.
+##' @param session The rdecaf session.
+##' @return A data frame with the trades for desired ctype.
+##' @export
+getTXNsOfTrades <- function(trades, ccy=NULL, session) {
+
+    ## If trades is empty, return NULL:
+    if (NROW(trades) == 0) {
+        return(NULL)
+    }
+
+    ## Get the transaction id's:
+    txnIds <- na.omit(as.character(unlist(trades[,safeGrep(colnames(trades), "quant.") == "1"])))
+
+    ## Construct the params:
+    params <- list("page_size"=-1,
+                   "format"="csv",
+                   "id__in"=paste(txnIds, collapse=","))
+
+    ## Get and return:
+    quants <- as.data.frame(getResource("quants", params=params, session=session))
+
+    ## If ccy is null, return quants:
+    if (is.null(ccy)) {
+        return(quants)
+    }
+
+    ## Append the fx pair for the conversion:
+    quants[, "fxpair"] <- paste0(quants[, "valccy"], ccy)
+
+    ## Get the unique fx pairs and the min and max dates:
+    fxratesQ <- lapply(extractToList(quants, "fxpair"), function(x) data.frame("pair"=x[1, "fxpair"],
+                                                                               "gte"=min(x[, "commitment"]),
+                                                                               "lte"=max(x[, "commitment"]),
+                                                                               stringsAsFactors=FALSE))
+
+
+    ## Get the fx rates:
+    fxrates <- lapply(fxratesQ, function(x) getOhlcObsForSymbol("session"=session,
+                                                                "symbol"=x[, "pair"],
+                                                                "lte"=x[, "lte"],
+                                                                "lookBack"=x[, "lte"]-x[, "gte"]))
+
+
+    ## Name the fx rates:
+    names(fxrates) <- unique(quants[, "fxpair"])
+
+    ## Iterate over quant rows and apppend converted valamt's:
+    quants <- do.call(rbind, lapply(1:NROW(quants), function(i) {
+
+        ## Get the current fx pair for row:
+        cPair <- quants[i, "fxpair"]
+
+        ## Get the corresponding fx rate for row:
+        cRates <- fxrates[[cPair]]
+
+        ## Initialise the value fo the nearesth date variable:
+        vond <- list()
+
+        ## If no fx rates for row, set vond value to 1, else get the value for closest date:
+        if (NROW(cRates) == 0) {
+            vond[["value"]] <- 1
+        } else {
+            ## Get the close of the nearest date:
+            vond <- valueOfNearestDate(quants[i, "commitment"], cRates, tolerance=10, dateField="date", valueField="close", nameField=NULL)
+        }
+
+        ## Compute the net value amount in reference currency:
+        quants[i, "valamt_refccy"] <- as.numeric(quants[i, "valamt"]) * vond[["value"]] * ifelse(as.numeric(quants[i, "quantity"]) < 0, -1, 1)
+
+        ## Return the transaction/quant for row:
+        quants[i, ]
+
+    }))
+
+    ## Done, return:
+    quants
+
+}
+
+
+##' A function to sync trades in batches
+##'
+##' This is the description
+##'
 ##' @param trades The trades data frame.
 ##' @param session The DECAF session info
 ##' @param batchSize The desired batch sizes. Default=150.

@@ -26,11 +26,16 @@ getPreviousNAV <- function(portfolio, date, ccy, period, external, session) {
                         "date"=previousDate))
         }
 
+        extVal <- extVal[!is.na(extVal[, "shareclass"]),]
+
+
+
         ## If any shareclass exists, construct NAV from shareclass sums:
         if (any(!is.na(extVal[, "shareclass"]))) {
 
             ## Iterate over shareclasses:
             lastVals <- do.call(rbind, lapply(1:length(unique(extVal[, "shareclass"])), function(i) {
+
                 id <- unique(extVal[, "shareclass"])[i]
                 shrclsVals <- extVal[extVal[, "shareclass"] == id, c("date", "ccy", "nav")]
 
@@ -314,9 +319,10 @@ multicol_spec <- function(x, cols, ...) {
 ##' @param x A list with "portfolio", "ccy", "currentNAV", "previous NAV".
 ##' @param inception The launch date.
 ##' @param pxinfo The YTD Performance.
+##' @param investments The investment/transfer trades.
 ##' @return A data frame.
 ##' @export
-beanbagNAVTable <- function (x, inception, pxinfo) {
+beanbagNAVTable <- function (x, inception, pxinfo, investments=NULL) {
 
     ## Prepare the name column:
     names <- c("Name",
@@ -341,6 +347,16 @@ beanbagNAVTable <- function (x, inception, pxinfo) {
                paste(pxinfo[, "isin"], collapse = ", "),
                safeNull(x[["navshare"]]),
                safeNull(sapply(pxinfo[,"ytdext"], function(x) ifelse(is.na(x), NA, percentify(x)))))
+
+    if (!is.null(investments)) {
+
+        if (is.null(pxinfo)) {
+            pxinfo <- data.frame("isFund"=FALSE)
+        }
+
+        names <- c(names, ifelse(!any(pxinfo[, "isFund"]), "Net Transfers", "Net Subs/Redm"))
+        value <- c(value, paste(beautify(sum(investments[, "valamt_refccy"])), x[["ccy"]]))
+    }
 
     ## Make the data frame:
     df1 <- data.frame("Name"=names, "Value"=value, check.rows=FALSE, check.names=FALSE, stringsAsFactors=FALSE)

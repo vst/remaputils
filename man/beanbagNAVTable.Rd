@@ -4,7 +4,7 @@
 \alias{beanbagNAVTable}
 \title{Prepares the NAV data frame.}
 \usage{
-beanbagNAVTable(x, inception, pxinfo)
+beanbagNAVTable(x, inception, pxinfo, investments = NULL)
 }
 \arguments{
 \item{x}{A list with "portfolio", "ccy", "currentNAV", "previous NAV".}
@@ -12,6 +12,8 @@ beanbagNAVTable(x, inception, pxinfo)
 \item{inception}{The launch date.}
 
 \item{pxinfo}{The YTD Performance.}
+
+\item{investments}{The investment/transfer trades.}
 }
 \value{
 A data frame.

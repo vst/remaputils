@@ -214,7 +214,7 @@ treatPriceSeries <- function(df, dCol, pCol, quantile=0.998, surpressPlot=FALSE)
     df[, pCol] <- as.numeric(df[, pCol])
 
     ## Ensure no zeros:
-    df[df[, "close"] == 0, "close"] <- 0.00001
+    df[df[, pCol] == 0, pCol] <- 0.00001
 
     ## Remove NA's and replace with last observable value:
     price <- xts::as.xts(df[, pCol], order.by=as.Date(df[, dCol]))
@@ -274,7 +274,7 @@ treatPriceSeries <- function(df, dCol, pCol, quantile=0.998, surpressPlot=FALSE)
     ## Reconstruct the price series:
     price <- xts::as.xts(cumprod(1 + originalRets) * as.numeric(originalPrice[1]), order.by=zoo::index(originalPrice))
 
-    if (surpressPlot == FALSE) {
+    if (!surpressPlot) {
         ## Run the outlier plot:
         outlierPlot(originalPrice, price, outlierIndex)
         readline(prompt = "Pause. Press <Enter> to continue...")
@@ -282,7 +282,7 @@ treatPriceSeries <- function(df, dCol, pCol, quantile=0.998, surpressPlot=FALSE)
     }
 
     ## Reassign the treated price series:
-    df[, pCol] <- as.numeric(price)[match(df[, dCol], zoo::index(price))]
+    df[, pCol] <- as.numeric(price)[match(as.Date(df[, dCol]), zoo::index(price))]
 
     ## Done, return:
     df

@@ -12,7 +12,7 @@
 ##' @export
 getPreviousNAV <- function(portfolio, date, ccy, period, external, session) {
 
-    previousDate <- dateOfPeriod(period)
+    previousDate <- dateOfPeriod(period, date)
 
     ## If external is true, get previuos NAV from external table:
     if (external) {
@@ -400,10 +400,9 @@ getPerformance <- function(portfolio, start, end, freq="daily", session) {
 
     ## Construct the params:
     params <- list("portfolios"=portfolio,
-                   "start"=dateOfPeriod("Y-0"),
+                   "start"=dateOfPeriod("Y-0", end),
                    "end"=end,
                    "frequency"=freq)
-
 
     print(paste0("Retrieving performance data for portfolio: ", portfolio))
 
@@ -427,24 +426,32 @@ getPerformance <- function(portfolio, start, end, freq="daily", session) {
                     "stats"=auxfun()))
     }
 
+    series <- sapply(performance[["indexed"]][["data"]], function(x) ifelse(is.null(x[[1]]), NA, x[[1]]))
+    series[1] <- ifelse(is.na(series[1]), 1, series[1])
+    series <- zoo::na.locf(series, fromLast=FALSE)
+
     ## Get the performance index series:
-    series <- xts::as.xts(unlist(performance[["indexed"]][["data"]]),
+    series <- xts::as.xts(series,
                           order.by=as.Date(unlist(performance[["indexed"]][["index"]])))
 
-    ## if (all(series == 1)) {
-    ##     return(list("series"=NA,
-    ##                 "stats"=auxfun()))
-    ## }
+    stats <- performance[["statistics"]][["univariate"]][["portfolios"]][[1]][["stats"]]
+
+    stats <- lapply(1:length(stats), function(i) {
+        stats[[i]]$stats <- lapply(stats[[i]]$stats, function(x) ifelse(is.null(x), NA, x))
+        stats[[i]]
+    })
 
     ## Get the stats:
-    stats <- t(safeRbind(lapply(performance[["statistics"]][["univariate"]][["portfolios"]][[1]][["stats"]], function(x) do.call(cbind, x[["stats"]]))))
+    stats <- t(safeRbind(lapply(stats, function(x) do.call(cbind, x[["stats"]]))))
 
     ## Add the colnames:
     colnames(stats) <- sapply(performance[["statistics"]][["univariate"]][["portfolios"]][[1]][["stats"]], function(x) x[["label"]])
 
+    stats <- stats[, !colnames(stats) == "CST"]
+
     ## Return:
     list("series"=series,
-         "stats"=stats[,-1])
+         "stats"=stats)
 }
 
 
@@ -727,7 +734,9 @@ beanbagPerformanceTable <- function(stats) {
     stats[4, ] <- round(as.numeric(stats[4,]), 2)
 
     ## Get rid of unwanted characters:
-    stats <- as.data.frame(mgsub(stats, c("0 %", "NA %"), NA))
+    stats[stats == "0 %"] <- NA
+    stats[stats == "NA %"] <- NA
+    stats <- trimws(stats)
 
     ## Capitalise the rownames:
     rownames(stats) <- capitalise(rownames(stats))

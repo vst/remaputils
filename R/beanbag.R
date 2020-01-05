@@ -8,11 +8,13 @@
 ##' @param period The period memnonic, i.e Y-0 for last year end.
 ##' @param external TRUE if external valuation is to be used.
 ##' @param session The rdecaf session.
+##' @param inception The inception date. Default is 1900-01-01
 ##' @return A list.
 ##' @export
-getPreviousNAV <- function(portfolio, date, ccy, period, external, session) {
+getPreviousNAV <- function(portfolio, date, ccy, period, external, session, inception=as.Date("1900-01-01")) {
 
-    previousDate <- dateOfPeriod(period, date)
+    ## Get the previous date:
+    previousDate <- max(dateOfPeriod(period, date), inception)
 
     ## If external is true, get previuos NAV from external table:
     if (external) {
@@ -56,7 +58,7 @@ getPreviousNAV <- function(portfolio, date, ccy, period, external, session) {
         ## If no shareclass exists, use the nav only:
         return(valueOfNearestDate(targetDate=previousDate,
                                   data=extVal,
-                                  tolerance=2,
+                                  tolerance=4,
                                   dateField="date",
                                   valueField="nav"))
 

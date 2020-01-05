@@ -4,7 +4,8 @@
 \alias{getPreviousNAV}
 \title{Gets the previous NAN either using external or internal valuations.}
 \usage{
-getPreviousNAV(portfolio, date, ccy, period, external, session)
+getPreviousNAV(portfolio, date, ccy, period, external, session,
+  inception = as.Date("1900-01-01"))
 }
 \arguments{
 \item{portfolio}{The portfolio id.}
@@ -18,6 +19,8 @@ getPreviousNAV(portfolio, date, ccy, period, external, session)
 \item{external}{TRUE if external valuation is to be used.}
 
 \item{session}{The rdecaf session.}
+
+\item{inception}{The inception date. Default is 1900-01-01}
 }
 \value{
 A list.

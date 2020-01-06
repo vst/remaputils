@@ -55,16 +55,19 @@ getPreviousNAV <- function(portfolio, date, ccy, period, external, session, ince
                         "date"=previousDate))
         }
 
-        ## If no shareclass exists, use the nav only:
-        return(valueOfNearestDate(targetDate=previousDate,
-                                  data=extVal,
-                                  tolerance=4,
-                                  dateField="date",
-                                  valueField="nav"))
+        result <- valueOfNearestDate(targetDate=previousDate,
+                                     data=extVal,
+                                     tolerance=4,
+                                     dateField="date",
+                                     valueField="nav")
 
+        if (!is.na(result[["value"]])) {
+            ## If no shareclass exists, use the nav only:
+            return(result)
+        }
     }
 
-    if (!external) {
+    if (!external | is.na(result[["value"]])) {
         ## Get the asset evolution (pconsolidation)
         assEvl <- getAssetEvolution(portfolio, date, "2", session)
 
@@ -336,6 +339,9 @@ beanbagNAVTable <- function (x, inception, pxinfo, investments=NULL) {
                "NAV/Share",
                trimws(paste0("Perf (YTD) ", ifelse(!is.na(pxinfo[, "isin"]), as.character(pxinfo[, "shareclass"]), ""))))
 
+    ytd <- safeNull(sapply(pxinfo[,"ytdext"], function(x) ifelse(is.na(x), NA, percentify(x))))
+    ytd <- ifelse(!is.na(ytd), ytd, safeNull(sapply(pxinfo[,"ytdint"], function(x) ifelse(is.na(x), NA, percentify(x)))))
+
     ## Prepare the value column:
     value <- c(x[["portfolio"]],
                x[["ccy"]],
@@ -346,7 +352,7 @@ beanbagNAVTable <- function (x, inception, pxinfo, investments=NULL) {
                paste(pxinfo[, "noshares"], collapse = ", "),
                paste(pxinfo[, "isin"], collapse = ", "),
                safeNull(x[["navshare"]]),
-               safeNull(sapply(pxinfo[,"ytdext"], function(x) ifelse(is.na(x), NA, percentify(x)))))
+               ytd)
 
     if (!is.null(investments)) {
 

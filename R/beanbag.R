@@ -9,9 +9,10 @@
 ##' @param external TRUE if external valuation is to be used.
 ##' @param session The rdecaf session.
 ##' @param inception The inception date. Default is 1900-01-01
+##' @param useInt Should the internal NAV be used if external does not exist? Default is FALSE.
 ##' @return A list.
 ##' @export
-getPreviousNAV <- function(portfolio, date, ccy, period, external, session, inception=as.Date("1900-01-01")) {
+getPreviousNAV <- function(portfolio, date, ccy, period, external, session, inception=as.Date("1900-01-01"), useInt=FALSE) {
 
     ## Get the previous date:
     previousDate <- max(dateOfPeriod(period, date), inception)
@@ -61,7 +62,7 @@ getPreviousNAV <- function(portfolio, date, ccy, period, external, session, ince
                                      dateField="date",
                                      valueField="nav")
 
-        if (!is.na(result[["value"]])) {
+        if (!is.na(result[["value"]]) | !useInt) {
             ## If no shareclass exists, use the nav only:
             return(result)
         }
@@ -323,9 +324,10 @@ multicol_spec <- function(x, cols, ...) {
 ##' @param inception The launch date.
 ##' @param pxinfo The YTD Performance.
 ##' @param investments The investment/transfer trades.
+##' @param useIntYtd Should the internal YTD be used if external doesn't exist? Default is FALSE.
 ##' @return A data frame.
 ##' @export
-beanbagNAVTable <- function (x, inception, pxinfo, investments=NULL) {
+beanbagNAVTable <- function (x, inception, pxinfo, investments=NULL, useIntYtd=FALSE) {
 
     ## Prepare the name column:
     names <- c("Name",
@@ -340,7 +342,10 @@ beanbagNAVTable <- function (x, inception, pxinfo, investments=NULL) {
                trimws(paste0("Perf (YTD) ", ifelse(!is.na(pxinfo[, "isin"]), as.character(pxinfo[, "shareclass"]), ""))))
 
     ytd <- safeNull(sapply(pxinfo[,"ytdext"], function(x) ifelse(is.na(x), NA, percentify(x))))
-    ytd <- ifelse(!is.na(ytd), ytd, safeNull(sapply(pxinfo[,"ytdint"], function(x) ifelse(is.na(x), NA, percentify(x)))))
+
+    if (useIntYtd) {
+        ytd <- ifelse(!is.na(ytd), ytd, safeNull(sapply(pxinfo[,"ytdint"], function(x) ifelse(is.na(x), NA, percentify(x)))))
+    }
 
     ## Prepare the value column:
     value <- c(x[["portfolio"]],

@@ -4,7 +4,8 @@
 \alias{beanbagNAVTable}
 \title{Prepares the NAV data frame.}
 \usage{
-beanbagNAVTable(x, inception, pxinfo, investments = NULL)
+beanbagNAVTable(x, inception, pxinfo, investments = NULL,
+  useIntYtd = FALSE)
 }
 \arguments{
 \item{x}{A list with "portfolio", "ccy", "currentNAV", "previous NAV".}
@@ -14,6 +15,8 @@ beanbagNAVTable(x, inception, pxinfo, investments = NULL)
 \item{pxinfo}{The YTD Performance.}
 
 \item{investments}{The investment/transfer trades.}
+
+\item{useIntYtd}{Should the internal YTD be used if external doesn't exist? Default is FALSE.}
 }
 \value{
 A data frame.

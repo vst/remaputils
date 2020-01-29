@@ -87,6 +87,7 @@ stackedBarChart <- function(df, colors=RColorBrewer::brewer.pal(9, "GnBu")[3:9])
 
     ## Aggregate:
     aggs <- aggregate(df[, 2], list(df[, 1]), sum)
+    aggs <- aggs[order(aggs[, 2], decreasing=TRUE), ]
 
     ## Get the slices:
     slices <- aggs[,2]
@@ -260,4 +261,173 @@ areaTimeSeriesPlot <- function(df, smooth=0.3, limitFactor=0.1, title, ylab="", 
 
     ## Place the Y-Label:
     mtext(ylab, cex=1.5, font=2, side=2, at=par('usr')[4]*1.009, las=2)
+}
+
+
+##' This function plots a relative time series plot using the list from getPerformanceV2.
+##' It assumes there are benchmark values.
+##'
+##' This is the description
+##'
+##' @param performance The performance list from getPerformanceV2.
+##' @return A time series performance plot.
+##' @export
+relativePerformancePlot <- function(performance) {
+
+    ## Combine the xts for container and benchmark:
+    priceIndex <- cbind("shareclass"=performance[["container"]][["xts"]], "benchmark"=performance[["benchmark"]][["xts"]])
+
+    ## Add 1 to the top:
+    priceIndex <- rbind(cbind(xts::as.xts(1, order.by=min(zoo::index(priceIndex)) - 1), 1), priceIndex)
+
+    ## Name the columns:
+    colnames(priceIndex) <- c("shareclass", "benchmark")
+
+    ## Replace NA price indices with 1:
+    priceIndex[1, is.na(priceIndex[1, ])] <- 1
+
+    ## Multiply the price Index by 100:
+    priceIndex <- zoo::na.locf(priceIndex * 100)
+
+    ## Get the yearly returns:
+    yearlyRets <- cbind(performance[["container"]][["returns"]][, "yearly"], performance[["benchmark"]][["returns"]][, "yearly"])
+
+    ## Add 0 to the top:
+    yearlyRets <- rbind(cbind(xts::as.xts(0, order.by=min(zoo::index(yearlyRets)) - 1), 0), yearlyRets)
+
+    ## Name the columns:
+    colnames(yearlyRets) <- c("shareclass", "benchmark")
+
+    ## Replace NA's with 0:
+    yearlyRets[is.na(yearlyRets)] <- 0
+
+    ## Get the dates:
+    dates <- zoo::index(yearlyRets)
+
+    ## Get the years:
+    years <- substr(dates, 1, 4)
+
+    ## Shift the yearly returns to the middle of each yearly time window:
+    yearlyRets <- do.call(rbind, lapply(unique(years), function(x) {
+        medDate <- median(dates[years == x])
+        yrRets <- yearlyRets[years == x, ]
+
+        if (all(substr(zoo::index(yrRets), 6, 12) != "12-31")) {
+            return(yrRets)
+        }
+
+        rplIdx <- which(as.character(zoo::index(yrRets)) == as.character(medDate))
+        rplVal <- as.numeric(yrRets[yrRets[,1] != 0, ])
+        yrRets[, 1] <- 0
+        yrRets[, 2] <- 0
+        yrRets[rplIdx, ] <- rplVal
+
+        yrRets
+    }))
+
+    ## Combine the yearly returns as numeric:
+    xx <- rbind(as.numeric(yearlyRets[, 1]),
+                as.numeric(yearlyRets[, 2]))
+
+    ## Get the indices with non-zero values:
+    valIdx <- which(xx[1,] != 0)
+
+    ## Get the date:
+    date <- zoo::index(priceIndex)
+
+    ## Get the value:
+    value <- as.numeric(priceIndex[, 1])
+
+    ## Length out:
+    lout <- 10
+
+    ## X-Axis Index:
+    ## axis1Index <- seq(1, length(date), length.out=lout)
+    axis1Index <- c(1, which(substr(date, 6, 12) == "12-31"), length(dates))
+
+    ## X-Axis Labels:
+    ## axis1Labls <- format(as.Date(date[seq(1, length(date), length.out=lout)]), "%b, %Y")
+    axis1Labls <- format(as.Date(date[axis1Index]), "%b, %y")
+
+    ## Y-Axis Index:
+    axis2Index <- seq(min(priceIndex) * 0.95, max(priceIndex) * 1.05, length.out=lout)
+
+    ## X-Axis Labels:
+    axis2Labls <- round(axis2Index, 2)
+
+    ## Add the color palette:
+    cols <- RColorBrewer::brewer.pal(9, "GnBu")[3:9]
+
+    ## Get the container color:
+    portCol <- cols[7]
+
+    ## Get the benchmark color:
+    bencCol <- cols[5]
+
+    ## Start the plot. First determine the margins:
+    par(mai = c(1, 1, 0.25, 0.25))
+    plot(value,
+         main="",
+         cex.main=2,
+         cex.axis=1.5,
+         lty=1,
+         type="l",
+         lwd=1.5,
+         ylim=c(min(priceIndex) * 0.95, max(priceIndex) * 1.05),
+         yaxt="n", xaxt="n", ylab="", xlab="",
+         col=portCol, bty="n")
+
+    ## Add the benchmark line:
+    lines(as.numeric(priceIndex[, 2]), lty=1, lwd=1.5, col=bencCol)
+
+    ## Add the custom x-axis:
+    axis(1, cex.axis=1.2, at=axis1Index, labels=axis1Labls, las=2)
+
+    ## Add the cusotm y-axis:
+    axis(2, cex.axis=1.2, at=axis2Index, labels=axis2Labls, las=2)
+
+    ## Place the Y-Label:
+    mtext("Index", cex=1.3, font=2, side=2, at=par('usr')[4]*1.002, las=1)
+
+    ## Add the grid:
+    grid(col = "lightgray", lty = "dotted", lwd = par("lwd"), equilogs = TRUE)
+
+    ## Add the vertical lines:
+    abline(v=axis1Index, lwd=0.4, lty=2)
+
+    ## Add a new plot on top:
+    par(new=TRUE)
+    mp <- barplot(xx,
+                  axes=FALSE,
+                  xlab="",
+                  ylab="",
+                  border=NA,
+                  space=c(0.04, -1.92),
+                  beside=TRUE,
+                  ylim=c(min((yearlyRets+1) * 0.95 - 1), max((yearlyRets+1) * 1.05 - 1)),
+                  col=c(adjustcolor(portCol, alpha.f = 0.7), adjustcolor(bencCol, alpha.f = 0.7)))
+
+    ## Parse the labels:
+    labels <- gsub(" ", "", (percentify(xx)))
+    labels[labels == "0.00%"] <- ""
+
+    ## Add the text to the bars:
+    text(mp, xx - 0.005, labels=labels, cex=1, font=2, col="white")
+
+    ## Add the horizontal line:
+    abline(h=0, lwd=0.4, lty=2)
+
+    ## Add the legend:
+    legend(2,
+           min((yearlyRets + 1) - 1),
+           legend=c("Fund Performance Index", "Benchmark Performance Index", "Fund Annual Return | YTD", "Benchmark Annual Return | YTD"),
+           lty=1,
+           box.col="black",
+           lwd=c(2, 2, 0, 0),
+           bty="n",
+           col=rep(c(adjustcolor(portCol, alpha.f = 0.9), adjustcolor(bencCol, alpha.f = 0.9)), 2),
+           pch=c(NA, NA, 15, 15),
+           pt.cex=2,
+           cex=1.15)
+
 }

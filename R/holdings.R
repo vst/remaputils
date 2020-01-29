@@ -759,3 +759,52 @@ addTagsAsColumns <- function(holdings, resources, addTagsBy) {
     return(list("holdings"=holdings,
                 "addCols"=addCols))
 }
+
+
+##' This function prepares the holding details and summary tables for html/pdf.
+##' It requires the holdings list from getPrintableHoldings.
+##'
+##' This is the description
+##'
+##' @param holdings The holdings list from getPrintableHoldings.
+##' @param colSelect Which columns from the getPrintableHoldings should be selected?
+##' @param colOverride Custom column names. Default is NULL.
+##' @param summaryCol The column of holdings by which to summarize the holdings by.
+##' @param summaryKey Optionally, you may select sublevels for the summary for a key in summaryCol.
+##' @return A list with the holdingsDetails, holdingsSummary data frames, and the original holdings list.
+##' @export
+prepareHoldingsTables <- function(holdings, colSelect, colOverride=NULL, summaryCol="Subtype", summaryKey="HEBELE1234") {
+
+    ## Parse the isHeader column:
+    holdings[["holdings"]][, "isHeader"] <- ifelse(is.na(holdings[["holdings"]][, "isHeader"]), FALSE, holdings[["holdings"]][, "isHeader"])
+
+    ## Get the holdings details:
+    holdingsDetails <- getHoldingsDetails(holdings[["holdings"]], colSelect, holdings[["consolidation"]][["nav"]])
+
+    if (!is.null(colOverride)) {
+        colnames(holdingsDetails[["holdingsDetails"]]) <- colOverride
+    }
+
+    ## Parse the Type if it exists:
+    if (any(colnames(holdingsDetails[["holdingsDetails"]]) == "Type")) {
+        holdingsDetails[["holdingsDetails"]][, "Type"] <- capitalise(ellipsify(holdingsDetails[["holdingsDetails"]][, "Type"], 15))
+    }
+
+    hDetailsTable <- holdingsDetails[["holdingsDetails"]]
+    hDetailsTable$Value <- ifelse(hDetailsTable$Value != "",
+                           ifelse(hDetailsTable$Accrd != "",
+                                  sprintf("%s<div class='text-muted'>%s</div>", hDetailsTable$Value, hDetailsTable$Accrd),
+                                  hDetailsTable$Value),
+                                      "")
+    hDetailsTable$Accrd <- NULL
+
+    holdingsDetails[["holdingsDetails"]] <- hDetailsTable
+
+    ## Get the holdings summary:
+    holdingsSummary <- getHoldingsSummary(holdings[["holdings"]], col="Subtype", key="HEBELE1234")
+
+    return(list("holdingsDetails"=holdingsDetails,
+                "holdingsSummary"=holdingsSummary,
+                "holdings"=holdings))
+
+}

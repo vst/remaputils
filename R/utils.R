@@ -1,3 +1,54 @@
+##' This function produces a vector with the month year for a date's year.
+##' Such as: Jan 19, Feb 19, ... , Dec 19 if date is 2019-06-01.
+##'
+##' This is the description
+##'
+##' @param date The date.
+##' @return A vector with the month year for the date's year in %h %y
+##' @export
+getMonthYearOfCurrentYear <- function(date) {
+    unique(format(seq(as.Date(paste0(format(date, "%Y"), "-01-01")), as.Date(paste0(format(date, "%Y"), "-12-31")), 1), format="%h %y"))
+}
+
+
+##' In a data frame, check if multiple columns fulfil multiple conditions.
+##'
+##' This is the description
+##'
+##' @param df The data frame.
+##' @param cols A vectors of column names.
+##' @param conditions The conditions against which to check the columns.
+##' @return A vector with TRUE or FALSE.
+##' @export
+mCondition <- function(df, cols, conditions) {
+
+    ## For each column name, run the mgrep functions for the conditions:
+    conditionCheck <- do.call(cbind, lapply(cols, function(col) mgrep(df[, col], conditions)))
+
+    ## Check if any of the conditions apply and return:
+    apply(conditionCheck, MARGIN=1, function(x) any(x != 0))
+}
+
+
+##' Set NA's for columns in data frame to a desired value.
+##'
+##' This is the description
+##'
+##' @param df The data frame.
+##' @param cols A vectors of column names.
+##' @param val The value NA's should be changed to. Default is 0.
+##' @return A data frame.
+##' @export
+setNAColTo <- function(df, cols, val=0) {
+
+    ## Apply the ifelse to the columns in data frame:
+    df[, cols] <- apply(df[, cols], MARGIN=2, function(x) ifelse(is.na(x), val, x))
+
+    ## Done, return:
+    return(df)
+}
+
+
 ##' A function to indicate the last week day within a specific periodicity.
 ##'
 ##' This is the description
@@ -149,8 +200,6 @@ getYTDSlice <- function(df, date) {
     ## Return the slice:
     df[1:which(periodChange)[1],]
 }
-
-
 
 
 ##' A function which provides the QTD slice of the data frame.

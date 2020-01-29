@@ -1,3 +1,238 @@
+##' A function to compute the aggregate exposure of holdings data frame.
+##'
+##' @param holdings A data frame with column names.
+##' @param keys The keys to be aggregated.
+##' @return A list with the exposures
+##' @export
+##'
+getAggregateExposure <- function(holdings, keys) {
+    exposures <- lapply(keys, function(x) {
+        aggs <- aggregate(holdings[, "Exposure"], list(holdings[, x]), sum)
+        aggs <- aggs[order(aggs[, 2], decreasing=TRUE), ]
+        colnames(aggs) <- c(x, "Exposure")
+        aggs
+    })
+
+    names(exposures) <- keys
+
+    ## Done, return:
+    exposures
+}
+
+
+##' A function to compute the periodic returns of xts price.
+##'
+##' @param price An xts price vector.
+##' @return A xts returns data frame.
+##' @export
+##'
+computePeriodicReturns <- function(price) {
+
+    ## Compute the discrete returns:
+    returns <- PerformanceAnalytics::CalculateReturns(price, method = c("discrete"))
+
+    ## Set NA returns to 0:
+    returns[is.na(returns)] <- 0
+
+    ## Append monthly and yearly columns:
+    returns <- cbind("raw"=returns, "monthly"=0, "yearly"=0)
+
+    ## Compute the monthly returns:
+    monthlyReturns <- xts::apply.monthly(returns[, "raw"], sum)
+
+    ## Compute the yearly returns:
+    yearlyReturns  <- xts::apply.yearly(returns[, "raw"], sum)
+
+    ## Assign the monthly returns to the daily return data frame:
+    returns[!is.na(match(zoo::index(returns), zoo::index(monthlyReturns))), "monthly"] <- as.numeric(monthlyReturns)
+
+    ## Assign the yearly returns to the daily return data frame:
+    returns[!is.na(match(zoo::index(returns), zoo::index(yearlyReturns))), "yearly"] <- as.numeric(yearlyReturns)
+
+    ## Compute the cumulative returns:
+    returns <- cbind(returns, "cumrets"=cumprod(1 + as.numeric(returns[, "raw"]))-1)
+
+    ## Done, return
+    return(returns)
+
+}
+
+
+##' This function to get the usage metrics.
+##'
+##' @param userActions The user actions result.
+##' @param tokenSession The token session data frame.
+##' @return A xts usage metrics data frame.
+##' @export
+##'
+getUsageMetrics <- function(userActions, tokenSession) {
+
+    usages[, "Created"] <- as.POSIXct(sapply(strsplit(as.character(usages[, "Created"]), "\\."), function(x) gsub("T", " ", x[1])))
+
+    xtsElapsed <- do.call(cbind, lapply(extractToList(tokenSession, "Username"), function(x) {
+        aggs <- aggregate(x[, "Elapsed"], list(as.Date(x[, "Created"])), sum)
+        xts::as.xts(aggs[, 2], order.by=aggs[, 1])
+    }))
+
+    colnames(xtsElapsed) <- unique(tokenSession[, "Username"])
+
+    xtsMetrics <- lapply(names(userActions), function(user) {
+
+        if (user == "AUTO") {
+            return(NULL)
+        }
+
+        df <- cbind(userActions[[user]],
+                    userActions[[user]][, "Created"] + userActions[[user]][, "Updated"],
+                    xtsElapsed[, user])
+
+        colnames(df) <- c("created", "updated", "total", "elapsed")
+
+        df[, "elapsed"] <- round(df[, "elapsed"] / 3600, 2) * 0.5
+
+        df[is.na(df)] <- 0
+
+        metric <- df[, "elapsed"] / df[, "total"]
+
+        metric[is.infinite(metric)] <- 0
+
+        metric[is.na(metric)] <- 0
+
+        metric <- round(zoo::rollmean(metric, 20), 2)
+
+        list("metric"=metric,
+             "elapsed"=round(zoo::rollmean(df[, "elapsed"], 20), 2),
+             "created"=round(zoo::rollmean(df[, "created"], 20), 2),
+             "updated"=round(zoo::rollmean(df[, "updated"], 20), 2),
+             "total"=round(zoo::rollmean(df[, "total"], 20), 2))
+    })
+
+    names(xtsMetrics) <- names(userActions)
+
+    ## Done, return
+    xtsMetrics
+
+}
+
+
+##' This function gets the historical user actions in a deployment.
+##'
+##' @param session The rdecaf session.
+##' @param endpoint The endpoint to investigate, i.e "trades", "quants".
+##' @param exclCols The columns to exclude.
+##' @param exclKeys The keys to exclude from exclCols.
+##' @param actionQueryParams Addtional query parameters to be passed to params.
+##' @return A table with the automation rate.
+##' @export
+##'
+getHistoricalUserActions <- function(session, endpoint, exclCols=NULL, exclKeys=NULL, actionQueryParams=NULL) {
+
+    ## Action params:
+    params <- c(list("page_size"=-1, "format"="csv"), actionQueryParams)
+
+    ## Get actions:
+    actions <- as.data.frame(getResource(endpoint, params=params, session=session))
+
+    ## Get users:
+    users <- as.data.frame(getResource("users", params=list("page_size"=-1, "format"="csv"), session=session))
+
+    ## Replace creator id with creator username:
+    actions[, "creator"] <- users[match(actions[, "creator"], users[, "id"]), "username"]
+
+    ## Replace NA creators with "AUTO"
+    actions[, "creator"] <- ifelse(is.na(actions[, "creator"]), "AUTO", actions[, "creator"])
+
+    ## Replace updater id with updater username:
+    actions[, "updater"] <- users[match(actions[, "updater"], users[, "id"]), "username"]
+
+    ## Replace NA updaters with "AUTO"
+    actions[, "updater"] <- ifelse(is.na(actions[, "updater"]), "AUTO", actions[, "updater"])
+
+    ## Parse the created date:
+    actions[, "created"] <- as.POSIXct(sapply(strsplit(as.character(actions[, "created"]), "\\."), function(x) gsub("T", " ", x[1])))
+
+    ## Parse the uupdated date:
+    actions[, "updated"] <- as.POSIXct(sapply(strsplit(as.character(actions[, "updated"]), "\\."), function(x) gsub("T", " ", x[1])))
+
+    ## Append the is updated column:
+    actions[, "isUpdated"] <- actions[, "created"] != actions[, "updated"]
+
+    ## Exclude keys in columns:
+    if (!is.null(exclCols)) {
+        actions <- actions[!mCondition(actions, exclCols, exclKeys), ]
+    }
+
+    ## Get the unique users:
+    uniqueUsers <- unique(as.character(unlist(actions[, c("creator", "updater")])))
+
+    ## Compute the actions for each user:
+    actionHistory <- lapply(uniqueUsers, function(x) {
+        df <- actions
+        df[, "createdByUser"] <- (df[, "creator"] == x)
+        df[, "updatedByUser"] <- (df[, "updater"] == x & df[, "isUpdated"])
+
+        tsC <- aggregate(df[, "createdByUser"], list(as.Date(df[, "created"])), sum)
+        tsU <- aggregate(df[, "updatedByUser"], list(as.Date(df[, "updated"])), sum)
+
+        tsC <- xts::as.xts(tsC[, 2], order.by=as.Date(tsC[, 1]))
+        tsU <- xts::as.xts(tsU[, 2], order.by=as.Date(tsU[, 1]))
+
+        ts <- cbind("Created"=tsC, "Updated"=tsU)
+        ts[is.na(ts)] <- 0
+
+        ts
+
+    })
+
+    ## Empty users are AUTO:
+    uniqueUsers[isNAorEmpty(uniqueUsers)] <- "AUTO"
+
+    ## Add the names:
+    names(actionHistory) <- uniqueUsers
+
+    ## Done, return:
+    actionHistory
+}
+
+
+##' This function computes the automation rate for users.
+##'
+##' @param userActions The data frame with the use actions.
+##' @return A table with the automation rate.
+##' @export
+##'
+computeAutomationRate <- function(userActions) {
+
+    ## Get the user names:
+    users <- names(userActions)
+
+    ## Compute the action counts:
+    aTable <- as.data.frame(do.call(rbind, lapply(userActions, colSums)))
+
+    ## Sum the rows of the action counts:
+    aTable[, "Total"] <- as.numeric(rowSums(aTable))
+
+    ## Compute the percentages:
+    percentages <-  apply(aTable, MARGIN=2, function(x) x / sum(x))
+
+    ## Parse the percentages:
+    percentages <- trimws(apply(percentages, MARGIN=2, percentify))
+
+    ## Add column names:
+    colnames(percentages) <- paste0(colnames(aTable), " (%)")
+
+    ## Prepare return table:
+    aTable <- cbind("User"=users, aTable, percentages)
+
+    ## Get rid of row names:
+    rownames(aTable) <- NULL
+
+    ## Done, return:
+    aTable
+}
+
+
+
 ##' This function computes the ytd monthly returns using the pconsolidation's internal navs.
 ##'
 ##' @param holdings The holdings data frame from getFlatHoldings.
@@ -112,6 +347,7 @@ getInternalMonthlyReturns <- function(intPrice, date, session) {
     ## Filter in relevant dates:
     intPrice <- intPrice[zoo::index(intPrice) >= startDate, ]
 
+    intPrice[, 1] <- 100 * cumprod(c(1, head(c(as.numeric(tail(intPrice, -1)), 1) / as.numeric(intPrice), -1)))
 
     ## If the internal price start date is later than the period start date,
     ## create sequence till internal start date:
@@ -469,8 +705,7 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
 
     ## If there are a few observations, return only Total Return:
     if (NROW(df) < 7 | returnOnly) {
-        return(data.frame(##"Return"=sum(na.omit(rets)),
-                          "Return"=tail(as.numeric(ts), 1) / head(as.numeric(ts), 1) - 1,
+        return(data.frame("Return"=tail(as.numeric(ts), 1) / head(as.numeric(ts), 1) - 1,
                           "Return Annualized"=NA,
                           "Volalitiy"=NA,
                           "Vol Annualized"=NA,
@@ -496,13 +731,13 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
     stdev <- PerformanceAnalytics::StdDev(rets)
 
     ## Compute annualized return:
-    retsAnnual <- PerformanceAnalytics::Return.annualized(rets)
+    retsAnnual <- PerformanceAnalytics::Return.annualized(rets, geometric=FALSE)
 
     ## Compute annualized standard deviation:
     stdevAnnual <- PerformanceAnalytics::sd.annualized(rets)
 
     ## Compute the sharpe:
-    sharpe <- PerformanceAnalytics::SharpeRatio(rets)
+    sharpe <- as.numeric(retsAnnual) / as.numeric(stdevAnnual)
 
     ## Compute the calmar:
     calmar <- PerformanceAnalytics::CalmarRatio(rets)
@@ -523,10 +758,10 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
     maxDrawdown <- PerformanceAnalytics::maxDrawdown(rets)
 
     ## Compute the VaR:
-    var <- PerformanceAnalytics::VaR(rets)
+    var <- abs(PerformanceAnalytics::VaR(rets)) * sqrt(250)
 
     ## Comput the Expected Shortfall
-    es <- PerformanceAnalytics::ES(rets)
+    es <- abs(PerformanceAnalytics::ES(rets)) * sqrt(250)
 
     ## Compute the skewness:
     skew <- PerformanceAnalytics::skewness(rets)
@@ -538,16 +773,15 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
     quantileRatio <- as.numeric(abs(quantile(as.numeric(na.omit(rets)))[2]) / abs(quantile(as.numeric(na.omit(rets)))[4]))
 
     ## Construct data frame and return:
-    data.frame(##"Return"=sum(na.omit(rets)),
-               "Return"=tail(as.numeric(ts), 1) / head(as.numeric(ts), 1) - 1,
+    data.frame("Return"=tail(as.numeric(ts), 1) / head(as.numeric(ts), 1) - 1,
                "Return Annualized"=as.numeric(retsAnnual),
                "Volalitiy"=as.numeric(stdev),
                "Vol Annualized"=as.numeric(stdevAnnual),
                "Value-At-Risk"=as.numeric(var),
                "Expected Shortfall"=as.numeric(es),
-               "Sharpe Ratio (STDEV)"=as.numeric(sharpe[1,1]),
-               "Sharpe Ratio (VaR)"=as.numeric(sharpe[2,1]),
-               "Sharpe Ratio (ES)"=as.numeric(sharpe[3,1]),
+               "Sharpe Ratio (STDEV)"=as.numeric(retsAnnual) / as.numeric(stdevAnnual),
+               "Sharpe Ratio (VaR)"=as.numeric(retsAnnual) / as.numeric(abs(var)),
+               "Sharpe Ratio (ES)"=as.numeric(retsAnnual) / as.numeric(abs(es)),
                "Calmar Ratio"=as.numeric(calmar),
                "Sortino Ratio"=as.numeric(sortino),
                "Sterling Ratio"=as.numeric(sterling),

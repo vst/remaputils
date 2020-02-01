@@ -96,7 +96,7 @@ stackedBarChart <- function(df, colors=RColorBrewer::brewer.pal(9, "GnBu")[3:9])
     if (mean(nchar(aggs[,1])) == 3) {
         lbls <- aggs[,1]
     } else {
-        lbls <- capitalise(ellipsify(aggs[,1], 15))
+        lbls <- capitalise(ellipsify(aggs[,1], 20))
     }
 
     ## Compute the percentagaes:
@@ -112,29 +112,68 @@ stackedBarChart <- function(df, colors=RColorBrewer::brewer.pal(9, "GnBu")[3:9])
     ## Compute the percentages:
     pct <- as.data.frame(round(slices / sum(slices) * 100))
 
+    labelCount <- NROW(pct)
+
     ## Assign the row names:
     rownames(pct) <- lbls
 
+    ## Y-Axis Index:
+    axis2Index <- seq(min(c(0, pct[, 1])), min(max(pct[, 1] * 2), 100), by=min(max(pct), 10))
+
+    ## X-Axis Labels:
+    axis2Labls <- paste0(axis2Index, "%")
+
+    colorsx <- colors[1:NROW(pct)]
+
+    if (any(is.na(colorsx))) {
+        colorsx[is.na(colorsx)] <- rep(colorsx[!is.na(colorsx)], 10)[1:sum(is.na(colors))]
+    }
+
     ## Plot the stacked bar chart and the legend:
     par(mai = c(0.4, 0.4, 0.4, 0.4))
-    barplot(as.numeric(pct[,1]),
-            col=colors[1:NROW(pct)],
+    mp <- barplot(as.numeric(pct[,1]),
+            col=adjustcolor(colorsx, alpha.f=0.8),
             border="white",
             xlab="",
             ylab=NULL,
+            ylim=c(min(axis2Index), min(max(pct[, 1] * 2), 100)),
             space=0.04,
+            yaxt="n",
             xaxt="n")
-    legend("topright",
-           rownames(pct),
-           fill=colors[1:NROW(pct)],
-           bg=adjustcolor("white", alpha=0.60),
-           cex=1.25,
-           pt.cex=1,
-           box.lwd=0.01,
-           box.lty=0,
-           text.col=adjustcolor("black", alpha=0.8))
-}
+    axis(2, cex.axis=1, at=axis2Index, labels=axis2Labls, las=0.5)
 
+    text(mp,
+         sapply(pct[, 1], function(x) max(1.3, x * 0.90)),
+         pos=2,
+         offset=c(8, 4, 2, 1, 0.5, 0.025, 0.0012, 0.0001, rep(0, 100))[labelCount],
+         labels=paste0(pct[, 1], "%"),
+         cex=1,
+         font=2,
+         col=adjustcolor(colorsx, red.f=0.25, blue.f=0.50, green.f=0.25))
+
+    text(mp,
+         #rep(median(axis2Index), NROW(pct)),
+         sapply(pct[, 1], function(x) min(x + 3, median(axis2Index))),
+         labels=rownames(pct),
+         srt=90,
+         cex=1,
+         ##cex=(1/(log((1:33)*10)+1)*8)[labelCount],
+         adj=c(0),
+         font=2,
+         col="#595959")
+
+    ## legend("topright",
+    ##        rownames(pct),
+    ##        fill=colors[1:NROW(pct)],
+    ##        bg=adjustcolor("white", alpha=0.60),
+    ##        cex=1.25,
+    ##        pt.cex=1,
+    ##        box.lwd=0.01,
+    ##        box.lty=0,
+    ##        text.col=adjustcolor("black", alpha=0.8))
+
+
+}
 
 ##' Provides an line time series plot.
 ##'

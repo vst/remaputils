@@ -55,15 +55,15 @@ getPnlPreemble <- function(posBeg, posEnd, resources, quants, trades, portfolio,
 
     ## Remove the cash from beginning positions:
     posBeg <- posBeg[posBeg[, "Type"] != "Cash", ]
-
-    ## Remove the cash from beginning positions:
     posBeg <- posBeg[posBeg[, "Type"] != "FX Forward", ]
     posBeg <- posBeg[posBeg[, "Type"] != "FX Forward Contract", ]
+    posBeg <- posBeg[posBeg[, "Type"] != "Time Deposit", ]
 
     ## Remove the cash from end positions:
     posEnd <- posEnd[posEnd[, "Type"] != "Cash", ]
     posEnd <- posEnd[posEnd[, "Type"] != "FX Forward", ]
     posEnd <- posEnd[posEnd[, "Type"] != "FX Forward Contract", ]
+    posEnd <- posEnd[posEnd[, "Type"] != "Time Deposit", ]
 
     ## Append the resource quantity:
     posBeg[, "resqty"] <- resources[match(posBeg[, "ID"], resources[, "id"]), "quantity"]

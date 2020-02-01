@@ -25,8 +25,10 @@ getRemapContent <- function(baseUrl="https://db.remap.decafhub.com/", contentNam
 
     ## Print and stop if exception:
     if (status != 200) {
-        stop(sprintf("%s returned a status code of '%d'.\n\n  Details provided by the API are:\n\n%s",
-                     url, status, httr::content(response, as = "text")))
+        ## Return the content:
+        suppressMessages(httr::content(response))
+        ## stop(sprintf("%s returned a status code of '%d'.\n\n  Details provided by the API are:\n\n%s",
+        ##              url, status, httr::content(response, as = "text")))
     }
 
     ## Return the content:

@@ -91,7 +91,7 @@ performance.ComputeRelative <- function(primary, secondary) {
     rPerformance[["periodStats"]][["currentWindowStats"]] <- rCurrentWindowStats
 
     ## If no historical window, append NULL to historical window stats and return:
-    if (NROW(primary[["periodStats"]][["historicalWindowStats"]]) == 0) {
+    if (any(dim(primary[["periodStats"]][["historicalWindowStats"]]) == 0)) {
         rPerformance[["periodStats"]][["historicalWindowStats"]] <- NULL
         return(rPerformance)
     }
@@ -440,6 +440,7 @@ positionPnLWrapper <- function(holdings, holdingsParams, resources, ccy, date, s
 ##' @param excludeWeekends Should weekends be excluded from consideration?
 ##' @param holdings If pnls are desired, holdings mus be supplied. Default is NULL.
 ##' @param hParams If pnls are desired, holdings params must be supplied. Default is NULL.
+##' @param resources The resources data frame. If NULL (Default), function will get.
 ##' @return A list with asset returns, asset statistics and asset pnls.
 ##' @export
 assetPerformanceWrapper <- function(portfolio,
@@ -450,7 +451,8 @@ assetPerformanceWrapper <- function(portfolio,
                                     includeStats=FALSE,
                                     excludeWeekends=TRUE,
                                     holdings=NULL,
-                                    hParams=NULL) {
+                                    hParams=NULL,
+                                    resources=NULL) {
 
     pnlsYTD <- NULL
     pnlsMTD <- NULL
@@ -459,8 +461,10 @@ assetPerformanceWrapper <- function(portfolio,
     ## Get the portfolio details:
     portfolio <- as.data.frame(getResource("portfolios", params=list("page_size"=-1, "format"="csv", "id"=portfolio), session=session))
 
-    ## Get resources:
-    resources <- getResourcesByStock(getStocks(portfolio[, "id"], session, zero=1, date=date, c="portfolio"), session, getUnderlying=FALSE)
+    if (is.null(resources)) {
+        ## Get resources:
+        resources <- getResourcesByStock(getStocks(portfolio[, "id"], session, zero=1, date=date, c="portfolio"), session, getUnderlying=FALSE)
+    }
 
     ## Get the asset returns:
     assetReturns <- getAssetReturns("date"=date,

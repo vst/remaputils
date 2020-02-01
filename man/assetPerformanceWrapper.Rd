@@ -6,7 +6,7 @@
 \usage{
 assetPerformanceWrapper(portfolio, date, priceField, periods, session,
   includeStats = FALSE, excludeWeekends = TRUE, holdings = NULL,
-  hParams = NULL)
+  hParams = NULL, resources = NULL)
 }
 \arguments{
 \item{portfolio}{The portfolio id.}
@@ -26,6 +26,8 @@ assetPerformanceWrapper(portfolio, date, priceField, periods, session,
 \item{holdings}{If pnls are desired, holdings mus be supplied. Default is NULL.}
 
 \item{hParams}{If pnls are desired, holdings params must be supplied. Default is NULL.}
+
+\item{resources}{The resources data frame. If NULL (Default), function will get.}
 }
 \value{
 A list with asset returns, asset statistics and asset pnls.

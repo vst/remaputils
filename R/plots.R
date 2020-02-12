@@ -60,6 +60,123 @@ barPlot <- function(df, title, colors="darkslategray3") {
 }
 
 
+
+##' Provides a stacked bar chart.
+##'
+##' This is the description
+##'
+##' @param df A data frame. df[, 1] == label, df[,2] == value
+##' @param colors The color palette to be used.
+##' @return A stacked bar chart.
+##' @export
+stackedBarChartTranspose <- function(df, colors=RColorBrewer::brewer.pal(9, "GnBu")[3:9]) {
+
+    ## If null, return empty pie:
+    if (is.null(df)) {
+        return(barplot(1,
+                       labels="NODATA",
+                       col=terrain.colors(1, alpha = 0.8),
+                       border="gray",
+                       cex=1,
+                       main=colnames(df)[1],
+                       cex.main=1.5))
+    }
+
+    ## If NA value, override:
+    df[, 1] <- ifelse(is.na(df[, 1]), "Notavailable", df[,1])
+    df[, 2] <- ifelse(is.na(df[, 2]), 0, df[,2])
+
+    ## Aggregate:
+    aggs <- aggregate(df[, 2], list(df[, 1]), sum)
+    aggs <- aggs[order(aggs[, 2], decreasing=TRUE), ]
+
+    ## Get the slices:
+    slices <- aggs[,2]
+
+    ## Get the labels
+    if (mean(nchar(aggs[,1])) == 3) {
+        lbls <- aggs[,1]
+    } else {
+        lbls <- capitalise(ellipsify(aggs[,1], 20))
+    }
+
+    ## Compute the percentagaes:
+    pct <- slices / sum(slices)
+
+    ## Group small values into "Others"
+    if (sum(abs(pct) < 0.01) > 1) {
+        othersval <- sum(slices[abs(pct) < 0.01])
+        slices <- c(slices[!(abs(pct) < 0.01)], othersval)
+        lbls <- c(lbls[!(abs(pct) < 0.01)], "Others")
+    }
+
+    ## Compute the percentages:
+    pct <- as.data.frame(round(slices / sum(slices) * 100))
+
+    labelCount <- NROW(pct)
+
+    ## Assign the row names:
+    rownames(pct) <- lbls
+
+    ## Y-Axis Index:
+    axis2Index <- seq(min(c(0, pct[, 1])), min(max(pct[, 1] * 2), 100), by=min(max(pct), 10))
+
+    ## X-Axis Labels:
+    axis2Labls <- paste0(axis2Index, "%")
+
+    colorsx <- colors##[1:NROW(pct)]
+
+    if (any(is.na(colorsx))) {
+        colorsx[is.na(colorsx)] <- rep(colorsx[!is.na(colorsx)], 10)[1:sum(is.na(colors))]
+    }
+
+    xlim <- c(min(axis2Index), min(max(pct[, 1] * 2), 100))
+
+    ## Plot the stacked bar chart and the legend:
+    par(mai = c(0.4, 0.4, 0.4, 0.4))
+    mp <- barplot(as.numeric(pct[,1]),
+                  col=colorsx[4],
+                  ## col=adjustcolor(colorsx, alpha.f=0.8),
+                  border="white",
+                  xlab="",
+                  ylab=NULL,
+                  horiz=TRUE,
+                  xlim=xlim,
+                  space=0.04,
+                  yaxt="n",
+                  xaxt="n")
+    ## axis(2, cex.axis=1, at=axis2Index, labels=axis2Labls, las=0.5)
+    axis(1, cex.axis=1, at=axis2Index, labels=axis2Labls, las=0.5)
+
+    limXX <- max(pct[, 1]) * 0.05
+
+    text(x=rep(limXX, NROW(pct)),
+        y=mp,
+        labels=rownames(pct),
+        cex=1,
+        font=2,
+        adj=0,
+        col=colorsx[8])
+
+    text(x=mean(xlim) * 1.05,
+         ##x=max(sapply(nchar(rownames(pct)), function(x) seq(limXX * 1.1, xlim[2], length.out=30)[x])),
+         ##x=max(sapply(nchar(rownames(pct)), function(x) seq(limXX * 1.1, xlim[2], by=1)[x])),
+         ##x=max(sapply(nchar(rownames(pct)), function(x) seq(limXX * 1.1, xlim[2], length.out=NROW(pct)))),
+         y=mp,
+         labels=paste0(pct[, 1], "%"),
+         cex=1,
+         adj=0,
+         font=2,
+         col=colorsx[8])
+
+    abline(a=0,
+           b=0,
+           col="black",
+           lwd=0.4,
+           lty=2,
+           h=seq(1.05, NROW(pct) + NROW(pct)*0.05, length.out=NROW(pct)))
+}
+
 ##' Provides a stacked bar chart.
 ##'
 ##' This is the description
@@ -458,15 +575,19 @@ relativePerformancePlot <- function(performance) {
 
     ## Add the legend:
     legend(2,
-           min((yearlyRets + 1) - 1),
+           ##min((yearlyRets + 1) - 1),
+           min(c(min((yearlyRets+1) * 0.95 - 1), max((yearlyRets+1) * 1.05 - 1))) * 0.5,
            legend=c("Fund Performance Index", "Benchmark Performance Index", "Fund Annual Return | YTD", "Benchmark Annual Return | YTD"),
            lty=1,
-           box.col="black",
+           bg=adjustcolor("gray", alpha.f=0.2),
+           ##box.col="black",
            lwd=c(2, 2, 0, 0),
-           bty="n",
+           ##bty="n",
+           ncol=2,
            col=rep(c(adjustcolor(portCol, alpha.f = 0.9), adjustcolor(bencCol, alpha.f = 0.9)), 2),
            pch=c(NA, NA, 15, 15),
            pt.cex=2,
-           cex=1.15)
+           cex=1)
+
 
 }

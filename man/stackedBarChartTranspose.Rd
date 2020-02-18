@@ -4,13 +4,14 @@
 \alias{stackedBarChartTranspose}
 \title{Provides a stacked bar chart.}
 \usage{
-stackedBarChartTranspose(df, colors = RColorBrewer::brewer.pal(9,
-  "GnBu")[3:9])
+stackedBarChartTranspose(df, barColor = NA, labelColor = NA)
 }
 \arguments{
 \item{df}{A data frame. df[, 1] == label, df[,2] == value}
 
-\item{colors}{The color palette to be used.}
+\item{barColor}{The color of the bars.}
+
+\item{labelColor}{The color of the lables.}
 }
 \value{
 A stacked bar chart.

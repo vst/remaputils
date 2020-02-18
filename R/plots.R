@@ -66,10 +66,12 @@ barPlot <- function(df, title, colors="darkslategray3") {
 ##' This is the description
 ##'
 ##' @param df A data frame. df[, 1] == label, df[,2] == value
-##' @param colors The color palette to be used.
+##' @param barColor The color of the bars.
+##' @param labelColor The color of the lables.
 ##' @return A stacked bar chart.
 ##' @export
-stackedBarChartTranspose <- function(df, colors=RColorBrewer::brewer.pal(9, "GnBu")[3:9]) {
+stackedBarChartTranspose <- function(df, barColor=NA, labelColor=NA) {
+    ##colors=RColorBrewer::brewer.pal(9, "GnBu")[3:9]) {
 
     ## If null, return empty pie:
     if (is.null(df)) {
@@ -97,7 +99,7 @@ stackedBarChartTranspose <- function(df, colors=RColorBrewer::brewer.pal(9, "GnB
     if (mean(nchar(aggs[,1])) == 3) {
         lbls <- aggs[,1]
     } else {
-        lbls <- capitalise(ellipsify(aggs[,1], 20))
+        lbls <- capitalise(ellipsify(aggs[,1], 30))
     }
 
     ## Compute the percentagaes:
@@ -124,19 +126,12 @@ stackedBarChartTranspose <- function(df, colors=RColorBrewer::brewer.pal(9, "GnB
     ## X-Axis Labels:
     axis2Labls <- paste0(axis2Index, "%")
 
-    colorsx <- colors##[1:NROW(pct)]
-
-    if (any(is.na(colorsx))) {
-        colorsx[is.na(colorsx)] <- rep(colorsx[!is.na(colorsx)], 10)[1:sum(is.na(colors))]
-    }
-
     xlim <- c(min(axis2Index), min(max(pct[, 1] * 2), 100))
 
     ## Plot the stacked bar chart and the legend:
     par(mai = c(0.4, 0.4, 0.4, 0.4))
     mp <- barplot(as.numeric(pct[,1]),
-                  col=colorsx[4],
-                  ## col=adjustcolor(colorsx, alpha.f=0.8),
+                  col=barColor,
                   border="white",
                   xlab="",
                   ylab=NULL,
@@ -145,29 +140,25 @@ stackedBarChartTranspose <- function(df, colors=RColorBrewer::brewer.pal(9, "GnB
                   space=0.04,
                   yaxt="n",
                   xaxt="n")
-    ## axis(2, cex.axis=1, at=axis2Index, labels=axis2Labls, las=0.5)
     axis(1, cex.axis=1, at=axis2Index, labels=axis2Labls, las=0.5)
 
     limXX <- max(pct[, 1]) * 0.05
 
     text(x=rep(limXX, NROW(pct)),
-        y=mp,
-        labels=rownames(pct),
-        cex=1,
-        font=2,
-        adj=0,
-        col=colorsx[8])
+         y=mp,
+         labels=rownames(pct),
+         cex=1,
+         font=2,
+         adj=0,
+         col=labelColor)
 
-    text(x=mean(xlim) * 1.05,
-         ##x=max(sapply(nchar(rownames(pct)), function(x) seq(limXX * 1.1, xlim[2], length.out=30)[x])),
-         ##x=max(sapply(nchar(rownames(pct)), function(x) seq(limXX * 1.1, xlim[2], by=1)[x])),
-         ##x=max(sapply(nchar(rownames(pct)), function(x) seq(limXX * 1.1, xlim[2], length.out=NROW(pct)))),
+    text(x=mean(xlim) * 1.15,
          y=mp,
          labels=paste0(pct[, 1], "%"),
          cex=1,
          adj=0,
          font=2,
-         col=colorsx[8])
+         col=labelColor)
 
     abline(a=0,
            b=0,
@@ -175,6 +166,8 @@ stackedBarChartTranspose <- function(df, colors=RColorBrewer::brewer.pal(9, "GnB
            lwd=0.4,
            lty=2,
            h=seq(1.05, NROW(pct) + NROW(pct)*0.05, length.out=NROW(pct)))
+
+
 }
 
 ##' Provides a stacked bar chart.
@@ -426,9 +419,11 @@ areaTimeSeriesPlot <- function(df, smooth=0.3, limitFactor=0.1, title, ylab="", 
 ##' This is the description
 ##'
 ##' @param performance The performance list from getPerformanceV2.
+##' @param primCol The color of the primary time series.
+##' @param secdCol The color of the secondary time series.
 ##' @return A time series performance plot.
 ##' @export
-relativePerformancePlot <- function(performance) {
+relativePerformancePlot <- function(performance, primCol, secdCol) {
 
     ## Combine the xts for container and benchmark:
     priceIndex <- cbind("shareclass"=performance[["container"]][["xts"]], "benchmark"=performance[["benchmark"]][["xts"]])
@@ -506,19 +501,11 @@ relativePerformancePlot <- function(performance) {
     axis1Labls <- format(as.Date(date[axis1Index]), "%b, %y")
 
     ## Y-Axis Index:
-    axis2Index <- seq(min(priceIndex) * 0.95, max(priceIndex) * 1.05, length.out=lout)
+    axis2Steps <- as.integer(seq(min(priceIndex) * 0.95, max(priceIndex) * 1.05, length.out=lout))
+    axis2Index <- seq(min(axis2Steps), max(axis2Steps), 2)
 
     ## X-Axis Labels:
     axis2Labls <- round(axis2Index, 2)
-
-    ## Add the color palette:
-    cols <- RColorBrewer::brewer.pal(9, "GnBu")[3:9]
-
-    ## Get the container color:
-    portCol <- cols[7]
-
-    ## Get the benchmark color:
-    bencCol <- cols[5]
 
     ## Start the plot. First determine the margins:
     par(mai = c(1, 1, 0.25, 0.25))
@@ -531,10 +518,11 @@ relativePerformancePlot <- function(performance) {
          lwd=1.5,
          ylim=c(min(priceIndex) * 0.95, max(priceIndex) * 1.05),
          yaxt="n", xaxt="n", ylab="", xlab="",
-         col=portCol, bty="n")
+         col=primCol,
+         bty="n")
 
     ## Add the benchmark line:
-    lines(as.numeric(priceIndex[, 2]), lty=1, lwd=1.5, col=bencCol)
+    lines(as.numeric(priceIndex[, 2]), lty=1, lwd=1.5, col=secdCol)
 
     ## Add the custom x-axis:
     axis(1, cex.axis=1.2, at=axis1Index, labels=axis1Labls, las=2)
@@ -543,7 +531,7 @@ relativePerformancePlot <- function(performance) {
     axis(2, cex.axis=1.2, at=axis2Index, labels=axis2Labls, las=2)
 
     ## Place the Y-Label:
-    mtext("Index", cex=1.3, font=2, side=2, at=par('usr')[4]*1.002, las=1)
+    mtext("Performance", cex=1.1, font=2, side=2, at=par('usr')[4]*1.002, las=1)
 
     ## Add the grid:
     grid(col = "lightgray", lty = "dotted", lwd = par("lwd"), equilogs = TRUE)
@@ -561,7 +549,8 @@ relativePerformancePlot <- function(performance) {
                   space=c(0.04, -1.92),
                   beside=TRUE,
                   ylim=c(min((yearlyRets+1) * 0.95 - 1), max((yearlyRets+1) * 1.05 - 1)),
-                  col=c(adjustcolor(portCol, alpha.f = 0.7), adjustcolor(bencCol, alpha.f = 0.7)))
+                  col=c(adjustcolor(primCol, alpha.f = 0.7),
+                        adjustcolor(secdCol, alpha.f = 0.7)))
 
     ## Parse the labels:
     labels <- gsub(" ", "", (percentify(xx)))
@@ -575,19 +564,15 @@ relativePerformancePlot <- function(performance) {
 
     ## Add the legend:
     legend(2,
-           ##min((yearlyRets + 1) - 1),
            min(c(min((yearlyRets+1) * 0.95 - 1), max((yearlyRets+1) * 1.05 - 1))) * 0.5,
-           legend=c("Fund Performance Index", "Benchmark Performance Index", "Fund Annual Return | YTD", "Benchmark Annual Return | YTD"),
+           legend=c("Fund", "Benchmark", "Fund % p.a | YTD", "Benchmark % p.a | YTD"),
            lty=1,
            bg=adjustcolor("gray", alpha.f=0.2),
-           ##box.col="black",
            lwd=c(2, 2, 0, 0),
-           ##bty="n",
            ncol=2,
-           col=rep(c(adjustcolor(portCol, alpha.f = 0.9), adjustcolor(bencCol, alpha.f = 0.9)), 2),
+           col=rep(c(adjustcolor(primCol, alpha.f = 0.9), adjustcolor(secdCol, alpha.f = 0.9)), 2),
            pch=c(NA, NA, 15, 15),
            pt.cex=2,
            cex=1)
-
 
 }

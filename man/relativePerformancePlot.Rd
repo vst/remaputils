@@ -5,10 +5,14 @@
 \title{This function plots a relative time series plot using the list from getPerformanceV2.
 It assumes there are benchmark values.}
 \usage{
-relativePerformancePlot(performance)
+relativePerformancePlot(performance, primCol, secdCol)
 }
 \arguments{
 \item{performance}{The performance list from getPerformanceV2.}
+
+\item{primCol}{The color of the primary time series.}
+
+\item{secdCol}{The color of the secondary time series.}
 }
 \value{
 A time series performance plot.

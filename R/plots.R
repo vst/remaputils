@@ -508,11 +508,11 @@ relativePerformancePlot <- function(performance, primCol, secdCol) {
     axis2Labls <- round(axis2Index, 2)
 
     ## Start the plot. First determine the margins:
-    par(mai = c(1, 1, 0.25, 0.25))
+    par(mai = c(0.85, 0.85, 0.25, 0.25))
     plot(value,
          main="",
          cex.main=2,
-         cex.axis=1.5,
+         cex.axis=1.15,
          lty=1,
          type="l",
          lwd=1.5,
@@ -525,13 +525,13 @@ relativePerformancePlot <- function(performance, primCol, secdCol) {
     lines(as.numeric(priceIndex[, 2]), lty=1, lwd=1.5, col=secdCol)
 
     ## Add the custom x-axis:
-    axis(1, cex.axis=1.2, at=axis1Index, labels=axis1Labls, las=2)
+    axis(1, cex.axis=0.85, at=axis1Index, labels=axis1Labls, las=2)
 
     ## Add the cusotm y-axis:
-    axis(2, cex.axis=1.2, at=axis2Index, labels=axis2Labls, las=2)
+    axis(2, cex.axis=0.85, at=axis2Index, labels=axis2Labls, las=2)
 
     ## Place the Y-Label:
-    mtext("Performance", cex=1.1, font=2, side=2, at=par('usr')[4]*1.002, las=1)
+    mtext("Performance", cex=0.9, font=2, side=2, at=par("usr")[4]*1, las=1)
 
     ## Add the grid:
     grid(col = "lightgray", lty = "dotted", lwd = par("lwd"), equilogs = TRUE)
@@ -546,7 +546,8 @@ relativePerformancePlot <- function(performance, primCol, secdCol) {
                   xlab="",
                   ylab="",
                   border=NA,
-                  space=c(0.04, -1.92),
+                  ##space=c(0.04, -1.92),
+                  space=c(0.04, -1.87),
                   beside=TRUE,
                   ylim=c(min((yearlyRets+1) * 0.95 - 1), max((yearlyRets+1) * 1.05 - 1)),
                   col=c(adjustcolor(primCol, alpha.f = 0.7),
@@ -557,7 +558,7 @@ relativePerformancePlot <- function(performance, primCol, secdCol) {
     labels[labels == "0.00%"] <- ""
 
     ## Add the text to the bars:
-    text(mp, xx - 0.005, labels=labels, cex=1, font=2, col="white")
+    text(mp, xx - 0.005, labels=labels, cex=0.85, font=2, col="white")
 
     ## Add the horizontal line:
     abline(h=0, lwd=0.4, lty=2)
@@ -568,11 +569,12 @@ relativePerformancePlot <- function(performance, primCol, secdCol) {
            legend=c("Fund", "Benchmark", "Fund % p.a | YTD", "Benchmark % p.a | YTD"),
            lty=1,
            bg=adjustcolor("gray", alpha.f=0.2),
+           box.lty=0,
            lwd=c(2, 2, 0, 0),
            ncol=2,
            col=rep(c(adjustcolor(primCol, alpha.f = 0.9), adjustcolor(secdCol, alpha.f = 0.9)), 2),
            pch=c(NA, NA, 15, 15),
-           pt.cex=2,
+           pt.cex=1.25,
            cex=1)
 
 }

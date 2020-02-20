@@ -502,7 +502,7 @@ relativePerformancePlot <- function(performance, primCol, secdCol) {
 
     ## Y-Axis Index:
     axis2Steps <- as.integer(seq(min(priceIndex) * 0.95, max(priceIndex) * 1.05, length.out=lout))
-    axis2Index <- seq(min(axis2Steps), max(axis2Steps), 2)
+    axis2Index <- seq(nearesth(min(axis2Steps), 2, "down"), max(axis2Steps), 2)
 
     ## X-Axis Labels:
     axis2Labls <- round(axis2Index, 2)
@@ -547,7 +547,7 @@ relativePerformancePlot <- function(performance, primCol, secdCol) {
                   ylab="",
                   border=NA,
                   ##space=c(0.04, -1.92),
-                  space=c(0.04, -1.87),
+                  space=c(0.04, -1.9),
                   beside=TRUE,
                   ylim=c(min((yearlyRets+1) * 0.95 - 1), max((yearlyRets+1) * 1.05 - 1)),
                   col=c(adjustcolor(primCol, alpha.f = 0.7),
@@ -558,7 +558,7 @@ relativePerformancePlot <- function(performance, primCol, secdCol) {
     labels[labels == "0.00%"] <- ""
 
     ## Add the text to the bars:
-    text(mp, xx - 0.005, labels=labels, cex=0.85, font=2, col="white")
+    text(mp, xx - 0.005, labels=labels, cex=0.80, font=2, col="white")
 
     ## Add the horizontal line:
     abline(h=0, lwd=0.4, lty=2)

@@ -147,6 +147,7 @@ getPerformanceV2 <- function(containerType,
     cPerformance <- flattenPerformance("x"=getResource("performance", params=params, session=session),
                                        "containerType"=containerType,
                                        "currentDate"=end,
+                                       "startDate"=start,
                                        "periodicity"=periodicity,
                                        "window"=window)
 
@@ -167,10 +168,10 @@ getPerformanceV2 <- function(containerType,
     bPerformance <- getResource("performance", params=params, session=session)
 
     ## Align the benchmark's data to the container's data:
-    bPerformance <- performance.AlignData(cPerformance, bPerformance)
+    ## bPerformance <- performance.AlignData(cPerformance, bPerformance)
 
     ## Flatten the benchmark data:
-    bPerformance <- flattenPerformance(bPerformance, "benchmarks", end, periodicity="M", window="Y")
+    bPerformance <- flattenPerformance(bPerformance, "benchmarks", end, start, periodicity="M", window="Y")
 
     ## Ensure that the xts series of benchmark has the same length as the container:
     bPerformance[["xts"]] <- bPerformance[["xts"]][zoo::index(bPerformance[["xts"]]) >= min(zoo::index(cPerformance[["xts"]])), ]
@@ -283,11 +284,12 @@ performance.GetPeriodicTable <- function(period, returns, window) {
 ##' @param x The list form the performance endpoint.
 ##' @param containerType The type of container, i.e "portfolios". "shareclasses" etc.
 ##' @param currentDate The date of report.
+##' @param startDate The start date.
 ##' @param periodicity The desired alternative periodicity of returns. 'M' for monthly, 'Q' for quarterly.
 ##' @param window The time window of analysis.
 ##' @return A list with xtsPrice, stats, periodStats and returns.
 ##' @export
-flattenPerformance <- function(x, containerType, currentDate, periodicity="M", window="Y") {
+flattenPerformance <- function(x, containerType, currentDate, startDate, periodicity="M", window="Y") {
 
     ## Extract the dates:
     date <- unlist(x[["indexed"]][["index"]])
@@ -298,6 +300,12 @@ flattenPerformance <- function(x, containerType, currentDate, periodicity="M", w
     ## TODO: This should be handeled in API:
     if (length(price) < length(date)) {
         price <- c(1, price)
+    }
+
+    if (min(as.Date(date)) > as.Date(startDate)) {
+        addDate <- seq(as.Date(startDate), as.Date(min(date))-1, 1)
+        price <- c(rep(1, length(addDate)), price)
+        date <- c(addDate, as.Date(date))
     }
 
     ## Transform data to xts:

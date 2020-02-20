@@ -4,8 +4,8 @@
 \alias{flattenPerformance}
 \title{A function to flatten the results from the performance endpoint.}
 \usage{
-flattenPerformance(x, containerType, currentDate, periodicity = "M",
-  window = "Y")
+flattenPerformance(x, containerType, currentDate, startDate,
+  periodicity = "M", window = "Y")
 }
 \arguments{
 \item{x}{The list form the performance endpoint.}
@@ -13,6 +13,8 @@ flattenPerformance(x, containerType, currentDate, periodicity = "M",
 \item{containerType}{The type of container, i.e "portfolios". "shareclasses" etc.}
 
 \item{currentDate}{The date of report.}
+
+\item{startDate}{The start date.}
 
 \item{periodicity}{The desired alternative periodicity of returns. 'M' for monthly, 'Q' for quarterly.}
 

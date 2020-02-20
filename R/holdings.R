@@ -747,7 +747,7 @@ addTagsAsColumns <- function(holdings, resources, addTagsBy) {
         matchIdx <- sapply(columnValue[[i]], function(x) match(x[1], colnames(holdings)))
 
         ## If no match, next:
-        if (length(matchIdx) == 0) {
+        if (length(matchIdx) != 1) {
             next
         }
 

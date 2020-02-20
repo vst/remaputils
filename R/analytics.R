@@ -28,6 +28,7 @@ getAggregateExposure <- function(holdings, keys) {
 ##'
 computePeriodicReturns <- function(price) {
 
+    ## normalized
     ## Compute the discrete returns:
     returns <- PerformanceAnalytics::CalculateReturns(price, method = c("discrete"))
 
@@ -37,17 +38,35 @@ computePeriodicReturns <- function(price) {
     ## Append monthly and yearly columns:
     returns <- cbind("raw"=returns, "monthly"=0, "yearly"=0)
 
-    ## Compute the monthly returns:
-    monthlyReturns <- xts::apply.monthly(returns[, "raw"], sum)
+    auxFun <- function(returns, lengths) {
+
+        rets <- NULL
+
+        i <- 1
+        add <- 0
+
+        for (len in lengths) {
+            rets <- c(rets, tail(cumprod(1 + returns[i:(len + add), "raw"]) -1, 1))
+            i <- i + len
+            add <- len
+        }
+
+        return(rets)
+    }
 
     ## Compute the yearly returns:
-    yearlyReturns  <- xts::apply.yearly(returns[, "raw"], sum)
+    yearlyIdx <- xts::apply.yearly(returns[, "raw"], function(x) length(x))
+    yearlyReturns <- auxFun(returns[, "raw"], as.numeric(yearlyIdx))
+
+    ## Compute the monthly returns:
+    monthlyIdx <- xts::apply.monthly(returns[, "raw"], function(x) length(x))
+    monthlyReturns <- auxFun(returns[, "raw"], as.numeric(monthlyIdx))
 
     ## Assign the monthly returns to the daily return data frame:
-    returns[!is.na(match(zoo::index(returns), zoo::index(monthlyReturns))), "monthly"] <- as.numeric(monthlyReturns)
+    returns[!is.na(match(zoo::index(returns), zoo::index(monthlyIdx))), "monthly"] <- as.numeric(monthlyReturns)
 
     ## Assign the yearly returns to the daily return data frame:
-    returns[!is.na(match(zoo::index(returns), zoo::index(yearlyReturns))), "yearly"] <- as.numeric(yearlyReturns)
+    returns[!is.na(match(zoo::index(returns), zoo::index(yearlyIdx))), "yearly"] <- as.numeric(yearlyReturns)
 
     ## Compute the cumulative returns:
     returns <- cbind(returns, "cumrets"=cumprod(1 + as.numeric(returns[, "raw"]))-1)

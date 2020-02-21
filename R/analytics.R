@@ -63,10 +63,10 @@ computePeriodicReturns <- function(price) {
     monthlyReturns <- auxFun(returns[, "raw"], as.numeric(monthlyIdx))
 
     ## Assign the monthly returns to the daily return data frame:
-    returns[!is.na(match(zoo::index(returns), zoo::index(monthlyIdx))), "monthly"] <- as.numeric(monthlyReturns)
+    returns[!is.na(match(zoo::index(returns), as.Date(zoo::index(monthlyIdx)))), "monthly"] <- as.numeric(monthlyReturns)
 
     ## Assign the yearly returns to the daily return data frame:
-    returns[!is.na(match(zoo::index(returns), zoo::index(yearlyIdx))), "yearly"] <- as.numeric(yearlyReturns)
+    returns[!is.na(match(zoo::index(returns), as.Date(zoo::index(yearlyIdx)))), "yearly"] <- as.numeric(yearlyReturns)
 
     ## Compute the cumulative returns:
     returns <- cbind(returns, "cumrets"=cumprod(1 + as.numeric(returns[, "raw"]))-1)

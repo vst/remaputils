@@ -937,6 +937,10 @@ ansbacherForexMapper <- function(data, accounts, resources, session, ...) {
 ##' @export
 ansbacherCashTXN <- function(data, res, session) {
 
+    if (NROW(data) == 0) {
+        return(NULL)
+    }
+
     ## Create the pure cash transaction guid's:
     guid <- apply(data[, c("OPRCODE", "NETAMOUNTSEC", "BOOKDATE", "ACCOUNT", "TXNCCY")], MARGIN=1, function(x) digest::digest(paste0("ORD", trimws(x))))
 

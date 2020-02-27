@@ -442,6 +442,11 @@ relativePerformancePlot <- function(performance, primCol, secdCol) {
 
     ## Get the yearly returns:
     yearlyRets <- cbind(performance[["container"]][["returns"]][, "yearly"], performance[["benchmark"]][["returns"]][, "yearly"])
+    yearlyRets[is.na(yearlyRets)] <- 0
+    yrIdx <- which(yearlyRets[, 1] != 0)
+    yrVal <- as.numeric(yearlyRets[yearlyRets[, 2] != 0, 2])
+    yearlyRets[, 2] <- 0
+    yearlyRets[yrIdx, 2] <- yrVal
 
     ## Add 0 to the top:
     yearlyRets <- rbind(cbind(xts::as.xts(0, order.by=min(zoo::index(yearlyRets)) - 1), 0), yearlyRets)
@@ -558,7 +563,8 @@ relativePerformancePlot <- function(performance, primCol, secdCol) {
     labels[labels == "0.00%"] <- ""
 
     ## Add the text to the bars:
-    text(mp, xx - 0.005, labels=labels, cex=0.80, font=2, col="white")
+    ## text(mp, xx - 0.005, labels=labels, cex=0.80, font=2, col="white")
+    text(mp, (xx * 0.8) + 0.001, labels=labels, cex=0.80, font=2, col="white")
 
     ## Add the horizontal line:
     abline(h=0, lwd=0.4, lty=2)

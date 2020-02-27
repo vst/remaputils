@@ -72,7 +72,7 @@ pushPosDifferences <- function(stocks, provider, session, ctype=20) {
                                                     "qtymain"=round(increments[start:end, "diff"], 12),
                                                     "accmain"=increments[start:end, "Account"],
                                                     "pxmain"=round(as.numeric(increments[start:end, "pxext"]), 10),
-                                                    "ctype"="20",
+                                                    "ctype"=ctype,
                                                     "guid"=guid[start:end],
                                                     stringsAsFactors=FALSE)), auto_unbox=TRUE, na="null", digits=10)
 

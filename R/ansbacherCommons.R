@@ -151,6 +151,14 @@ ansbacherITGI002Columns <- function() {
 }
 
 
+##' TODO:
+##'
+##' This is the description
+##'
+##' @param data TODO
+##' @param fileType TODO
+##' @return TODO
+##' @export
 ansbacherParser <- function(data, fileType) {
 
     ## Get the column mappers:
@@ -181,6 +189,13 @@ ansbacherParser <- function(data, fileType) {
 }
 
 
+##' TODO:
+##'
+##' This is the description
+##'
+##' @param data TODO
+##' @return TODO
+##' @export
 ansbacherFilePreemble <- function(data) {
 
     if (any(safeGrep(colnames(data), "REPNAME") == "1")) {
@@ -231,13 +246,34 @@ ansbacherFilePreemble <- function(data) {
 
 }
 
-
+##' TODO:
+##'
+##' This is the description
+##'
+##' @param data TODO
+##' @param accounts TODO
+##' @param resources TODO
+##' @param session TODO
+##' @param ... TODO
+##' @return TODO
+##' @export
 ansbacherSecurityResourceMapper <- function(data, accounts, resources, session, ...) {
     ## Run the resource preemble:
     result <- ansbacherResourcePreemble(data, accounts, resources, session)
 }
 
 
+##' TODO:
+##'
+##' This is the description
+##'
+##' @param data TODO
+##' @param accounts TODO
+##' @param resources TODO
+##' @param session TODO
+##' @param ... TODO
+##' @return TODO
+##' @export
 ansbacherLiquidityResourceMapper <- function(data, accounts, resources, session, ...) {
     ## Get the resmains:
     data[, "resmain"] <- resources[match(as.character(data[, "SECCCY"]), resources[, "symbol"]), "id"]
@@ -258,10 +294,21 @@ ansbacherLiquidityResourceMapper <- function(data, accounts, resources, session,
 }
 
 
+##' TODO:
+##'
+##' This is the description
+##'
+##' @param data TODO
+##' @param accounts TODO
+##' @param resources TODO
+##' @param session TODO
+##' @param ... TODO
+##' @return TODO
+##' @export
 ansbacherForexResourceMapper <- function(data, accounts, resources, session, ...) {
     ## Construct the guid:
     guid <- paste0("ANSBACHER:", data[, "ACCOUNT"], data[, "BOUGHTCCY"], data[, "SOLDCCY"], data[, "FWDRATE"], data[, "MATURITY2"])
-    guid <- as.character(sapply(guid, digest))
+    guid <- as.character(sapply(guid, function(x) digest::digest(x)))
 
     ## Interpret the main ccy:
     mainCCY <- apply(data[, c("BOUGHTCCY", "SOLDCCY", "SECCCY")], MARGIN=1, function(x) x[which(x[3] != x[1:2])])
@@ -310,8 +357,17 @@ ansbacherForexResourceMapper <- function(data, accounts, resources, session, ...
 }
 
 
-
-## This the security master mapper:
+##' TODO:
+##'
+##' This is the description
+##'
+##' @param records TODO
+##' @param accounts TODO
+##' @param resources TODO
+##' @param session TODO
+##' @param ... TODO
+##' @return TODO
+##' @export
 ansbacherResourcePreemble <- function(records, accounts, resources, session, ...) {
 
     ## If resources is empty, create USD:
@@ -428,6 +484,17 @@ ansbacherResourcePreemble <- function(records, accounts, resources, session, ...
 }
 
 
+##' TODO:
+##'
+##' This is the description
+##'
+##' @param data TODO
+##' @param accounts TODO
+##' @param resources TODO
+##' @param session TODO
+##' @param ... TODO
+##' @return TODO
+##' @export
 ansbacherShorttermResourceMapper <- function(data, accounts, resources, session, ...) {
 
     ## Construct the guid:
@@ -438,7 +505,7 @@ ansbacherShorttermResourceMapper <- function(data, accounts, resources, session,
                    data[, "MATURITY2"],
                    data[, "SHRTRM_INTEREST"])
 
-    guid <- as.character(sapply(guid, digest))
+    guid <- as.character(sapply(guid, function(x) digest::digest(x)))
 
     ## Match and get resmain:
     data[, "resmain"] <- resources[match(guid, resources[, "guid"]), "id"]
@@ -473,7 +540,17 @@ ansbacherShorttermResourceMapper <- function(data, accounts, resources, session,
 
 }
 
-
+##' TODO:
+##'
+##' This is the description
+##'
+##' @param data TODO
+##' @param accounts TODO
+##' @param resources TODO
+##' @param session TODO
+##' @param ... TODO
+##' @return TODO
+##' @export
 ansbacherShorttermMapper <- function(data, accounts, resources, session, ...) {
 
     maskedData <- data[data[, "SECDESC1"] == "MASKED", ]
@@ -499,7 +576,7 @@ ansbacherShorttermMapper <- function(data, accounts, resources, session, ...) {
                    data[, "MATURITY2"],
                    data[, "SHRTRM_INTEREST"])
 
-    guid <- as.character(sapply(guid, digest))
+    guid <- as.character(sapply(guid, function(x) digest::digest(x)))
 
     ## Match and get resmain:
     data[, "resmain"] <- resources[match(guid, resources[, "guid"]), "id"]
@@ -559,6 +636,17 @@ ansbacherShorttermMapper <- function(data, accounts, resources, session, ...) {
 }
 
 
+##' TODO:
+##'
+##' This is the description
+##'
+##' @param data TODO
+##' @param accounts TODO
+##' @param resources TODO
+##' @param session TODO
+##' @param ... TODO
+##' @return TODO
+##' @export
 ansbacherExpirefwdMapper <- function(data, accounts, resources, session, ...) {
 
     ## Get the active stocks for containers:
@@ -605,6 +693,17 @@ ansbacherExpirefwdMapper <- function(data, accounts, resources, session, ...) {
 }
 
 
+##' TODO:
+##'
+##' This is the description
+##'
+##' @param data TODO
+##' @param accounts TODO
+##' @param resources TODO
+##' @param session TODO
+##' @param ... TODO
+##' @return TODO
+##' @export
 ansbacherSecurityMapper <- function(data, accounts, resources, session, ...) {
 
     maskedData <- data[data[, "SECDESC1"] == "MASKED", ]
@@ -656,6 +755,17 @@ ansbacherSecurityMapper <- function(data, accounts, resources, session, ...) {
 }
 
 
+##' TODO:
+##'
+##' This is the description
+##'
+##' @param data TODO
+##' @param accounts TODO
+##' @param resources TODO
+##' @param session TODO
+##' @param ... TODO
+##' @return TODO
+##' @export
 ansbacherLiquidityMapper <- function(data, accounts, resources, session, ...) {
 
     ## Get the resmains:
@@ -697,9 +807,17 @@ ansbacherLiquidityMapper <- function(data, accounts, resources, session, ...) {
 }
 
 
-
-
-
+##' TODO:
+##'
+##' This is the description
+##'
+##' @param data TODO
+##' @param accounts TODO
+##' @param resources TODO
+##' @param session TODO
+##' @param ... TODO
+##' @return TODO
+##' @export
 ansbacherForexMapper <- function(data, accounts, resources, session, ...) {
 
     maskedData <- data[data[, "SECDESC1"] == "MASKED", ]
@@ -719,7 +837,7 @@ ansbacherForexMapper <- function(data, accounts, resources, session, ...) {
 
     ## Construct the guid:
     guid <- paste0("ANSBACHER:", data[, "ACCOUNT"], data[, "BOUGHTCCY"], data[, "SOLDCCY"], data[, "FWDRATE"], data[, "MATURITY2"])
-    guid <- as.character(sapply(guid, digest))
+    guid <- as.character(sapply(guid, function(x) digest::digest(x)))
 
     ## Interpret the main ccy:
     mainCCY <- apply(data[, c("BOUGHTCCY", "SOLDCCY", "SECCCY")], MARGIN=1, function(x) {
@@ -808,11 +926,19 @@ ansbacherForexMapper <- function(data, accounts, resources, session, ...) {
 }
 
 
-
+##' TODO:
+##'
+##' This is the description
+##'
+##' @param data TODO
+##' @param res TODO
+##' @param session TODO
+##' @return TODO
+##' @export
 ansbacherCashTXN <- function(data, res, session) {
 
     ## Create the pure cash transaction guid's:
-    guid <- apply(data[, c("OPRCODE", "NETAMOUNTSEC", "BOOKDATE", "ACCOUNT", "TXNCCY")], MARGIN=1, function(x) digest(paste0("ORD", trimws(x))))
+    guid <- apply(data[, c("OPRCODE", "NETAMOUNTSEC", "BOOKDATE", "ACCOUNT", "TXNCCY")], MARGIN=1, function(x) digest::digest(paste0("ORD", trimws(x))))
 
     ## Prepare the data frame:
     records <- data.frame("ctype"="20",
@@ -844,7 +970,14 @@ ansbacherCashTXN <- function(data, res, session) {
 
 }
 
-
+##' TODO:
+##'
+##' This is the description
+##'
+##' @param data TODO
+##' @param session TODO
+##' @return TODO
+##' @export
 ansbacherCreateOtherResource <- function(data, session) {
 
     ## If any NA resmains, create OTHER resource:

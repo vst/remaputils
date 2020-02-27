@@ -567,7 +567,7 @@ relativePerformancePlot <- function(performance, primCol, secdCol) {
 
     ## Add the text to the bars:
     ## text(mp, (xx * 0.8) + 0.001, labels=labels, cex=0.80, font=2, col="white")
-    text(mp, (xxx + 0.0025), labels=labels, cex=0.90, font=2, col=c(adjustcolor(primCol, alpha.f = 0.9),
+    text(mp, (xxx + 0.0025), labels=labels, cex=0.85, font=2, col=c(adjustcolor(primCol, alpha.f = 0.9),
                                                                     adjustcolor(secdCol, alpha.f = 0.9)))
 
     ## Add the horizontal line:

@@ -4,7 +4,7 @@
 \alias{pushPosDifferences}
 \title{This function pushes the positions difference between decaf and provider}
 \usage{
-pushPosDifferences(stocks, provider, session)
+pushPosDifferences(stocks, provider, session, ctype = 20)
 }
 \arguments{
 \item{stocks}{The position comparisons data frame.}
@@ -12,6 +12,8 @@ pushPosDifferences(stocks, provider, session)
 \item{provider}{The provider as string.}
 
 \item{session}{The rdecaf session.}
+
+\item{ctype}{The ctype. Default is 20.}
 }
 \description{
 This is the description

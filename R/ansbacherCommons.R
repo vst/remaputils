@@ -750,7 +750,7 @@ ansbacherSecurityMapper <- function(data, accounts, resources, session, ...) {
     stocks[is.na(stocks[, "pxext"]), "pxext"] <- 1
 
     ## Push the differences:
-    pushPosDifferences(stocks, "Ansbacher", session)
+    pushPosDifferences(stocks, "Ansbacher", session, 15)
 
 }
 

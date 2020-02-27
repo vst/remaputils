@@ -5,9 +5,10 @@
 ##' @param stocks The position comparisons data frame.
 ##' @param provider The provider as string.
 ##' @param session The rdecaf session.
+##' @param ctype The ctype. Default is 20.
 ##' @return NULL
 ##' @export
-pushPosDifferences <- function(stocks, provider, session) {
+pushPosDifferences <- function(stocks, provider, session, ctype=20) {
 
     ## Set NA QTY's in Decaf to 0:
     stocks[is.na(stocks[, "QTY"]), "QTY"] <- 0
@@ -217,6 +218,16 @@ getPositionComparison <- function(pPos, resources, pDate, type, session) {
 
         ## Ensure we only take the cash positions:
         stocks <- stocks[stocks[, "Type"] == "Cash",]
+
+        ## Set PX Last to 1:
+        pPos[, "PXLAST"] <- 1
+    }
+
+    ## If type of positions is depo, set PX Last to 1:
+    if (type == "Time Deposit") {
+
+        ## Ensure we only take the cash positions:
+        stocks <- stocks[stocks[, "Type"] == "Time Deposit Contract",]
 
         ## Set PX Last to 1:
         pPos[, "PXLAST"] <- 1

@@ -562,9 +562,13 @@ relativePerformancePlot <- function(performance, primCol, secdCol) {
     labels <- gsub(" ", "", (percentify(xx)))
     labels[labels == "0.00%"] <- ""
 
+    xxx <- xx
+    xxx[xxx < 0] <- 0
+
     ## Add the text to the bars:
-    ## text(mp, xx - 0.005, labels=labels, cex=0.80, font=2, col="white")
-    text(mp, (xx * 0.8) + 0.001, labels=labels, cex=0.80, font=2, col="white")
+    ## text(mp, (xx * 0.8) + 0.001, labels=labels, cex=0.80, font=2, col="white")
+    text(mp, (xxx + 0.0025), labels=labels, cex=0.90, font=2, col=c(adjustcolor(primCol, alpha.f = 0.9),
+                                                                    adjustcolor(secdCol, alpha.f = 0.9)))
 
     ## Add the horizontal line:
     abline(h=0, lwd=0.4, lty=2)

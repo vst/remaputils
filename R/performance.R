@@ -221,6 +221,9 @@ performance.GetPeriodicTable <- function(period, returns, window) {
     ## Get the periodic returns:
     periodReturns <- round(t(do.call(pFun[[period]][["apply"]], list(returns))), 5)
 
+    ## XTS is broken!!!!!
+    colnames(periodReturns)[colnames(periodReturns) == "2020-02-28"] <- "2020-02-29"
+
     ## Add the dates as separate row:
     periodReturns <- as.data.frame(rbind(as.character(colnames(periodReturns)),
                                          periodReturns),

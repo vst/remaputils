@@ -56,6 +56,7 @@ bbgTransformFuns <- function() {
          "RTG_SP_OUTLOOK"=function(x){as.character(x)},
          "PRIMARY_EXCHANGE_NAME"=function(x){as.character(x)},
          "CPN"=function(x){as.numeric(x)},
+         "FUTURES_CATEGORY"=function(x){as.character(x)},
          "FIRST_CPN_DT"=function(x) {as.Date(x, format="%Y%m%d")},
          "CPN_FREQ"=function(x) {as.integer(x)},
          "OPT_STRIKE_PX"=function(x) {as.numeric(x)})

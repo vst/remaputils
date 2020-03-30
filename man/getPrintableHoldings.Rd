@@ -4,13 +4,15 @@
 \alias{getPrintableHoldings}
 \title{A function to generate the printable holdings data-frame}
 \usage{
-getPrintableHoldings(portfolio, ccy, date, dtype, toplevel, sublevel,
-  customTop, colselect, regions, summaryaddon, addTagsBy = NULL,
-  childDefaults = TRUE, charLimit = 30, orderByKeys = c("Expiry",
-  "CCY", "Exposure", "Name"), session, ...)
+getPrintableHoldings(portfolio = NA, account = NA, ccy, date, dtype,
+  toplevel, sublevel, customTop, colselect, regions, summaryaddon,
+  addTagsBy = NULL, childDefaults = TRUE, charLimit = 30,
+  orderByKeys = c("Expiry", "CCY", "Exposure", "Name"), session, ...)
 }
 \arguments{
 \item{portfolio}{The portfolio id}
+
+\item{account}{The account id}
 
 \item{ccy}{The currency of reporting}
 

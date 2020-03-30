@@ -4,7 +4,7 @@
 \alias{getAssetEvolution}
 \title{Gets the asset evolution for a portfolio from pconsolidation}
 \usage{
-getAssetEvolution(portfolio, date, years = "2", session)
+getAssetEvolution(portfolio, date, years = "2", session, ...)
 }
 \arguments{
 \item{portfolio}{The portfolio id.}
@@ -14,6 +14,8 @@ getAssetEvolution(portfolio, date, years = "2", session)
 \item{years}{The number of years to look back.}
 
 \item{session}{The rdecaf session,}
+
+\item{...}{Any additional parameters.}
 }
 \value{
 An data frame with NAV and AUM.

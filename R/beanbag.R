@@ -686,16 +686,30 @@ getHoldingsSummary <- function(holdings, col="Subtype", key="Cash") {
 ##' @param date The date__lte.
 ##' @param years The number of years to look back.
 ##' @param session The rdecaf session,
+##' @param ... Any additional parameters.
 ##' @return An data frame with NAV and AUM.
 ##' @export
-getAssetEvolution <- function(portfolio, date, years="2", session) {
-    ## Define the params:
-    params <- list("portfolio"=portfolio,
-                   "account__isnull"="True",
-                   "shareclass__isnull"="True",
-                   "date__gte"=dateOfPeriod(paste0("Y-", years)),
-                   "date__lte"=date,
-                   "page_size"=-1)
+getAssetEvolution <- function(portfolio, date, years="2", session, ...) {
+
+    account <- ifelse(is.null(list(...)[["account"]]), NA, list(...)[["account"]])
+
+    if (is.na(account)) {
+        ## Define the params:
+        params <- list("portfolio"=portfolio,
+                       "account__isnull"="True",
+                       "shareclass__isnull"="True",
+                       "date__gte"=dateOfPeriod(paste0("Y-", years)),
+                       "date__lte"=date,
+                       "page_size"=-1)
+    } else {
+        ## Define the params:
+        params <- list("account"=account,
+                       "account__isnull"="False",
+                       "shareclass__isnull"="True",
+                       "date__gte"=dateOfPeriod(paste0("Y-", years)),
+                       "date__lte"=date,
+                       "page_size"=-1)
+    }
 
     ## Get the pconsolidaton:
     pCons <- rdecaf::getResource("pconsolidations", params=params, session=session)

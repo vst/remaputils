@@ -554,6 +554,7 @@ getFormattedHoldings <- function(holdings){
 ##' This is a description.
 ##'
 ##' @param portfolio The portfolio id
+##' @param account The account id
 ##' @param ccy The currency of reporting
 ##' @param date The date of reporting
 ##' @param dtype The date type of reporting
@@ -571,7 +572,8 @@ getFormattedHoldings <- function(holdings){
 ##' @param ... Additional parameters
 ##' @return A data-frame with the printable format of holdings
 ##' @export
-getPrintableHoldings <- function(portfolio,
+getPrintableHoldings <- function(portfolio=NA,
+                                 account=NA,
                                  ccy,
                                  date,
                                  dtype,
@@ -590,11 +592,18 @@ getPrintableHoldings <- function(portfolio,
     ## Get additional arguments:
     args <- list(...)
 
+    ## Get the container type:
+    containerType <- ifelse(is.na(portfolio), "accounts", "portfolios")
+
+    ## Get the container id:
+    containerID <- ifelse(is.na(portfolio), account, portfolio)
+
     ## Get the portfolio details:
-    portfolioDetails <- as.data.frame(rdecaf::getResource("portfolios", params=list("id"=portfolio, "format"="csv", "page_size"=-1), session=session))
+    ## portfolioDetails <- as.data.frame(rdecaf::getResource("portfolios", params=list("id"=portfolio, "format"="csv", "page_size"=-1), session=session))
+    containerDetails <- as.data.frame(rdecaf::getResource(containerType, params=list("id"=containerID, "format"="csv", "page_size"=-1), session=session))
 
     ## Grep the columns with the name shareclass in it:
-    shareclassCol <- grep("shareclass", colnames(portfolioDetails))
+    shareclassCol <- grep("shareclass", colnames(containerDetails))
 
     ## If such column exists, do following:
     if (length(shareclassCol) > 0) {
@@ -606,7 +615,7 @@ getPrintableHoldings <- function(portfolio,
         for (shcl in shareclassCol) {
 
             ## Get the in-loop shareclass:
-            shclses <- as.data.frame(rdecaf::getResource("shareclasses", params=list("id"=portfolioDetails[, shcl], "format"="csv", "page_size"=-1), session=session))
+            shclses <- as.data.frame(rdecaf::getResource("shareclasses", params=list("id"=containerDetails[, shcl], "format"="csv", "page_size"=-1), session=session))
 
             ## Append the isin of the in-loop shareclass to the isin variable:
             isin <- paste(isin, ifelse(is.na(shclses[, "isin"]), "", shclses[, "isin"]), sep=" ")
@@ -614,16 +623,20 @@ getPrintableHoldings <- function(portfolio,
 
     ## If not shareclass exists, try to get the isin from portfolio details:
     } else {
-        isin <- safeTry(try(portfolioDetails[,"isin"], silent=TRUE))
+        isin <- safeTry(try(containerDetails[,"isin"], silent=TRUE))
     }
 
     isin <- gsub(" ", ", ", trimws(isin))
 
     ## Get the inception:
-    inception <- safeTry(try(portfolioDetails[,"inception"], silent=TRUE))
+    inception <- safeTry(try(containerDetails[,"inception"], silent=TRUE))
 
     ## Get the consolidation:
-    consolidation <- rdecaf::getResource("fundreport", params=list("fund"=portfolio, ccy=ccy, date=date, type=dtype), session=session)
+    if (containerType == "portfolios") {
+        consolidation <- rdecaf::getResource("fundreport", params=list("fund"=containerID, ccy=ccy, date=date, type=dtype), session=session)
+    } else {
+        consolidation <- rdecaf::getResource("consolidation", params=list("c"="account","i"=containerID, "ccy"=ccy, "date"=date, "type"=dtype, "page_size"=-1), session=session)
+    }
 
     ## Get the flat holdings:
     holdings <- getFlatHoldings(consolidation[["holdings"]], charLimit=charLimit)
@@ -638,7 +651,7 @@ getPrintableHoldings <- function(portfolio,
     }
 
     ## Get the stocks:
-    stocks <- getStocksFromContainerNames(session, "portfolios", portfolioDetails[, "name"], zero=0, date)
+    stocks <- getStocksFromContainerNames(session, containerType, containerDetails[, "name"], zero=0, date)
 
     ## Get the resources:
     resources <- getResourcesByStock(stocks, session)

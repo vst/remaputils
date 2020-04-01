@@ -16,11 +16,15 @@ ansbacherSecTypeMapper <- function() {
                     "stype"="Stocks"),
          "402"=list("ctype"="SHRE",
                     "stype"="Stocks"),
+         "407"=list("ctype"="SP",
+                    "stype"=NA),
          "455"=list("ctype"="SP",
                     "stype"=NA),
          "200"=list("ctype"="BOND",
                     "stype"=NA),
          "203"=list("ctype"="BOND",
+                    "stype"=NA),
+         "205"=list("ctype"="BOND",
                     "stype"=NA),
          "202"=list("ctype"="BOND",
                     "stype"=NA),
@@ -30,7 +34,23 @@ ansbacherSecTypeMapper <- function() {
                     "stype"=NA),
          "310"=list("ctype"="SHRE",
                     "stype"="Alternative"),
+         "336"=list("ctype"="SHRE",
+                    "stype"="Alternative"),
+         "403"=list("ctype"="SHRE",
+                    "stype"="Alternative"),
+         "404"=list("ctype"="SHRE",
+                    "stype"="Stocks"),
+         "201"=list("ctype"="SHRE",
+                    "stype"="Alternative"),
          "320"=list("ctype"="SHRE",
+                    "stype"="ETF|Index"),
+         "340"=list("ctype"="SHRE",
+                    "stype"="ETF|Index"),
+         "401"=list("ctype"="SHRE",
+                    "stype"="ETF|Index"),
+         "405"=list("ctype"="SHRE",
+                    "stype"="ETF|Index"),
+         "450"=list("ctype"="SHRE",
                     "stype"="ETF|Index"),
          "220"=list("ctype"="BOND",
                     "stype"=NA),
@@ -629,7 +649,7 @@ ansbacherShorttermMapper <- function(data, accounts, resources, session, ...) {
     stocks[is.na(stocks[, "pxext"]), "pxext"] <- 1
 
     ## Push the differences:
-    pushPosDifferences(stocks, "Ansbacher", session)
+    pushPosDifferences(stocks, "Ansbacher", session, 15)
 
     return(NULL)
 
@@ -802,7 +822,7 @@ ansbacherLiquidityMapper <- function(data, accounts, resources, session, ...) {
                                                                                     )))
 
     ## Push the differences:
-    pushPosDifferences(stocks, "Ansbacher", session)
+    pushPosDifferences(stocks, "Ansbacher", session, 15)
 
 }
 
@@ -830,7 +850,7 @@ ansbacherForexMapper <- function(data, accounts, resources, session, ...) {
         stocks[is.na(stocks[, "PX Last"]), "PX Last"] <- 1
         stocks[is.na(stocks[, "pxext"]), "pxext"] <- 1
         ## Push the differences:
-        pushPosDifferences(stocks, "Ansbacher", session)
+        pushPosDifferences(stocks, "Ansbacher", session, 15)
         return(NULL)
     }
 
@@ -921,7 +941,7 @@ ansbacherForexMapper <- function(data, accounts, resources, session, ...) {
     stocks[is.na(stocks[, "pxext"]), "pxext"] <- 1
 
     ## Push the differences:
-    pushPosDifferences(stocks, "Ansbacher", session)
+    pushPosDifferences(stocks, "Ansbacher", session, 15)
 
 }
 

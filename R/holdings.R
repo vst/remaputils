@@ -228,7 +228,7 @@ getFlatHoldings <- function(x, charLimit=30){
     }
 
     ## Construct the data frame:
-    holdings <- lapply(x, function(h) data.frame("Name"=.emptyToNA(as.character(ellipsify(h[["artifact"]][["name"]], charLimit=charLimit))),
+    holdings <- lapply(x, function(h) data.frame("Name"=.emptyToNA(as.character(ellipsify(h[["artifact"]][["name"]], charLimit=500))),
                                                  "Account"=.emptyToNA(h[["accounts"]][[1]][["id"]]),
                                                  "Symbol"=.emptyToNA(as.character(h[["artifact"]][["symbol"]])),
                                                  "ID"=.emptyToNA(as.numeric(h[["artifact"]][["id"]])),
@@ -275,8 +275,15 @@ getFlatHoldings <- function(x, charLimit=30){
 
     })
 
+    holdings <- as.data.frame(do.call(rbind, holdings), check.names=FALSE)
+
+    ## Treat the FX Forward names:
+    holdings[, "Name"] <- gsub("C/FXFWD", "FWD", holdings[, "Name"])
+    holdings[, "Name"] <- gsub("CX/DEPO", "DEPO", holdings[, "Name"])
+    holdings[, "Name"] <- ellipsify(holdings[, "Name"], charLimit=charLimit)
+
     ## Get the holdings:
-    classify(as.data.frame(do.call(rbind, holdings), check.names=FALSE))
+    classify(holdings)
 }
 
 

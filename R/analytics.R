@@ -844,14 +844,17 @@ exfoliateSeries <- function(series, anchors) {
 ##' @param returnOnly Consider only Total Return?
 ##' @param excludeWeekends Should the weekends be excluded? Default to TRUE.
 ##' @param session The rdecaf session.
+##' @param treat Should the time series be treated? Default=TRUE
 ##' @return A data frame with the asset returns.
 ##' @export
-getAssetReturns <- function(date, ccy, resources, priceField="ohlcID", periods, returnOnly, excludeWeekends, session) {
+getAssetReturns <- function(date, ccy, resources, priceField="ohlcID", periods, returnOnly, excludeWeekends, session, treat=TRUE) {
 
     ## Get the slices ohlcs:
     slicedOhlcs <- getSlicedOhlcs(resources[, priceField], session, date, periods, excludeWeekends)
 
-    slicedOhlcs <- lapply(slicedOhlcs, function(x) lapply(x, function(z) treatPriceSeries(z, "date", "close", quantile=0.998, surpressPlot=TRUE)))
+    if (treat) {
+        slicedOhlcs <- lapply(slicedOhlcs, function(x) lapply(x, function(z) treatPriceSeries(z, "date", "close", quantile=0.998, surpressPlot=TRUE)))
+    }
 
     ## Get the returns:
     returnStats <- lapply(slicedOhlcs, function(s) do.call(rbind, lapply(s, function(y) computeReturnStats(y, "close", "date", method="discrete", returnOnly=returnOnly))))

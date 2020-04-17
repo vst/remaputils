@@ -448,3 +448,192 @@ alertOverdraft <- function (session,
                     emailParams = emailParams,
                     subject = " DECAF Overdraft Alert: ")
 }
+
+
+
+##' A function to .
+##'
+##' This is the description
+##'
+##' @param session The rdecaf session.
+##' @param resources The data-frame of the resources in the decaf instance.
+##' @param emailParams The parameters for the email dispatch.
+##' @param greeting The greetings string.
+##' @param deployment The name of the deployment / client.
+##' @param url The url of the deployment.
+##' @param gte Greater than or equal to this time (HH:MM:SS) to run this alert.
+##' @param lte Less than or equal to this time (HH:MM:SS) to run this alert.
+##' @param tz The time-zone for gte and lte.
+##' @return NULL. Email with the alert will be sent.
+##' @export
+alertMissingMonthEndPx <- function (session,
+                                    resources,
+                                    emailParams,
+                                    greeting="Dear Team,",
+                                    deployment,
+                                    url,
+                                    gte="00:00:00",
+                                    lte="23:59:00",
+                                    tz="UTC") {
+
+    ## Check if  parameters are defined:
+    if (!hasArg("session") || !hasArg("resources") || !hasArg("emailParams") || !hasArg("deployment") || !hasArg("url")) {
+        stop("Need to define session / resources / emailsParams / deployment / url")
+    }
+
+    ## Is it alert time:
+    itsAlertTime <- itsTime(tz=tz, gte=gte, lte=lte)
+
+    ## If not, return NULL
+    if (!itsAlertTime) {
+        return(NULL)
+    }
+
+    # Off days
+    offdays <- c("Saturday", "Sunday")
+
+    ## Say you want to find out last working date of December 2017
+    monthdates <- tail(seq(dateOfPeriod("M-1"), dateOfPeriod("M-0"), 1), -1)
+
+    ## Eliminate off days
+    monthdates<- monthdates[!weekdays(monthdates) %in% offdays]
+
+    ## Find out max date in vector now
+    rDate <- max(monthdates)
+
+    ## The params:
+    params <- list(page_size = -1, format = "csv", date=rDate)
+
+    ## Get portfolios:
+    stocks <- as.data.frame(getResource("stocks", params=params, session=session))
+
+    ## Prepare the ohlc query:
+    ohlcData <- resources[match(unique(stocks[, "artifact"]), resources[, "id"]), c("ohlccode", "symbol", "ctype", "id", "name")]
+
+    ohlcData[, "priceId"] <- ifelse(isNAorEmpty(ohlcData[, "ohlccode"]), ohlcData[, "symbol"], ohlcData[, "ohlccode"])
+
+    ohlcObs <- lapply(ohlcData[, "priceId"], function(x) getOhlcObsForSymbol(session, x, lte=as.Date(rDate), lookBack=0))
+
+    ohlcData[, "monthEndPx"] <- as.numeric(sapply(ohlcObs, function(x) ifelse(NROW(x) == 0, NA, x[, "close"])))
+
+    ohlcData <- ohlcData[ohlcData[, "ctype"] != "OTHER" & ohlcData[, "ctype"] != "CCY" & ohlcData[, "ctype"] != "FXFWD", ]
+
+    ohlcData <- ohlcData[is.na(ohlcData[, "monthEndPx"]), ]
+
+    if (NROW(ohlcData) == 0) {
+        ohlcData <- initDF(colnames(ohlcData), 1)
+    }
+
+    instrumentLink <- paste0(gsub("api", "", session[["location"]]), "ohlc/observation?series__symbol=", ohlcData[, "priceId"])
+    instrumentLink <- gsub(" ", "%20", instrumentLink)
+
+    result <- data.frame("OHLC Link"=instrumentLink,
+                         "Name"=ohlcData[, "name"],
+                         "Symbol"=ohlcData[, "symbol"],
+                         check.names=FALSE,
+                         stringsAsFactors=FALSE)
+
+
+    result[, "OHLC Link"] <- paste0("<a href='", result[, "OHLC Link"], "'>LINK</a>")
+
+    result <- as.character(emailHTMLTable(result,
+                                          provider = "DECAF",
+                                          caption="Missing Month-End Prices",
+                                          sourceType = "API"))
+
+    result <- gsub("&#62;LINK&#60;/a&#62;", ">LINK<aya/a>", result)
+    result <- gsub("&#60;a href", "<a href", result)
+
+    attachment <- data.frame("date"=rDate, "symbol"=ohlcData[, "priceId"], "close"=NA, stringsAsFactors=FALSE)
+    rownames(attachment) <- NULL
+    fPath <- gsub(":", "" ,gsub(" ", "_", paste0("/tmp/monthend_prices__", Sys.time(), ".csv")))
+    write.csv(attachment, fPath, row.names=FALSE)
+
+    .UPDATETEXT <- list(GREETINGPLACEHOLDER = greeting,
+                        EMAILBODYPLACEHOLDER = "Please find below instruments for which the month end prices are missing",
+                        CALLTOACTIONPLACEHOLDER = "Go to System",
+                        DEPLOYMENT = deployment,
+                        URLPLACEHOLDER = url,
+                        FINALPARAGRAPHPLACEHOLDER = "Please contact us if you experience any issues or have questions/feedback",
+                        ADDRESSPLACEHOLDER = "",
+                        GOODBYEPLACEHOLDER = "Best Regards,<br>DECAF TEAM",
+                        ADDENDUMPLACEHOLDER = result)
+
+    syncUpdateEmail(template = readLines("../assets/update_email.html"),
+                    updateText = .UPDATETEXT,
+                    emailParams = emailParams,
+                    subject = " DECAF Month-End Price Alert: ",
+                    attachments=fPath)
+}
+
+
+
+alertMissingAssetClass <- function (session,
+                                    resources,
+                                    emailParams,
+                                    greeting="Dear Team,",
+                                    deployment,
+                                    url,
+                                    gte="00:00:00",
+                                    lte="23:59:00",
+                                    tz = "UTC") {
+
+    ## Check if  parameters are defined:
+    if (!hasArg("session") || !hasArg("resources") || !hasArg("emailParams") || !hasArg("deployment") || !hasArg("url")) {
+        stop("Need to define session / resources / emailsParams / deployment / url")
+    }
+
+    ## Is it alert time:
+    itsAlertTime <- itsTime(tz=tz, gte=gte, lte=lte)
+
+    ## If not, return NULL
+    if (!itsAlertTime) {
+        return(NULL)
+    }
+
+    ## Get the stocks:
+    stocks <- as.data.frame(getResource("stocks", params=list("page_size"=1, "format"="csv"), session=session))
+
+    resByAssetClass <- resources[match(stocks[, "artifact"], resources[, "id"]), c("symbol", "assetclass", "id", "ctype", "name")]
+
+    missingAssetClass <- resByAssetClass[is.na(resByAssetClass[, "assetclass"]), ]
+
+    if (NROW(missingAssetClass) == 0) {
+        missingAssetClass <- initDF(colnames(missingAssetClass), 1)
+    }
+
+    instrumentLink <- paste0(gsub("api", "", session[["location"]]), "resource/details/", missingAssetClass[, "id"])
+    instrumentLink <- gsub(" ", "%20", instrumentLink)
+
+    result <- data.frame("Link"=instrumentLink,
+                         "Name"=missingAssetClass[, "name"],
+                         "Symbol"=missingAssetClass[, "symbol"],
+                         check.names=FALSE,
+                         stringsAsFactors=FALSE)
+
+
+    result[, "Link"] <- paste0("<a href='", result[, "Link"], "'>LINK</a>")
+
+    result <- as.character(emailHTMLTable(result,
+                                          provider = "DECAF",
+                                          caption="Missing Asset Class",
+                                          sourceType = "API"))
+
+    result <- gsub("&#62;LINK&#60;/a&#62;", ">LINK<aya/a>", result)
+    result <- gsub("&#60;a href", "<a href", result)
+
+    .UPDATETEXT <- list(GREETINGPLACEHOLDER = greeting,
+                        EMAILBODYPLACEHOLDER = "Please find below active instruments which do not have an asset class assigned",
+                        CALLTOACTIONPLACEHOLDER = "Go to System",
+                        DEPLOYMENT = deployment,
+                        URLPLACEHOLDER = url,
+                        FINALPARAGRAPHPLACEHOLDER = "Please contact us if you experience any issues or have questions/feedback",
+                        ADDRESSPLACEHOLDER = "",
+                        GOODBYEPLACEHOLDER = "Best Regards,<br>DECAF TEAM",
+                        ADDENDUMPLACEHOLDER = result)
+
+    syncUpdateEmail(template = readLines("../assets/update_email.html"),
+                    updateText = .UPDATETEXT,
+                    emailParams = emailParams,
+                    subject = " DECAF Missing Asset Class: ")
+}

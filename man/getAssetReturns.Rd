@@ -5,7 +5,7 @@
 \title{Provides the asset returns MTD and YTD including FX returns}
 \usage{
 getAssetReturns(date, ccy, resources, priceField = "ohlcID", periods,
-  returnOnly, excludeWeekends, session)
+  returnOnly, excludeWeekends, session, treat = TRUE)
 }
 \arguments{
 \item{date}{The date of consideration.}
@@ -23,6 +23,8 @@ getAssetReturns(date, ccy, resources, priceField = "ohlcID", periods,
 \item{excludeWeekends}{Should the weekends be excluded? Default to TRUE.}
 
 \item{session}{The rdecaf session.}
+
+\item{treat}{Should the time series be treated? Default=TRUE}
 }
 \value{
 A data frame with the asset returns.

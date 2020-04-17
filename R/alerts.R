@@ -567,7 +567,21 @@ alertMissingMonthEndPx <- function (session,
 }
 
 
-
+##' A function to .
+##'
+##' This is the description
+##'
+##' @param session The rdecaf session.
+##' @param resources The data-frame of the resources in the decaf instance.
+##' @param emailParams The parameters for the email dispatch.
+##' @param greeting The greetings string.
+##' @param deployment The name of the deployment / client.
+##' @param url The url of the deployment.
+##' @param gte Greater than or equal to this time (HH:MM:SS) to run this alert.
+##' @param lte Less than or equal to this time (HH:MM:SS) to run this alert.
+##' @param tz The time-zone for gte and lte.
+##' @return NULL. Email with the alert will be sent.
+##' @export
 alertMissingAssetClass <- function (session,
                                     resources,
                                     emailParams,

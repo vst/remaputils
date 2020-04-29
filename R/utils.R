@@ -81,8 +81,12 @@ getLastDayOfPeriod <- function(dates, day, period) {
     ## Determine the next ending date of period:
     auxPeriodEnd <- as.Date(auxSeries[which(!duplicated(pSeries))[2]])
 
-    ## Append missing dates to complete current period:
-    datesx <- c(dates, seq(lastDate + 1, dateOfPeriod(periodMemnonic, auxPeriodEnd), 1))
+    if ((lastDate + 1 > dateOfPeriod(periodMemnonic, auxPeriodEnd))) {
+        datesx <- dates
+    } else {
+        ## Append missing dates to complete current period:
+        datesx <- c(dates, seq(lastDate + 1, dateOfPeriod(periodMemnonic, auxPeriodEnd), 1))
+    }
 
     ##: TODO:
     datesx <- data.frame("dates"=as.character(datesx), "period"=cumsum(!duplicated(do.call(pFun[[period]], list(datesx)))))

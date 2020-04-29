@@ -131,7 +131,10 @@ performancePreemble <- function(perfMeta, session, useExternal=FALSE, useExterna
             ## Get the external valuation for shareclass:
             resetDates <- zoo::index(scTsXts)[scTsXts[, "reset"] == 1]
             extvaluation <- extvaluation[extvaluation[, "shareclass"] == as.numeric(scTsXts[1, "sc"]), ]
-                scextval <- extvaluation[na.omit(match(resetDates, extvaluation[, "date"])), ]
+            scextval <- extvaluation[na.omit(match(resetDates, extvaluation[, "date"])), ]
+            if (NROW(scextval) == 0) {
+                scextval <- data.frame("nav"=NA, "date"=zoo::index(scTsXts)[1])
+            }
         }
     } else {
         scextval <- data.frame("nav"=NA, "date"=zoo::index(scTsXts)[1])

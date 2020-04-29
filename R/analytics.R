@@ -561,7 +561,7 @@ getOpenPositionByCtype <- function(ctype, resources, portfolios, accounts, sessi
     ctypeResources <- resources[resources[, "ctype"] == ctype, ]
 
     ## Get the trades by futures:
-    ctypeTrades <- lapply(ctypeResources[, "id"], function(id) as.data.frame(getResource("trades", params=list(format="csv", page_size=-1, resmain=id), session=.SESSION)))
+    ctypeTrades <- lapply(ctypeResources[, "id"], function(id) as.data.frame(getResource("trades", params=list(format="csv", page_size=-1, resmain=id), session=session)))
 
     ## Extract each future trade by account:
     openPositionData <- do.call(rbind, lapply(ctypeTrades, function(ctypeTrade) {
@@ -966,7 +966,6 @@ timeSeriesTransform <- function(df, smooth=0.3, limitFactor=0.1) {
 ##' @return The option deltas.
 ##' @export
 optionDelta <- function(holdings, resources) {
-
     bscallimpvol(s=2649, k=2800, r=0.08, tt=as.numeric(as.Date("2018-12-21") - Sys.Date()) / 365, d=0, price=5.5)
 
 

@@ -52,7 +52,7 @@ pushPosDifferences <- function(stocks, provider, session, ctype=20) {
     guid <- paste0(toupper(provider), ":", apply(increments[, c("ID", "date", "diff", "Account", "pxext")], MARGIN=1, function(x) paste0(x, collapse="")))
 
     ## Construct the hased keys:
-    guid <- paste0("~XID.trade.", sapply(guid, digest))
+    guid <- paste0("~XID.trade.", sapply(guid, function(x) digest::digest(x)))
 
     ## Create the batches:
     batches <- createBatches(NROW(increments), 500)

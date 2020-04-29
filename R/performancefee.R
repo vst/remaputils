@@ -5,9 +5,10 @@
 ##' @param perfMeta A list with the performance fee meta data.
 ##' @param session The rdecaf session.
 ##' @param useExternal Should the external valuation table be used?
+##' @param useExternalOnlyForReset Use external only for reset?
 ##' @return A xts data frame with the performance fee preemble.
 ##' @export
-performancePreemble <- function(perfMeta, session, useExternal=FALSE) {
+performancePreemble <- function(perfMeta, session, useExternal=FALSE, useExternalOnlyForReset=TRUE) {
 
     getPJournalsByAccount <- function (id, session) {
         params <- list(account= id, format = "csv", page_size = -1)
@@ -34,7 +35,7 @@ performancePreemble <- function(perfMeta, session, useExternal=FALSE) {
     scTs <- scTs[scTs[, "sclass"] == perfMeta[["scid"]], ]
 
     ## Get the external valuation for shareclass:
-    if (useExternal) {
+    if (useExternal | useExternalOnlyForReset) {
         extvaluation <- getExternalValuation(perfMeta[["portid"]], session)
         if (NROW(extvaluation) != 0) {
             extvaluation <- extvaluation[extvaluation[, "shareclass"] == perfMeta[["scid"]], ]
@@ -45,9 +46,13 @@ performancePreemble <- function(perfMeta, session, useExternal=FALSE) {
     investments <- getInvestments(perfMeta[["portid"]], session)
     investments <- investments[investments[, "shrcls"] == perfMeta[["scid"]], ]
 
-    ## Get the benchmark series:
-    benchmark <- getOhlcObsForSymbol(session, perfMeta[["benchmark"]], lookBack=2000)
-    benchmark <- xts::as.xts(benchmark[, "close"], order.by=as.Date(benchmark[, "date"]))
+    if (isNAorEmpty(perfMeta[["benchmark"]]) | is.null(perfMeta[["benchmark"]])) {
+        benchmark <- xts::as.xts(rep(100, 2001), order.by=as.Date(seq(Sys.Date() - 2000, Sys.Date(), 1)))
+    } else {
+        ## Get the benchmark series:
+        benchmark <- getOhlcObsForSymbol(session, perfMeta[["benchmark"]], lookBack=2000)
+        benchmark <- xts::as.xts(benchmark[, "close"], order.by=as.Date(benchmark[, "date"]))
+    }
 
     ## Get the Subscriptions:
     subscriptions <- investments[investments[, "qtymain"] > 0, c("commitment", "qtymain", "pxnavs", "shrcls")]
@@ -63,9 +68,9 @@ performancePreemble <- function(perfMeta, session, useExternal=FALSE) {
 
     ## Aggregate (sum) journal values by date and xtsify:
     pJournal <- aggregateAndXTSify("x"=pjournals,
-                                    "aggColumn"="quantity",
-                                    "aggBy"="commitment",
-                                    "fallbackDate"=zoo::index(scTsXts)[1])
+                                   "aggColumn"="quantity",
+                                   "aggBy"="commitment",
+                                   "fallbackDate"=zoo::index(scTsXts)[1])
 
     ## Append the cumulative partial journal entries:
     scTsXts <- cbind(scTsXts, "pjr"=cumsum(pJournal))
@@ -104,6 +109,12 @@ performancePreemble <- function(perfMeta, session, useExternal=FALSE) {
     ## XTSify benchmark and append:
     scTsXts <- cbind(scTsXts, "benchmark"=benchmark[zoo::index(benchmark) >= zoo::index(scTsXts)[1], ])
 
+    ## Get last day of period:
+    lastDay <- getLastDayOfPeriod(zoo::index(scTsXts), "Friday", perfMeta[["resetFreq"]])
+
+    ## Append reset day (i.e last day of period) to the xts data frame:
+    scTsXts <- cbind(scTsXts, "reset"=lastDay[, "lastDayOfPeriod"])
+
     if (useExternal) {
         ## If no external valuation, mask:
         if (NROW(extvaluation) == 0) {
@@ -111,6 +122,16 @@ performancePreemble <- function(perfMeta, session, useExternal=FALSE) {
         } else {
             ## Get the external valuation for shareclass:
             scextval <- extvaluation[extvaluation[, "shareclass"] == as.numeric(scTsXts[1, "sc"]), ]
+        }
+    } else if (useExternalOnlyForReset) {
+        ## If no external valuation, mask:
+        if (NROW(extvaluation) == 0) {
+            scextval <- data.frame("nav"=NA, "date"=zoo::index(scTsXts)[1])
+        } else {
+            ## Get the external valuation for shareclass:
+            resetDates <- zoo::index(scTsXts)[scTsXts[, "reset"] == 1]
+            extvaluation <- extvaluation[extvaluation[, "shareclass"] == as.numeric(scTsXts[1, "sc"]), ]
+                scextval <- extvaluation[na.omit(match(resetDates, extvaluation[, "date"])), ]
         }
     } else {
         scextval <- data.frame("nav"=NA, "date"=zoo::index(scTsXts)[1])
@@ -144,11 +165,13 @@ performancePreemble <- function(perfMeta, session, useExternal=FALSE) {
     ## Set NA redemptions to 0:
     scTsXts[is.na(scTsXts[, "redmShrs"]), "redmShrs"] <- 0
 
+    scTsXts[scTsXts[, "navE"] == 0, "navE"] <- NA
+
     ## Get stichted nav and append:
     scTsXts <- cbind(scTsXts, "navS"=as.numeric(ifelse(is.na(scTsXts[, "navE"]), scTsXts[, "nav"], scTsXts[, "navE"])))
 
     ## Get last day of period:
-    lastDay <- getLastDayOfPeriod(zoo::index(scTsXts), "Friday", "quarterly")
+    lastDay <- getLastDayOfPeriod(zoo::index(scTsXts), "Friday", perfMeta[["resetFreq"]])
 
     ## Append reset day (i.e last day of period) to the xts data frame:
     scTsXts <- cbind(scTsXts, "reset"=lastDay[, "lastDayOfPeriod"])
@@ -166,6 +189,7 @@ performancePreemble <- function(perfMeta, session, useExternal=FALSE) {
     return(scTsXts)
 
 }
+
 
 ##' This function prepares the payload and syncs the PJE's to the performance fee account.
 ##'
@@ -199,7 +223,7 @@ performanceFeeAccountant <- function(x, session, aTypeName="Performance Fees", i
                           "guid"=NA)
 
     ## Construct and assign the guid:
-    actions[, "guid"] <- apply(actions, MARGIN=1, function(x) digest(paste0(paste0(x[c("commitment", "resmain", "accmain", "ctype")], collapse=""), "AUTO")))
+    actions[, "guid"] <- apply(actions, MARGIN=1, function(x) digest::digest(paste0(paste0(x[c("commitment", "resmain", "accmain", "ctype")], collapse=""), "AUTO")))
 
     ## Get rid of rownames:
     rownames(actions) <- NULL

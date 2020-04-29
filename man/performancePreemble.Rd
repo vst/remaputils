@@ -4,7 +4,8 @@
 \alias{performancePreemble}
 \title{A function to provide the performance fee preemble.}
 \usage{
-performancePreemble(perfMeta, session, useExternal = FALSE)
+performancePreemble(perfMeta, session, useExternal = FALSE,
+  useExternalOnlyForReset = TRUE)
 }
 \arguments{
 \item{perfMeta}{A list with the performance fee meta data.}
@@ -12,6 +13,8 @@ performancePreemble(perfMeta, session, useExternal = FALSE)
 \item{session}{The rdecaf session.}
 
 \item{useExternal}{Should the external valuation table be used?}
+
+\item{useExternalOnlyForReset}{Use external only for reset?}
 }
 \value{
 A xts data frame with the performance fee preemble.

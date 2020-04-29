@@ -4,7 +4,7 @@
 \alias{stackedBarChartTranspose}
 \title{Provides a stacked bar chart.}
 \usage{
-stackedBarChartTranspose(df, barColor = NA, labelColor = NA)
+stackedBarChartTranspose(df, barColor = NA, labelColor = NA, cex = 1)
 }
 \arguments{
 \item{df}{A data frame. df[, 1] == label, df[,2] == value}
@@ -12,6 +12,8 @@ stackedBarChartTranspose(df, barColor = NA, labelColor = NA)
 \item{barColor}{The color of the bars.}
 
 \item{labelColor}{The color of the lables.}
+
+\item{cex}{The cex of the label and value.}
 }
 \value{
 A stacked bar chart.

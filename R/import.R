@@ -784,6 +784,7 @@ inbulkPortfolio <- function (guid=NULL, name, rccy, team, guidPrefix=NULL, xguid
 
 }
 
+
 ##' A function to inbulk accounts.
 ##'
 ##' This is the description
@@ -818,6 +819,161 @@ inbulkAccount <- function (guid=NULL, name, portfolio, custodian, guidPrefix=NUL
          "name"=name,
          "id"=sapply(response[[1]][["accounts"]], function(x) x[[1]]))
 
+}
+
+
+##' A function to inbulk accounts.
+##'
+##' This is the description
+##'
+##' @param guid The vector with guids. If NULL (default), created inside.
+##' @param resmain TODO.
+##' @param accmain TODO.
+##' @param agent TODO.
+##' @param commitment TODO.
+##' @param pxnavs TODO.
+##' @param qtymain TODO.
+##' @param shrcls TODO.
+##' @param notes TODO.
+##' @param session The rdecaf session
+##' @return A list with results.
+##' @export
+inbulkInvestment <- function (guid=NULL,
+                              resmain,
+                              accmain,
+                              agent,
+                              commitment,
+                              pxnavs,
+                              qtymain,
+                              shrcls,
+                              notes=NA,
+                              session) {
+
+    ## Get the data frame:
+    invst <- data.frame("id"=NA,
+                        "ctype"=35,
+                        "resmain"=resmain,
+                        "accmain"=accmain,
+                        "agent"=agent,
+                        "commitment"=commitment,
+                        "pxnavs"=pxnavs,
+                        "qtymain"=qtymain,
+                        "notes"=notes,
+                        "shrcls"=shrcls)
+
+    ## If no guid provided, create one:
+    if (is.null(guid)) {
+        invst[, "guid"] <- apply(invst, MARGIN=1, function(x) digest::digest(paste0(x, collapse="")))
+    } else {
+        invst[, "guid"] <- guid
+    }
+
+    ## Create the payload:
+    payload <- toJSON(list("actions"=invst), auto_unbox=TRUE, na="null")
+
+    ## Sync investments:
+    response <- postResource("imports/inbulk", params=list(sync="True"), payload=payload, session = session)
+
+    ## Done, return:
+    list("response"=response,
+         "guid"=invst["guid"],
+         "name"=shrcls,
+         "commitment"=commitment,
+         "id"=sapply(response[[1]][["actions"]], function(x) x[[1]]))
+
+}
+
+
+##' A function returns the full journal entry in the system which matches the record most.
+##'
+##' This is the description
+##'
+##' @param qtymain The quantity of the record.
+##' @param commitment The date of the record.
+##' @param portfolio The portfolio to be considered.
+##' @param keyword Optional. The keyword in FJE notes to be considered.
+##' @param session The rdecaf session
+##' @return A list with results.
+##' @export
+matchFJE <- function(qtymain, commitment, portfolio, keyword=NA, session) {
+
+    ## Prepare FJE params:
+    params <- list("format"="csv", "page_size"=-1, "accmain__portfolio"=portfolio, "ctype"=301)
+
+    ## Get the full journal entries for the portfolio:
+    fje <- as.data.frame(getResource("trades", params=params, session=session))
+
+    ## Filter out keywords from notes if required:
+    fje <- fje[grep(keyword, fje[, "notes"]), ]
+
+    ## Short circuit:
+    if (NROW(fje) == 0) {
+        return(NA)
+    }
+
+    ## Filter out by commitment:
+    fje <- fje[as.Date(commitment) - as.Date(fje[, "commitment"]) < 14, ]
+
+    ## Short circuit:
+    if (NROW(fje) == 0) {
+        return(NA)
+    }
+
+    ## Get the quantity distance:
+    dist <- abs(fje[, "qtymain"] - as.numeric(qtymain))
+
+    ## Done, return:
+    return("fje"=fje[min(dist) == dist, ])
+
+}
+
+
+##' A function returns the full journal entry in the system which matches the record most.
+##'
+##' This is the description
+##'
+##' @param fje The full journal entry to be offset.
+##' @param commitment The date of the record.
+##' @param notes The text for the notes. Default: AUTO-GENERATED FJE OFFSET
+##' @param session The rdecaf session
+##' @return A list with results.
+##' @export
+offsetFJE <- function(fje, commitment, notes="AUTO-GENERATED FJE OFFSET", session) {
+
+    ## If fje NA, return NA:
+    if (is.na(fje)) {
+        return(NA)
+    }
+
+    ## Prepare FJE data frame:
+    offset <- data.frame("id"=NA,
+                         "ctype"=301,
+                         "atype"=NA,
+                         "accmain"=fje[, "accmain"],
+                         "pxmain"=1,
+                         "pxcost"=1,
+                         "resmain"=fje[, "resmain"],
+                         "qtymain"=round(fje[, "qtymain"], 8) * -1,
+                         "accaltn"=fje[, "accaltn"],
+                         "pxaltn"=1,
+                         "resaltn"=fje[, "resaltn"],
+                         "qtyaltn"=round(fje[, "qtyaltn"], 8) * -1,
+                         "notes"=notes,
+                         "commitment"=commitment)
+
+    offset[, "guid"] <- apply(offset, MARGIN=1, function(x) digest::digest(paste0(x, collapse="")))
+
+    ## Create the payload:
+    payload <- toJSON(list("actions"=offset), auto_unbox=TRUE, na="null")
+
+    ## Sync investments:
+    response <- postResource("imports/inbulk", params=list(sync="True"), payload=payload, session = session)
+
+    ## Done, return:
+    list("response"=response,
+         "guid"=offset["guid"],
+         "commitment"=commitment,
+         "id"=sapply(response[[1]][["actions"]], function(x) x[[1]]))
 }
 
 

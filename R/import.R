@@ -962,6 +962,7 @@ offsetFJE <- function(fje, commitment, notes="AUTO-GENERATED FJE OFFSET", refere
                          "qtymain"=round(fje[, "qtymain"], 8) * -1,
                          "accaltn"=fje[, "accaltn"],
                          "pxaltn"=1,
+                         "reference"=reference,
                          "resaltn"=fje[, "resaltn"],
                          "qtyaltn"=round(fje[, "qtyaltn"], 8) * -1,
                          "notes"=notes,

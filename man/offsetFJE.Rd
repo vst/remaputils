@@ -4,7 +4,8 @@
 \alias{offsetFJE}
 \title{A function returns the full journal entry in the system which matches the record most.}
 \usage{
-offsetFJE(fje, commitment, notes = "AUTO-GENERATED FJE OFFSET", session)
+offsetFJE(fje, commitment, notes = "AUTO-GENERATED FJE OFFSET",
+  reference = "AUTO-GENERATED FJE OFFSET", session)
 }
 \arguments{
 \item{fje}{The full journal entry to be offset.}
@@ -12,6 +13,8 @@ offsetFJE(fje, commitment, notes = "AUTO-GENERATED FJE OFFSET", session)
 \item{commitment}{The date of the record.}
 
 \item{notes}{The text for the notes. Default: AUTO-GENERATED FJE OFFSET}
+
+\item{reference}{The text for the reference. Default: AUTO-GENERATED FJE OFFSET}
 
 \item{session}{The rdecaf session}
 }

@@ -5,7 +5,7 @@
 \title{A function to inbulk accounts.}
 \usage{
 inbulkInvestment(guid = NULL, resmain, accmain, agent, commitment,
-  pxnavs, qtymain, shrcls, notes = NA, session)
+  pxnavs, shrcnt, qtymain, shrcls, notes = NA, session)
 }
 \arguments{
 \item{guid}{The vector with guids. If NULL (default), created inside.}
@@ -19,6 +19,8 @@ inbulkInvestment(guid = NULL, resmain, accmain, agent, commitment,
 \item{commitment}{TODO.}
 
 \item{pxnavs}{TODO.}
+
+\item{shrcnt}{TODO.}
 
 \item{qtymain}{TODO.}
 

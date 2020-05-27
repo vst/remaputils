@@ -832,6 +832,7 @@ inbulkAccount <- function (guid=NULL, name, portfolio, custodian, guidPrefix=NUL
 ##' @param agent TODO.
 ##' @param commitment TODO.
 ##' @param pxnavs TODO.
+##' @param shrcnt TODO.
 ##' @param qtymain TODO.
 ##' @param shrcls TODO.
 ##' @param notes TODO.
@@ -844,6 +845,7 @@ inbulkInvestment <- function (guid=NULL,
                               agent,
                               commitment,
                               pxnavs,
+                              shrcnt,
                               qtymain,
                               shrcls,
                               notes=NA,
@@ -855,6 +857,7 @@ inbulkInvestment <- function (guid=NULL,
                         "resmain"=resmain,
                         "accmain"=accmain,
                         "agent"=agent,
+                        "shrcnt"=shrcnt,
                         "commitment"=commitment,
                         "pxnavs"=pxnavs,
                         "qtymain"=qtymain,
@@ -867,6 +870,8 @@ inbulkInvestment <- function (guid=NULL,
     } else {
         invst[, "guid"] <- guid
     }
+
+    invst <- data.frame(invst, "shrcnt"=shrcnt)
 
     ## Create the payload:
     payload <- toJSON(list("actions"=invst), auto_unbox=TRUE, na="null")
@@ -935,10 +940,11 @@ matchFJE <- function(qtymain, commitment, portfolio, keyword=NA, session) {
 ##' @param fje The full journal entry to be offset.
 ##' @param commitment The date of the record.
 ##' @param notes The text for the notes. Default: AUTO-GENERATED FJE OFFSET
+##' @param reference The text for the reference. Default: AUTO-GENERATED FJE OFFSET
 ##' @param session The rdecaf session
 ##' @return A list with results.
 ##' @export
-offsetFJE <- function(fje, commitment, notes="AUTO-GENERATED FJE OFFSET", session) {
+offsetFJE <- function(fje, commitment, notes="AUTO-GENERATED FJE OFFSET", reference="AUTO-GENERATED FJE OFFSET", session) {
 
     ## If fje NA, return NA:
     if (is.na(fje)) {

@@ -4,8 +4,15 @@
 \alias{getConsolidationHoldings}
 \title{TODO:}
 \usage{
-getConsolidationHoldings(session, containerType, containerId, ccy, date,
-  charLimit, resources)
+getConsolidationHoldings(
+  session,
+  containerType,
+  containerId,
+  ccy,
+  date,
+  charLimit,
+  resources
+)
 }
 \arguments{
 \item{session}{The rdecaf session}

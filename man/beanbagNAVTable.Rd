@@ -4,8 +4,7 @@
 \alias{beanbagNAVTable}
 \title{Prepares the NAV data frame.}
 \usage{
-beanbagNAVTable(x, inception, pxinfo, investments = NULL,
-  useIntYtd = FALSE)
+beanbagNAVTable(x, inception, pxinfo, investments = NULL, useIntYtd = FALSE)
 }
 \arguments{
 \item{x}{A list with "portfolio", "ccy", "currentNAV", "previous NAV".}

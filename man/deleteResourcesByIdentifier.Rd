@@ -4,8 +4,14 @@
 \alias{deleteResourcesByIdentifier}
 \title{Delete resources by identifier, either symbol, isin or id.}
 \usage{
-deleteResourcesByIdentifier(identifier, idType, resources,
-  excludeCols = NULL, excludeVals = NULL, session)
+deleteResourcesByIdentifier(
+  identifier,
+  idType,
+  resources,
+  excludeCols = NULL,
+  excludeVals = NULL,
+  session
+)
 }
 \arguments{
 \item{identifier}{A vector with identifier}

@@ -4,8 +4,13 @@
 \alias{xDecafPreemble}
 \title{A function to provide the enriched trade data-frame from source session.}
 \usage{
-xDecafPreemble(sourceSession, targetSession, containerMap, containerType,
-  gte = NULL)
+xDecafPreemble(
+  sourceSession,
+  targetSession,
+  containerMap,
+  containerType,
+  gte = NULL
+)
 }
 \arguments{
 \item{sourceSession}{The rdecaf session for source instance.}

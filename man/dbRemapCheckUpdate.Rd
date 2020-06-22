@@ -4,8 +4,18 @@
 \alias{dbRemapCheckUpdate}
 \title{This TODO}
 \usage{
-dbRemapCheckUpdate(resources, mktProvider, tickerField, dbRemapName,
-  isinFlds, idFlds, figiApiKey, figiMField, figiPutMap, figiPatchMap)
+dbRemapCheckUpdate(
+  resources,
+  mktProvider,
+  tickerField,
+  dbRemapName,
+  isinFlds,
+  idFlds,
+  figiApiKey,
+  figiMField,
+  figiPutMap,
+  figiPatchMap
+)
 }
 \arguments{
 \item{resources}{TODO}

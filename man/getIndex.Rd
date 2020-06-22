@@ -4,8 +4,14 @@
 \alias{getIndex}
 \title{A function to check multiple conditions row-wise in data-frame.}
 \usage{
-getIndex(df, inCols, candCols = NULL, inKeys = NULL, exKeys = NULL,
-  inclToIns = NULL)
+getIndex(
+  df,
+  inCols,
+  candCols = NULL,
+  inKeys = NULL,
+  exKeys = NULL,
+  inclToIns = NULL
+)
 }
 \arguments{
 \item{df}{A data-frame.}

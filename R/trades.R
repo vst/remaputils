@@ -297,9 +297,8 @@ getContainerWiseTrades <- function(ids, containerType="accounts", session, gte=N
 }
 
 
-
-##' A function to detect outliers in xts return series:
-##'
+##' TODO:
+##' '
 ##' This is the description
 ##'
 ##' @param portfolio A vector of portfolio id's
@@ -322,5 +321,44 @@ getLinkToTradesByDate <- function(portfolio, session, gte, lte=NULL, nojournal="
            "&commitment__gte=", as.character(gte),
            "&commitment__lte=", as.character(lte),
            "&nojournal=", nojournal)
+
+}
+
+
+##' A function to get the non-performance related actions for a portfolio.
+##'
+##' This is the description
+##'
+##' @param portfolio A vector of portfolio id's
+##' @param pxinfo The data frame with the pxinfo
+##' @param date The asof date
+##' @param ccy The desired ccy.
+##' @param session The rdecaf session
+##' @return A data frame
+##' @export
+getNPRTxns <- function(portfolio, pxinfo, date, ccy, session) {
+
+    ## Get the trade ctype for the fund vs mandates:
+    ctype <- ifelse(any(do.call(rbind, pxinfo)[, "isFund"]), "35", "30")
+
+    ## Get the investment/transfer trades:
+    invstm <- getTradeByCtypeForPortfolio(ctype, portfolio, gte=dateOfPeriod("Y-0", date), session)
+
+    ## The the investments' quants:
+    invstm <- getTXNsOfTrades(invstm, ccy, session)
+
+    ## Filter by date:
+    invstm[invstm[, "commitment"] <= date, "valamt_refccy"]
+
+    ## Filter by type:
+    invstm <- invstm[invstm[, "ctype"] == "45" | invstm[, "ctype"] == "30", ]
+
+    ## Mask if non:
+    if (is.null(invstm)) {
+        invstm <- data.frame("valamt_refccy"=0)
+    }
+
+    ## Done, return:
+    return(invstm)
 
 }

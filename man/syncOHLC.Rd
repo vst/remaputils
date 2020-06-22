@@ -4,8 +4,14 @@
 \alias{syncOHLC}
 \title{A function to sync ohlc observations between 2 DECAF instances.}
 \usage{
-syncOHLC(sourceSession, targetSession, resources, lte = NULL,
-  lookBack = NULL, targetPrefix = NULL)
+syncOHLC(
+  sourceSession,
+  targetSession,
+  resources,
+  lte = NULL,
+  lookBack = NULL,
+  targetPrefix = NULL
+)
 }
 \arguments{
 \item{sourceSession}{The session info for the DECAF instance to sync from.}

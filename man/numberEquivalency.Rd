@@ -4,8 +4,7 @@
 \alias{numberEquivalency}
 \title{This function checks if 2 numbers match}
 \usage{
-numberEquivalency(num1, num2, pctTolerance = 0.001,
-  absTolerance = 0.05)
+numberEquivalency(num1, num2, pctTolerance = 0.001, absTolerance = 0.05)
 }
 \arguments{
 \item{num1}{The first number}

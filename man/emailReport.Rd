@@ -4,8 +4,15 @@
 \alias{emailReport}
 \title{A function to send email with a custom email body.}
 \usage{
-emailReport(from, emailList, subject, body, isLocal = FALSE,
-  html = TRUE, attachments = NULL)
+emailReport(
+  from,
+  emailList,
+  subject,
+  body,
+  isLocal = FALSE,
+  html = TRUE,
+  attachments = NULL
+)
 }
 \arguments{
 \item{from}{The sender information.}

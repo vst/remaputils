@@ -4,8 +4,7 @@
 \alias{computeReturnStats}
 \title{Provides the return statistics for a data frame with price and date column}
 \usage{
-computeReturnStats(df, pxCol, dtCol, method = "discrete",
-  returnOnly = FALSE)
+computeReturnStats(df, pxCol, dtCol, method = "discrete", returnOnly = FALSE)
 }
 \arguments{
 \item{df}{The data frame.}

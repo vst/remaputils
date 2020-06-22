@@ -4,8 +4,7 @@
 \alias{getStocks}
 \title{A function to retrieve the stocks for set of accounts:}
 \usage{
-getStocks(container, session, zero = 1, date = Sys.Date(),
-  c = "account")
+getStocks(container, session, zero = 1, date = Sys.Date(), c = "account")
 }
 \arguments{
 \item{container}{The container data-frame from rdecaf}

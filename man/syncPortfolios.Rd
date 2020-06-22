@@ -4,9 +4,16 @@
 \alias{syncPortfolios}
 \title{A function to sync portfolios between 2 DECAF instances.}
 \usage{
-syncPortfolios(sourceSession, targetSession, accounts, teamGUID,
-  exclude = NULL, search = NULL, customName = NULL,
-  sourcePortfolios = NULL)
+syncPortfolios(
+  sourceSession,
+  targetSession,
+  accounts,
+  teamGUID,
+  exclude = NULL,
+  search = NULL,
+  customName = NULL,
+  sourcePortfolios = NULL
+)
 }
 \arguments{
 \item{sourceSession}{The session info for the DECAF instance to sync from.}

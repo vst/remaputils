@@ -4,8 +4,14 @@
 \alias{syncUpdateEmail}
 \title{A function to send system emails using the an HTML email template.}
 \usage{
-syncUpdateEmail(template, updateText, emailParams, timezone = "CET",
-  subject = " DECAF Data Update: ", attachments = NULL)
+syncUpdateEmail(
+  template,
+  updateText,
+  emailParams,
+  timezone = "CET",
+  subject = " DECAF Data Update: ",
+  attachments = NULL
+)
 }
 \arguments{
 \item{template}{The HTML template.}

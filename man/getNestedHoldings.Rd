@@ -4,9 +4,13 @@
 \alias{getNestedHoldings}
 \title{A function to generate a nested holdings data-frame}
 \usage{
-getNestedHoldings(holdings, levels, toplevel = "Subtype",
-  sublevels = c("CCY", "Country"), orderByKeys = c("Expiry", "CCY",
-  "Exposure", "Name"))
+getNestedHoldings(
+  holdings,
+  levels,
+  toplevel = "Subtype",
+  sublevels = c("CCY", "Country"),
+  orderByKeys = c("Expiry", "CCY", "Exposure", "Name")
+)
 }
 \arguments{
 \item{holdings}{The ordered holdings.}

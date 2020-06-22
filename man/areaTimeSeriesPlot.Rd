@@ -4,8 +4,15 @@
 \alias{areaTimeSeriesPlot}
 \title{Provides an area time series plot.}
 \usage{
-areaTimeSeriesPlot(df, smooth = 0.3, limitFactor = 0.1, title,
-  ylab = "", col = "darkslategray3", ylabFun = NULL)
+areaTimeSeriesPlot(
+  df,
+  smooth = 0.3,
+  limitFactor = 0.1,
+  title,
+  ylab = "",
+  col = "darkslategray3",
+  ylabFun = NULL
+)
 }
 \arguments{
 \item{df}{A data frame with 'value' and 'date' columns.}

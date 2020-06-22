@@ -4,9 +4,19 @@
 \alias{alertLatestTrades}
 \title{A function to send latest trades alert.}
 \usage{
-alertLatestTrades(session, accounts, resources, emailParams, hours = 24,
-  greeting = "", deployment = "", url = "", gte = "10:01:00",
-  lte = "10:19:00", tz = "UTC")
+alertLatestTrades(
+  session,
+  accounts,
+  resources,
+  emailParams,
+  hours = 24,
+  greeting = "",
+  deployment = "",
+  url = "",
+  gte = "10:01:00",
+  lte = "10:19:00",
+  tz = "UTC"
+)
 }
 \arguments{
 \item{session}{The rdecaf session.}

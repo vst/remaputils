@@ -4,8 +4,11 @@
 \alias{parseOffsetDateTime}
 \title{A function to parse offset date time object.}
 \usage{
-parseOffsetDateTime(x, format = "\%Y-\%m-\%dT\%H:\%M:\%OS\%z",
-  tz = "Asia/Singapore")
+parseOffsetDateTime(
+  x,
+  format = "\%Y-\%m-\%dT\%H:\%M:\%OS\%z",
+  tz = "Asia/Singapore"
+)
 }
 \arguments{
 \item{x}{A vector with offset date.}

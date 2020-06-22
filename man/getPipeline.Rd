@@ -4,9 +4,13 @@
 \alias{getPipeline}
 \title{A function to create the file pipeline for decaf-imports.}
 \usage{
-getPipeline(isLocal, providers = NULL, append = NULL,
-  processedFiles = FALSE, ignores = c(".zip", ".xml", ".txt",
-  "provider_resource_id.csv"))
+getPipeline(
+  isLocal,
+  providers = NULL,
+  append = NULL,
+  processedFiles = FALSE,
+  ignores = c(".zip", ".xml", ".txt", "provider_resource_id.csv")
+)
 }
 \arguments{
 \item{isLocal}{Boolean to indicate whether we are in a test environment. Default is FALSE.}

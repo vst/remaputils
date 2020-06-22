@@ -4,9 +4,13 @@
 \alias{itsTime}
 \title{A function which tells whether now is desired day and/or time}
 \usage{
-itsTime(tz = "UTC", gte = "00:00:01", lte = "23:59:59",
+itsTime(
+  tz = "UTC",
+  gte = "00:00:01",
+  lte = "23:59:59",
   inWeekdays = c("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"),
-  tDate = Sys.time())
+  tDate = Sys.time()
+)
 }
 \arguments{
 \item{tz}{The time zone}

@@ -4,8 +4,13 @@
 \alias{getStringDistanceIndex}
 \title{This function}
 \usage{
-getStringDistanceIndex(v1, v2, param = 0.2, dir = "smaller",
-  method = "jaccard")
+getStringDistanceIndex(
+  v1,
+  v2,
+  param = 0.2,
+  dir = "smaller",
+  method = "jaccard"
+)
 }
 \arguments{
 \item{v1}{A vector with strings to be matched.}

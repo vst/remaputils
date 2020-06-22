@@ -4,8 +4,7 @@
 \alias{figi}
 \title{A function to get openFigi information on data for given identifier and currency.}
 \usage{
-figi(data, idType = "ID_ISIN", fld = "isin", ccy = "ccymain",
-  figiApi)
+figi(data, idType = "ID_ISIN", fld = "isin", ccy = "ccymain", figiApi)
 }
 \arguments{
 \item{data}{The data-frame}

@@ -7,6 +7,7 @@
 ##'
 getAggregateExposure <- function(holdings, keys) {
     exposures <- lapply(keys, function(x) {
+        holdings[, x] <- ifelse(is.na(holdings[, x]), "NOTAVAILABLE", holdings[, x])
         aggs <- aggregate(holdings[, "Exposure"], list(holdings[, x]), sum)
         aggs <- aggs[order(aggs[, 2], decreasing=TRUE), ]
         colnames(aggs) <- c(x, "Exposure")

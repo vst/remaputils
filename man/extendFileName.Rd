@@ -4,8 +4,7 @@
 \alias{extendFileName}
 \title{A function to extend file name by random/date string.}
 \usage{
-extendFileName(str, customExt = NULL, randomStrN = NULL,
-  addTime = TRUE)
+extendFileName(str, customExt = NULL, randomStrN = NULL, addTime = TRUE)
 }
 \arguments{
 \item{str}{A string.}

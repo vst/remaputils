@@ -4,8 +4,10 @@
 \alias{stringCleaner}
 \title{A function to gsub strings.}
 \usage{
-stringCleaner(string, cleaningMaps = c(`&#62;LINK&#60;/a&#62;` =
-  ">LINK</a>", `&#60;a href` = "<a href"))
+stringCleaner(
+  string,
+  cleaningMaps = c(`&#62;LINK&#60;/a&#62;` = ">LINK</a>", `&#60;a href` = "<a href")
+)
 }
 \arguments{
 \item{string}{The original string.}

@@ -4,9 +4,17 @@
 \alias{alertOverdraft}
 \title{A function to send latest trades alert.}
 \usage{
-alertOverdraft(session, resources, emailParams, greeting = "",
-  deployment = "", url = "", gte = "10:01:00", lte = "10:19:00",
-  tz = "UTC")
+alertOverdraft(
+  session,
+  resources,
+  emailParams,
+  greeting = "",
+  deployment = "",
+  url = "",
+  gte = "10:01:00",
+  lte = "10:19:00",
+  tz = "UTC"
+)
 }
 \arguments{
 \item{session}{The rdecaf session.}

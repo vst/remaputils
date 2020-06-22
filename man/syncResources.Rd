@@ -4,8 +4,7 @@
 \alias{syncResources}
 \title{A function to sync resources between 2 DECAF instances:}
 \usage{
-syncResources(targetSession, sourceSession, sourceAccounts,
-  noPush = FALSE)
+syncResources(targetSession, sourceSession, sourceAccounts, noPush = FALSE)
 }
 \arguments{
 \item{targetSession}{The session info for the DECAF instance to sync to.}

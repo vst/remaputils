@@ -4,8 +4,7 @@
 \alias{inbulkTrades}
 \title{A function to inbulk trades.}
 \usage{
-inbulkTrades(data, guid = NULL, guidPrefix = NULL, xguid = NULL,
-  session)
+inbulkTrades(data, guid = NULL, guidPrefix = NULL, xguid = NULL, session)
 }
 \arguments{
 \item{data}{The data frame with trade records.}

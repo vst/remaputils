@@ -4,8 +4,19 @@
 \alias{inbulkInvestment}
 \title{A function to inbulk accounts.}
 \usage{
-inbulkInvestment(guid = NULL, resmain, accmain, agent, commitment,
-  pxnavs, shrcnt, qtymain, shrcls, notes = NA, session)
+inbulkInvestment(
+  guid = NULL,
+  resmain,
+  accmain,
+  agent,
+  commitment,
+  pxnavs,
+  shrcnt,
+  qtymain,
+  shrcls,
+  notes = NA,
+  session
+)
 }
 \arguments{
 \item{guid}{The vector with guids. If NULL (default), created inside.}

@@ -2,10 +2,11 @@
 % Please edit documentation in R/trades.R
 \name{getLinkToTradesByDate}
 \alias{getLinkToTradesByDate}
-\title{A function to detect outliers in xts return series:}
+\title{TODO:
+'
+This is the description}
 \usage{
-getLinkToTradesByDate(portfolio, session, gte, lte = NULL,
-  nojournal = "False")
+getLinkToTradesByDate(portfolio, session, gte, lte = NULL, nojournal = "False")
 }
 \arguments{
 \item{portfolio}{A vector of portfolio id's}
@@ -22,5 +23,7 @@ getLinkToTradesByDate(portfolio, session, gte, lte = NULL,
 A vector with string representing the decaf url
 }
 \description{
+TODO:
+'
 This is the description
 }

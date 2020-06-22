@@ -4,8 +4,7 @@
 \alias{treatPriceSeries}
 \title{This function removes NA's and optionally detects and remove outliers.}
 \usage{
-treatPriceSeries(df, dCol, pCol, quantile = 0.998,
-  surpressPlot = FALSE)
+treatPriceSeries(df, dCol, pCol, quantile = 0.998, surpressPlot = FALSE)
 }
 \arguments{
 \item{df}{The data frame with the price and date columns.}

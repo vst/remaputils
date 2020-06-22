@@ -4,8 +4,13 @@
 \alias{getHistoricalUserActions}
 \title{This function gets the historical user actions in a deployment.}
 \usage{
-getHistoricalUserActions(session, endpoint, exclCols = NULL,
-  exclKeys = NULL, actionQueryParams = NULL)
+getHistoricalUserActions(
+  session,
+  endpoint,
+  exclCols = NULL,
+  exclKeys = NULL,
+  actionQueryParams = NULL
+)
 }
 \arguments{
 \item{session}{The rdecaf session.}

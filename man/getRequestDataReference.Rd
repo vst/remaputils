@@ -4,9 +4,17 @@
 \alias{getRequestDataReference}
 \title{A function to build the requestable currency pairs and the entire combinations of currencies}
 \usage{
-getRequestDataReference(session, date, zero, underlying, bbgFields,
-  resources, byStock = TRUE, forceAux = FALSE, exclCtypes = c("CCY",
-  "LOAN", "FXFWD", "DEPO"))
+getRequestDataReference(
+  session,
+  date,
+  zero,
+  underlying,
+  bbgFields,
+  resources,
+  byStock = TRUE,
+  forceAux = FALSE,
+  exclCtypes = c("CCY", "LOAN", "FXFWD", "DEPO")
+)
 }
 \arguments{
 \item{session}{The rdecaf session.}

@@ -4,8 +4,15 @@
 \alias{getConsolidationFromContainerName}
 \title{Gets the consolidation based on container type and name}
 \usage{
-getConsolidationFromContainerName(containerNames, containerType, ccy, date,
-  session, charLimit = Inf, resources)
+getConsolidationFromContainerName(
+  containerNames,
+  containerType,
+  ccy,
+  date,
+  session,
+  charLimit = Inf,
+  resources
+)
 }
 \arguments{
 \item{containerNames}{A vector with container names}

@@ -5,8 +5,17 @@
 \title{A function to generate a rich performance data for a container including
 benchmark and relative performance.}
 \usage{
-getPerformanceV2(containerType, id, start, end, freq = "daily",
-  benchmark = NULL, periodicity = "M", window = "Y", session)
+getPerformanceV2(
+  containerType,
+  id,
+  start,
+  end,
+  freq = "daily",
+  benchmark = NULL,
+  periodicity = "M",
+  window = "Y",
+  session
+)
 }
 \arguments{
 \item{containerType}{The endpoint to query, i.e "portfolios", "shareclasses".}

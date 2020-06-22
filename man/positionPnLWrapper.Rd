@@ -4,8 +4,18 @@
 \alias{positionPnLWrapper}
 \title{A wrapper function for calculating the position wise pnls.}
 \usage{
-positionPnLWrapper(holdings, holdingsParams, resources, ccy, date, session,
-  portName, portfolio, begPeriod, fxobs)
+positionPnLWrapper(
+  holdings,
+  holdingsParams,
+  resources,
+  ccy,
+  date,
+  session,
+  portName,
+  portfolio,
+  begPeriod,
+  fxobs
+)
 }
 \arguments{
 \item{holdings}{The holdings list from getPrintableHoldings.}

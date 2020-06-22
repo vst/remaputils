@@ -4,8 +4,13 @@
 \alias{syncExtValuation}
 \title{A function to sync external valuations between 2 DECAF instances:}
 \usage{
-syncExtValuation(sourceSession, targetSession, targetPortfolios,
-  targetShareclasses, accounts)
+syncExtValuation(
+  sourceSession,
+  targetSession,
+  targetPortfolios,
+  targetShareclasses,
+  accounts
+)
 }
 \arguments{
 \item{sourceSession}{The session info for the DECAF instance to sync from.}

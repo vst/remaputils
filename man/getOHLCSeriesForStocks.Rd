@@ -4,8 +4,15 @@
 \alias{getOHLCSeriesForStocks}
 \title{This function retrieves all OHLC series for stocks in give portfolios.}
 \usage{
-getOHLCSeriesForStocks(container, containerType, asof, resources, session,
-  lookBack = 30, exclType = c("CCY", "DEPO", "LOAN"))
+getOHLCSeriesForStocks(
+  container,
+  containerType,
+  asof,
+  resources,
+  session,
+  lookBack = 30,
+  exclType = c("CCY", "DEPO", "LOAN")
+)
 }
 \arguments{
 \item{container}{The container data-frame from rdecaf (either portfolio or account data-frame).}

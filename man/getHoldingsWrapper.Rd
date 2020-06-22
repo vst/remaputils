@@ -4,8 +4,7 @@
 \alias{getHoldingsWrapper}
 \title{A wrapper function to get the enriched holdings based on consolidation parameters.}
 \usage{
-getHoldingsWrapper(params, resources, session, charLimit = 50,
-  regions = NULL)
+getHoldingsWrapper(params, resources, session, charLimit = 50, regions = NULL)
 }
 \arguments{
 \item{params}{The parameters for the consolidation.}

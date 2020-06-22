@@ -4,8 +4,15 @@
 \alias{inbulkAccount}
 \title{A function to inbulk accounts.}
 \usage{
-inbulkAccount(guid = NULL, name, portfolio, custodian,
-  guidPrefix = NULL, xguid = NULL, session)
+inbulkAccount(
+  guid = NULL,
+  name,
+  portfolio,
+  custodian,
+  guidPrefix = NULL,
+  xguid = NULL,
+  session
+)
 }
 \arguments{
 \item{guid}{The vector with guids. If NULL (default), creates using guidPrefix and xguid.}

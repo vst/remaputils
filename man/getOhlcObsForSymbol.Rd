@@ -4,8 +4,13 @@
 \alias{getOhlcObsForSymbol}
 \title{This function retrievs the ohlc observations for a give symbol.}
 \usage{
-getOhlcObsForSymbol(session, symbol, lte = Sys.Date(), lookBack = 30,
-  excludeWeekends = TRUE)
+getOhlcObsForSymbol(
+  session,
+  symbol,
+  lte = Sys.Date(),
+  lookBack = 30,
+  excludeWeekends = TRUE
+)
 }
 \arguments{
 \item{session}{The session info for the instance to retrieve the ohlc observation from.}

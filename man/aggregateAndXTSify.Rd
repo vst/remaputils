@@ -4,8 +4,12 @@
 \alias{aggregateAndXTSify}
 \title{A function aggregates a value column by a second column and transforms it to xts class.}
 \usage{
-aggregateAndXTSify(x, aggColumn = "qtymain", aggBy = "commitment",
-  fallbackDate = Sys.Date())
+aggregateAndXTSify(
+  x,
+  aggColumn = "qtymain",
+  aggBy = "commitment",
+  fallbackDate = Sys.Date()
+)
 }
 \arguments{
 \item{x}{A data frame with the columns names as ascribed to aggColumn and aggBy.}

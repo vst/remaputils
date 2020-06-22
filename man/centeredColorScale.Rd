@@ -4,8 +4,12 @@
 \alias{centeredColorScale}
 \title{Prepares a data frame with scaled hex color codes for values centerd around zero.}
 \usage{
-centeredColorScale(values, positiveRange = c("lightgreen", "darkgreen"),
-  negativeRange = c("orangered3", "coral"), stepsno = 15)
+centeredColorScale(
+  values,
+  positiveRange = c("lightgreen", "darkgreen"),
+  negativeRange = c("orangered3", "coral"),
+  stepsno = 15
+)
 }
 \arguments{
 \item{values}{A vector with values centered around zero.}

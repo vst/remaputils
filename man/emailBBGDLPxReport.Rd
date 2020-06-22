@@ -4,8 +4,7 @@
 \alias{emailBBGDLPxReport}
 \title{A function to email the BBGDL price update report.}
 \usage{
-emailBBGDLPxReport(ohlc, emailContent, emailParams, reportText = NULL,
-  session)
+emailBBGDLPxReport(ohlc, emailContent, emailParams, reportText = NULL, session)
 }
 \arguments{
 \item{ohlc}{The list object coming from treatBBGResultsPrice.}

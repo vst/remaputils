@@ -4,8 +4,16 @@
 \alias{bookExecutions}
 \title{A function to book executions from incoming external execution data.}
 \usage{
-bookExecutions(resources, trdOrdExecutions, trdOrds, allocationField,
-  trdOrdAllocations, data, bookingFun, session)
+bookExecutions(
+  resources,
+  trdOrdExecutions,
+  trdOrds,
+  allocationField,
+  trdOrdAllocations,
+  data,
+  bookingFun,
+  session
+)
 }
 \arguments{
 \item{resources}{The rdecaf resources data-frame.}

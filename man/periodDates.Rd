@@ -4,8 +4,12 @@
 \alias{periodDates}
 \title{A function to produce dates in requested periodicity.}
 \usage{
-periodDates(periodLetter, yearsOfHistory = 3, endOfWeek = "Friday",
-  date = Sys.Date())
+periodDates(
+  periodLetter,
+  yearsOfHistory = 3,
+  endOfWeek = "Friday",
+  date = Sys.Date()
+)
 }
 \arguments{
 \item{periodLetter}{Any of "D", "W", "M", "Q", "Y"}

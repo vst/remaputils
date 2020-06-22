@@ -4,8 +4,13 @@
 \alias{getOrderedHoldings}
 \title{A function to generate a ordered holdings data-frame}
 \usage{
-getOrderedHoldings(holdings, toplevel = "Subtype", sublevels = c("CCY",
-  "Country"), customTop = NULL, ...)
+getOrderedHoldings(
+  holdings,
+  toplevel = "Subtype",
+  sublevels = c("CCY", "Country"),
+  customTop = NULL,
+  ...
+)
 }
 \arguments{
 \item{holdings}{The ordered holdings.}

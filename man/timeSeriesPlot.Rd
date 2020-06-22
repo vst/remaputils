@@ -4,8 +4,14 @@
 \alias{timeSeriesPlot}
 \title{Provides an line time series plot.}
 \usage{
-timeSeriesPlot(df, smooth = 0.3, limitFactor = 0.05, title,
-  ylab = "", col = "darkslategray3")
+timeSeriesPlot(
+  df,
+  smooth = 0.3,
+  limitFactor = 0.05,
+  title,
+  ylab = "",
+  col = "darkslategray3"
+)
 }
 \arguments{
 \item{df}{A data frame with 'value' and 'date' columns.}

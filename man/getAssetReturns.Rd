@@ -4,8 +4,17 @@
 \alias{getAssetReturns}
 \title{Provides the asset returns MTD and YTD including FX returns}
 \usage{
-getAssetReturns(date, ccy, resources, priceField = "ohlcID", periods,
-  returnOnly, excludeWeekends, session, treat = TRUE)
+getAssetReturns(
+  date,
+  ccy,
+  resources,
+  priceField = "ohlcID",
+  periods,
+  returnOnly,
+  excludeWeekends,
+  session,
+  treat = TRUE
+)
 }
 \arguments{
 \item{date}{The date of consideration.}

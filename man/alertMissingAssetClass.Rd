@@ -4,9 +4,17 @@
 \alias{alertMissingAssetClass}
 \title{A function to .}
 \usage{
-alertMissingAssetClass(session, resources, emailParams,
-  greeting = "Dear Team,", deployment, url, gte = "00:00:00",
-  lte = "23:59:00", tz = "UTC")
+alertMissingAssetClass(
+  session,
+  resources,
+  emailParams,
+  greeting = "Dear Team,",
+  deployment,
+  url,
+  gte = "00:00:00",
+  lte = "23:59:00",
+  tz = "UTC"
+)
 }
 \arguments{
 \item{session}{The rdecaf session.}

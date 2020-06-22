@@ -4,8 +4,14 @@
 \alias{pushPayload}
 \title{A function to push a payload to a decaf instance.}
 \usage{
-pushPayload(payload, endpoint, session, import = TRUE, inbulk = FALSE,
-  params = NULL)
+pushPayload(
+  payload,
+  endpoint,
+  session,
+  import = TRUE,
+  inbulk = FALSE,
+  params = NULL
+)
 }
 \arguments{
 \item{payload}{The payload in json.}

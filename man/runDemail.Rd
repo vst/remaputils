@@ -4,8 +4,18 @@
 \alias{runDemail}
 \title{A function runs the java demail.}
 \usage{
-runDemail(address, jarPath, host, port, folder, directory, archive,
-  exclude = NULL, since = Sys.Date(), until = Sys.Date())
+runDemail(
+  address,
+  jarPath,
+  host,
+  port,
+  folder,
+  directory,
+  archive,
+  exclude = NULL,
+  since = Sys.Date(),
+  until = Sys.Date()
+)
 }
 \arguments{
 \item{address}{The address of the email server.}

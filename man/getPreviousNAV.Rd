@@ -4,8 +4,16 @@
 \alias{getPreviousNAV}
 \title{Gets the previous NAN either using external or internal valuations.}
 \usage{
-getPreviousNAV(portfolio, date, ccy, period, external, session,
-  inception = as.Date("1900-01-01"), useInt = FALSE)
+getPreviousNAV(
+  portfolio,
+  date,
+  ccy,
+  period,
+  external,
+  session,
+  inception = as.Date("1900-01-01"),
+  useInt = FALSE
+)
 }
 \arguments{
 \item{portfolio}{The portfolio id.}

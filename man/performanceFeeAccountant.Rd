@@ -4,8 +4,12 @@
 \alias{performanceFeeAccountant}
 \title{This function prepares the payload and syncs the PJE's to the performance fee account.}
 \usage{
-performanceFeeAccountant(x, session, aTypeName = "Performance Fees",
-  isAuto = FALSE)
+performanceFeeAccountant(
+  x,
+  session,
+  aTypeName = "Performance Fees",
+  isAuto = FALSE
+)
 }
 \arguments{
 \item{x}{The data frame with following columns: "perfFeeTotal", "resmain", "pacc", "sc".}

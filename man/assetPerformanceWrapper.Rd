@@ -4,9 +4,18 @@
 \alias{assetPerformanceWrapper}
 \title{A wrapper function for calculating the position wise performance and pnls.}
 \usage{
-assetPerformanceWrapper(portfolio, date, priceField, periods, session,
-  includeStats = FALSE, excludeWeekends = TRUE, holdings = NULL,
-  hParams = NULL, resources = NULL)
+assetPerformanceWrapper(
+  portfolio,
+  date,
+  priceField,
+  periods,
+  session,
+  includeStats = FALSE,
+  excludeWeekends = TRUE,
+  holdings = NULL,
+  hParams = NULL,
+  resources = NULL
+)
 }
 \arguments{
 \item{portfolio}{The portfolio id.}

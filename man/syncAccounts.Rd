@@ -4,8 +4,14 @@
 \alias{syncAccounts}
 \title{A function to sync accounts between 2 DECAF instances:}
 \usage{
-syncAccounts(sourceSession, targetSession, atypes, institutions,
-  portfolios, accounts)
+syncAccounts(
+  sourceSession,
+  targetSession,
+  atypes,
+  institutions,
+  portfolios,
+  accounts
+)
 }
 \arguments{
 \item{sourceSession}{The session info for the DECAF instance to sync from.}

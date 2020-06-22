@@ -4,8 +4,15 @@
 \alias{getEnrichedHoldings}
 \title{A function to get the enriched holdings data-frame.}
 \usage{
-getEnrichedHoldings(holdings, nav, gav, regions, resources,
-  addTagsBy = NULL, childDefaults = TRUE)
+getEnrichedHoldings(
+  holdings,
+  nav,
+  gav,
+  regions,
+  resources,
+  addTagsBy = NULL,
+  childDefaults = TRUE
+)
 }
 \arguments{
 \item{holdings}{The holdings data-frame as returned by getFlatHoldings}

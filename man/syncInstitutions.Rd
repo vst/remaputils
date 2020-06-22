@@ -4,8 +4,7 @@
 \alias{syncInstitutions}
 \title{A function to sync institutions between 2 DECAF instances:}
 \usage{
-syncInstitutions(sourceSession, targetSession, sourceAccounts,
-  trades = NULL)
+syncInstitutions(sourceSession, targetSession, sourceAccounts, trades = NULL)
 }
 \arguments{
 \item{sourceSession}{The session info for the DECAF instance to sync from.}

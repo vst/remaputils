@@ -4,8 +4,17 @@
 \alias{getPnlPreemble}
 \title{A function to provide the pnl preemble.}
 \usage{
-getPnlPreemble(posBeg, posEnd, resources, quants, trades, portfolio, fxobs,
-  ccy, session)
+getPnlPreemble(
+  posBeg,
+  posEnd,
+  resources,
+  quants,
+  trades,
+  portfolio,
+  fxobs,
+  ccy,
+  session
+)
 }
 \arguments{
 \item{posBeg}{The beginning period positions from getFlatHoldings.}

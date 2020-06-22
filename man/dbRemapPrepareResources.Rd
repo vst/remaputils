@@ -4,10 +4,14 @@
 \alias{dbRemapPrepareResources}
 \title{A function to prepare DECAF resources for dbRemap action.}
 \usage{
-dbRemapPrepareResources(resources, exCtypes = c("FXFWD", "CCY", "DEPO",
-  "LOAN", "FWD", "OTHER"), rplKeysInField = list(symbol = c(` @` = "@"),
-  symbol = c(` - LONG` = ""), symbol = c(` - SHORT` = "")),
-  tickerField = "symbol", tickerProvider = "BBG")
+dbRemapPrepareResources(
+  resources,
+  exCtypes = c("FXFWD", "CCY", "DEPO", "LOAN", "FWD", "OTHER"),
+  rplKeysInField = list(symbol = c(` @` = "@"), symbol = c(` - LONG` = ""), symbol =
+    c(` - SHORT` = "")),
+  tickerField = "symbol",
+  tickerProvider = "BBG"
+)
 }
 \arguments{
 \item{resources}{The data-frame with the DECAF resources.}

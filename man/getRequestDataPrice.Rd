@@ -4,8 +4,16 @@
 \alias{getRequestDataPrice}
 \title{A function to build the requestable currency pairs and the entire combinations of currencies}
 \usage{
-getRequestDataPrice(session, date, zero, underlying, fx = NULL,
-  resources, priceTag, byStock)
+getRequestDataPrice(
+  session,
+  date,
+  zero,
+  underlying,
+  fx = NULL,
+  resources,
+  priceTag,
+  byStock
+)
 }
 \arguments{
 \item{session}{The rdecaf session.}

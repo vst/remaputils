@@ -4,8 +4,15 @@
 \alias{inbulkPortfolio}
 \title{A function to inbulk portfolios.}
 \usage{
-inbulkPortfolio(guid = NULL, name, rccy, team, guidPrefix = NULL,
-  xguid = NULL, session)
+inbulkPortfolio(
+  guid = NULL,
+  name,
+  rccy,
+  team,
+  guidPrefix = NULL,
+  xguid = NULL,
+  session
+)
 }
 \arguments{
 \item{guid}{The vector with guids. If NULL (default), creates using guidPrefix and xguid.}

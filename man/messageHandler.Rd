@@ -4,9 +4,16 @@
 \alias{messageHandler}
 \title{This function handles the log messages}
 \usage{
-messageHandler(x = 1, val = 0, condition = "equal",
-  errortext = NULL, infotext = NULL, warntext = NULL, logger = "",
-  addlocation = NULL)
+messageHandler(
+  x = 1,
+  val = 0,
+  condition = "equal",
+  errortext = NULL,
+  infotext = NULL,
+  warntext = NULL,
+  logger = "",
+  addlocation = NULL
+)
 }
 \arguments{
 \item{x}{The result value of a condition. Default 1.}

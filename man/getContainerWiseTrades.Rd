@@ -4,8 +4,7 @@
 \alias{getContainerWiseTrades}
 \title{A function to get account-wise trades from a DECAF instance.}
 \usage{
-getContainerWiseTrades(ids, containerType = "accounts", session,
-  gte = NULL)
+getContainerWiseTrades(ids, containerType = "accounts", session, gte = NULL)
 }
 \arguments{
 \item{ids}{A vector with container id's.}

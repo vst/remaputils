@@ -5,8 +5,13 @@
 \title{This function prepares the holding details and summary tables for html/pdf.
 It requires the holdings list from getPrintableHoldings.}
 \usage{
-prepareHoldingsTables(holdings, colSelect, colOverride = NULL,
-  summaryCol = "Subtype", summaryKey = "HEBELE1234")
+prepareHoldingsTables(
+  holdings,
+  colSelect,
+  colOverride = NULL,
+  summaryCol = "Subtype",
+  summaryKey = "HEBELE1234"
+)
 }
 \arguments{
 \item{holdings}{The holdings list from getPrintableHoldings.}

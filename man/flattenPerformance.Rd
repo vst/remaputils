@@ -4,8 +4,14 @@
 \alias{flattenPerformance}
 \title{A function to flatten the results from the performance endpoint.}
 \usage{
-flattenPerformance(x, containerType, currentDate, startDate,
-  periodicity = "M", window = "Y")
+flattenPerformance(
+  x,
+  containerType,
+  currentDate,
+  startDate,
+  periodicity = "M",
+  window = "Y"
+)
 }
 \arguments{
 \item{x}{The list form the performance endpoint.}

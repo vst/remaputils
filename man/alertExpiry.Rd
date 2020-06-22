@@ -4,9 +4,18 @@
 \alias{alertExpiry}
 \title{A function to send latest trades alert.}
 \usage{
-alertExpiry(session, resources, days = 7, emailParams, greeting = "",
-  deployment = "", url = "", gte = "10:01:00", lte = "10:19:00",
-  tz = "UTC")
+alertExpiry(
+  session,
+  resources,
+  days = 7,
+  emailParams,
+  greeting = "",
+  deployment = "",
+  url = "",
+  gte = "10:01:00",
+  lte = "10:19:00",
+  tz = "UTC"
+)
 }
 \arguments{
 \item{session}{The rdecaf session.}

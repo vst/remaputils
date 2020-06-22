@@ -4,8 +4,12 @@
 \alias{performancePreemble}
 \title{A function to provide the performance fee preemble.}
 \usage{
-performancePreemble(perfMeta, session, useExternal = FALSE,
-  useExternalOnlyForReset = TRUE)
+performancePreemble(
+  perfMeta,
+  session,
+  useExternal = FALSE,
+  useExternalOnlyForReset = TRUE
+)
 }
 \arguments{
 \item{perfMeta}{A list with the performance fee meta data.}

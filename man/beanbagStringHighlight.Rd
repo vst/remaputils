@@ -4,8 +4,12 @@
 \alias{beanbagStringHighlight}
 \title{Highlights each word in a string with a background color}
 \usage{
-beanbagStringHighlight(string, textColor = "white",
-  bgColor = "darkblue", fontSize = 8.5)
+beanbagStringHighlight(
+  string,
+  textColor = "white",
+  bgColor = "darkblue",
+  fontSize = 8.5
+)
 }
 \arguments{
 \item{string}{A vector with strings.}

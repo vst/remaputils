@@ -4,8 +4,13 @@
 \alias{getStocksFromContainerNames}
 \title{A function to get stocks from container type and names.}
 \usage{
-getStocksFromContainerNames(session, containerType, containerNames,
-  zero = 1, date)
+getStocksFromContainerNames(
+  session,
+  containerType,
+  containerNames,
+  zero = 1,
+  date
+)
 }
 \arguments{
 \item{session}{The rdecaf session:}

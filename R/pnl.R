@@ -57,13 +57,26 @@ getPnlPreemble <- function(posBeg, posEnd, resources, quants, trades, portfolio,
     posBeg <- posBeg[posBeg[, "Type"] != "Cash", ]
     posBeg <- posBeg[posBeg[, "Type"] != "FX Forward", ]
     posBeg <- posBeg[posBeg[, "Type"] != "FX Forward Contract", ]
+    posBeg <- posBeg[posBeg[, "Type"] != "Time Deposit Contract", ]
+    posBeg <- posBeg[posBeg[, "Type"] != "Loan Contract", ]
     posBeg <- posBeg[posBeg[, "Type"] != "Time Deposit", ]
+    posBeg <- posBeg[posBeg[, "Type"] != "Loan", ]
+
 
     ## Remove the cash from end positions:
     posEnd <- posEnd[posEnd[, "Type"] != "Cash", ]
     posEnd <- posEnd[posEnd[, "Type"] != "FX Forward", ]
     posEnd <- posEnd[posEnd[, "Type"] != "FX Forward Contract", ]
+    posEnd <- posEnd[posEnd[, "Type"] != "Time Deposit Contract", ]
+    posEnd <- posEnd[posEnd[, "Type"] != "Loan Contract", ]
     posEnd <- posEnd[posEnd[, "Type"] != "Time Deposit", ]
+    posEnd <- posEnd[posEnd[, "Type"] != "Loan", ]
+
+    ## Extend the start positions by closed ones:
+    posBeg <- cleanNARowsCols(posBeg)
+
+    ## Extend the ned positions by closed ones:
+    posEnd <- cleanNARowsCols(posEnd)
 
     ## Append the resource quantity:
     posBeg[, "resqty"] <- resources[match(posBeg[, "ID"], resources[, "id"]), "quantity"]

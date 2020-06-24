@@ -73,7 +73,7 @@ barPlot <- function(df, title, colors="darkslategray3") {
 ##' @export
 stackedBarChartTranspose <- function(df, barColor=NA, labelColor=NA, cex=1) {
 
-    ##colors=RColorBrewer::brewer.pal(9, "GnBu")[3:9]) {
+    ## colors=RColorBrewer::brewer.pal(9, "GnBu")[3:9]) {
 
     ## If null, return empty pie:
     if (is.null(df)) {
@@ -153,6 +153,8 @@ stackedBarChartTranspose <- function(df, barColor=NA, labelColor=NA, cex=1) {
          font=2,
          adj=0,
          col=labelColor)
+
+    xlim[xlim < 0] <- 0
 
     text(x=mean(xlim) * 1.15,
          y=mp,

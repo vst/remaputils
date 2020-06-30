@@ -794,12 +794,27 @@ bondMaturityFromTicker <- function(ticker){
 ##' @export
 getResourcesByStock <- function(stocks, session, getUnderlying=TRUE){
 
-    ## Construct the resource params:
-    params <- list("page_size"=-1,
-                   "id__in"=paste(unique(stocks[,"artifact"]), collapse=","))
+    ## Get the unique stocks:
+    uniqueArtifacts <- unique(stocks[, "artifact"])
 
-    ## Get vision resource. NOTE: We are binding them safely ourselfs.
-    resources <- getResource("resources", params=params, session=session)
+    ## Create batches:
+    batches <- createBatches(length(uniqueArtifacts), 1000)
+
+    ## Initialize resources:
+    resources <- NULL
+
+    ## Iterate over batches and get the resources:
+    for (i in 1:length(batches[[1]])) {
+
+        cArtifacts <- uniqueArtifacts[batches$startingIdx[[i]]:batches$endingIdx[[i]]]
+
+        ## Construct the resource params:
+        params <- list(page_size = -1, id__in = paste(cArtifacts, collapse = ","))
+
+        ## Get vision resource. NOTE: We are binding them safely ourselfs.
+        resources <- c(resources, getResource("resources", params = params, session = session))
+
+    }
 
     ## Get the external data:
     extData1Pass <- lapply(resources,function(x) x[["extdata"]])

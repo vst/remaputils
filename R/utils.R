@@ -1738,6 +1738,11 @@ parseDate <- function(str, origin="1899-12-30"){
 ##' @export
 cleanNARowsCols <- function(df, ratio=0.85){
 
+    ## Return if no data:
+    if (NROW(df) == 0) {
+        return(df)
+    }
+
     ## Determine if rows are to be excluded:
     naRows <- apply(df, MARGIN=1, function(x) {
 

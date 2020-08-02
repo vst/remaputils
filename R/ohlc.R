@@ -59,7 +59,7 @@ getOhlcObsForSymbol <- function(session, symbol, lte=Sys.Date(), lookBack=30, ex
     print(sprintf("Retrieving ohlc observations for: %s", as.character(symbol)))
 
     ## Append additional query fields:
-    fields <- paste0("id,symbol,date,open,high,low,close", addFields)
+    fields <- paste0("id,symbol,date,open,high,low,close", paste0(",", paste(addFields, collapse=",")))
 
     ## Build the parameters:
     params=list("format"="csv",

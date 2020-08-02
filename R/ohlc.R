@@ -49,17 +49,21 @@ getOhlcObsWrapper <- function(symbols, ltes, lookBack, excludeWeekends, session)
 ##' @param lte Less than or equal to this date. Default is Sys.Date(), meaning today.
 ##' @param lookBack The number of days to look back from 'lte'. Default is 30 days.
 ##' @param excludeWeekends Should the weekends be excluded? Default is TRUE.
+##' @param addFields Additional fields to be queried.
 ##' @return A data frame with the symbosl ohlc observation.
 ##' @import rdecaf
 ##' @export
-getOhlcObsForSymbol <- function(session, symbol, lte=Sys.Date(), lookBack=30, excludeWeekends=TRUE) {
+getOhlcObsForSymbol <- function(session, symbol, lte=Sys.Date(), lookBack=30, excludeWeekends=TRUE, addFields=NULL) {
 
     ## Print some stuff:
     print(sprintf("Retrieving ohlc observations for: %s", as.character(symbol)))
 
+    ## Append additional query fields:
+    fields <- paste0("id,symbol,date,open,high,low,close", addFields)
+
     ## Build the parameters:
     params=list("format"="csv",
-                "_fields"="id,symbol,date,open,high,low,close",
+                "_fields"=fields,
                 "page_size"=-1,
                 "series__symbol"=symbol,
                 "date__gte"=lte - lookBack,

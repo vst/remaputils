@@ -130,10 +130,11 @@ isCreditSuisseID <- function(str) {
 isBBGTicker <- function(tickers) {
 
     ## The correct bloomberg ticker suffices:
-    suffices <-  c("Corp", "Equity", "Govt", "Curncy", "Index", "Comdty")
+    ## suffices <-  c("Corp", "Equity", "Govt", "Curncy", "Index", "Comdty")
+    suffices <-  c("CORP", "EQUITY", "GOVT", "CURNCY", "INDEX", "COMDTY", "PFD")
 
     ## Check if any suffix is ticker and return:
-    apply(do.call(cbind, lapply(suffices, function(x) safeGrep(tickers, x) == "1")), MARGIN=1, any)
+    apply(do.call(cbind, lapply(suffices, function(x) safeGrep(toupper(tickers), x) == "1")), MARGIN=1, any)
 }
 
 

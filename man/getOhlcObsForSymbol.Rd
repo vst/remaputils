@@ -9,7 +9,8 @@ getOhlcObsForSymbol(
   symbol,
   lte = Sys.Date(),
   lookBack = 30,
-  excludeWeekends = TRUE
+  excludeWeekends = TRUE,
+  addFields = NULL
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ getOhlcObsForSymbol(
 \item{lookBack}{The number of days to look back from 'lte'. Default is 30 days.}
 
 \item{excludeWeekends}{Should the weekends be excluded? Default is TRUE.}
+
+\item{addFields}{Additional fields to be queried.}
 }
 \value{
 A data frame with the symbosl ohlc observation.

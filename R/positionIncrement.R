@@ -1,3 +1,37 @@
+##' This function computes the position differences and optionally reconciles in the system.
+##'
+##' This is the description
+##'
+##' @param accWisePos A list with account wise positions.
+##' @param instName The name of the institution to be used for recons trade guid.
+##' @param resources The resources data frame.
+##' @param date The date of comparison.
+##' @param ctypes The resource ctypes to be compared.
+##' @param reconcile Should the differences be reconciled.
+##' @param tradeType The ctype of the recons trades.
+##' @param session The rdecaf session.
+##' @return NULL
+##' @export
+resolvePositions <- function(accWisePos, instName, resources, date, ctypes, reconcile, tradeType, session) {
+
+    ## Get the stocks comparisons between decaf and external positions:
+    reconsData <- do.call(rbind, lapply(accWisePos, function(pos) getPositionComparisonNEW(pos,
+                                                                                           resources,
+                                                                                           date,
+                                                                                           ctypes,
+                                                                                           reconcile,
+                                                                                           session)))
+
+    if (reconcile) {
+        ## Push the differences:
+        pushPosDifferences(reconsData, instName, session, ctype=tradeType)
+
+    }
+
+}
+
+
+
 ##' This function pushes the positions difference between decaf and provider
 ##'
 ##' This is the description
@@ -291,5 +325,99 @@ getPositionComparison <- function(pPos, resources, pDate, type, session) {
     ## Select the columns and return:
     stocks[, c("Name", "Account", "Symbol", "ID", "CCY", "Type", "QTY", "PX Last", "accountName", "qtyext", "pxext", "date", "symbol", "ctype")]
 
+
+}
+
+
+
+##' This function masks decaf positions based on provider positions:
+##'
+##' This is the description
+##'
+##' @param accPos The positions data frame from the provider.
+##' @param resources The resources data frame.
+##' @param posDate The position date.
+##' @param group A vector with the desired resource ctypes.
+##' @param useCostPX For empty consolidations, shall cost price be used?
+##' @param session The rdecaf session.
+##' @return Returns the side by side comparison of decaf position and provider position.
+##' @export
+getPositionComparisonNEW <- function(accPos, resources, posDate, group, useCostPX, session) {
+
+    ## Remove NA rows:
+    accPos <- accPos[apply(accPos, MARGIN=1, function(x) !all(is.na(x))),]
+
+    ## Prepare consolidation params:
+    consolParams <- list("i"=accPos[1, "accmain"], "c"="account", "date"=posDate)
+
+    ## Get consolidation:
+    stocks <- getFlatHoldings(getResource("consolidation", params=consolParams, "session"=session)[["holdings"]])
+
+    stocks[, "ctype"] <- resources[match(stocks[, "ID"], resources[, "id"], incomparables=NA), "ctype"]
+
+    ## Filter in the security types of concern:
+    stocks <- stocks[mCondition(stocks, "ctype", group), ]
+
+    ## If there are no stocks, mask empty positions:
+    if (NROW(stocks) == 0) {
+        ## Initialize stocks data frame with NA row:
+        stocks <- initDF(colnames(stocks))
+    }
+
+    ## If no stocks, mask positions:
+    if (all(is.na(stocks[1, ])) & NROW(stocks) == 1) {
+
+        ## If type is Security, use PXCOST as PXLAST:
+        if (useCostPX) {
+
+            print("USING COST PRICES")
+
+            accPos[, "PXLAST"] <- ifelse(isNAorEmpty(safeColumn(accPos, "PXCOST")), accPos[, "PXLAST"], accPos[, "PXCOST"])
+        }
+
+        stocks <- maskPositions(accPos, resources, posDate)
+
+        stocks[is.na(stocks[, "PX Last"]), "PX Last"] <- 1
+        stocks[is.na(stocks[, "pxext"]), "pxext"] <- 1
+
+        ## If no stocks, mask positions:
+        return(stocks)
+    }
+
+
+    ## Assign the account name:
+    stocks[, "accountName"] <- accPos[1, "ACCNAME"]
+
+    ## Assign the external QTY:
+    stocks[, "qtyext"] <- accPos[match(stocks[, "ID"], accPos[, "resmain"]), "QTY"]
+
+    ## Assign the external PX:
+    stocks[, "pxext"] <- accPos[match(stocks[, "ID"], accPos[, "resmain"]), "PXLAST"]
+
+    ## Assign the position date:
+    stocks[, "date"] <- posDate
+
+    ## Are there any excess resources?
+    excessPos <- accPos[is.na(match(accPos[, "resmain"], stocks[, "ID"])),]
+
+    ## If any excess resources, append to stocks:
+    if (NROW(excessPos) > 0) {
+            stocks <- appendStocks(excessPos, stocks, posDate, resources)
+    }
+
+    ## Assign the symbol to stocks:
+    stocks[, "symbol"] <- resources[match(stocks[, "ID"],  resources[, "id"]), "symbol"]
+
+    ## Assign the ctype to stocks:
+    stocks[, "ctype"] <- resources[match(stocks[, "ID"],  resources[, "id"]), "ctype"]
+
+    ## Set the provider price for cash positions to 1:
+    stocks[safeCondition(stocks, "Type", "Cash"), "pxext"] <- 1
+
+    stocks[is.na(stocks[, "PX Last"]), "PX Last"] <- 1
+    stocks[is.na(stocks[, "pxext"]), "pxext"] <- 1
+
+    ## Select the columns and return:
+    stocks[, c("Name", "Account", "Symbol", "ID", "CCY", "Type", "QTY", "PX Last", "accountName", "qtyext", "pxext", "date", "symbol", "ctype")]
 
 }

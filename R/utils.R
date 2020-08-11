@@ -399,7 +399,11 @@ getDTDSlice <- function(df, date) {
 ##' @return A list
 ##' @export
 extractToList <- function(df, colname) {
-    lapply(unique(df[, colname]), function(x) df[x == df[, colname], ])
+
+    lst <- lapply(unique(df[, colname]), function(x) df[x == df[, colname], ])
+    names(lst) <- unique(df[, colname])
+
+    return(lst)
 }
 
 

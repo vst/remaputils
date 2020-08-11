@@ -654,23 +654,26 @@ createCommodityResource <- function(df, session){
 ##' @import rdecaf
 ##' @import jsonlite
 ##' @export
-createBondResource <- function(df, session){
+createBondResource <- function(df, session) {
 
     ## Create the data frame:
     dfx <- data.frame("symbol"=df[,"symbol"],
                       "id"=NA,
                       "isin"=safeColumn(df ,"isin"),
                       "ctype"="BOND",
+                      "stype"=safeColumn(df, "stype"),
                       "launch"=safeColumn(df, "launch"),
                       "name"=df[,"name"],
                       "pxmain"=df[,"cpn"],
+                      "assetclass"=safeColumn(df, "assetclass"),
                       "ccymain"=df[,"ccymain"],
                       "ticker"=safeColumn(df, "ticker"),
+                      "eom"=safeColumn(df, "eom"),
                       "reference"=safeColumn(df, "reference"),
                       "expiry"=df[,"maturity"],
                       "quantity"=safeColumn(df, "pxfactor"),
-                      "frequency"=df[,"frequency"],
-                      "convday"=df[,"convday"])
+                      "frequency"=safeColumn(df,"frequency"),
+                      "convday"=safeColumn(df, "convday"))
 
     ## Create the payload:
     payload <- toJSON(apply(dfx, MARGIN=1, as.list), auto_unbox=TRUE, digits=10)
@@ -1055,4 +1058,190 @@ isinCCYMatch <- function(data, resources) {
     ## Done, return:
     data
 
+}
+
+
+##' A function to match instrument in a data frame with resources in the system.
+##'
+##' This is a description.
+##'
+##' @param data A data-frame with the resource information.
+##' @param session The rdecaf session.
+##' @return The data-frame with the resmain column
+##' @export
+createResourcesWrapper <- function(data, session) {
+
+    ## Get the na resmains:
+    naResmain <- is.na(data[, "resmain"])
+
+    ## Any SHRE to be created?
+    createShare <- naResmain & data[, "ctype"] == "SHRE"
+
+    ## Create SHRE if needed:
+    if (any(createShare)) {
+
+        ## Create SHRE and get response:
+        data[createShare, "pxfactor"] <- data[createShare, "quantity"]
+
+        shareResourceResponse <- createShareResource(data[createShare,], session)
+
+        ## Assign the newly created resmain:
+        data[createShare,"resmain"] <- as.character(sapply(shareResourceResponse, function(e) e$id))
+    }
+
+    ## Any BOND to be created?
+    createBond <- naResmain & data[, "ctype"] == "BOND"
+
+    ## Create BOND if needed:
+    if (any(createBond)) {
+
+        ## Get the cpn:
+        data[createBond, "cpn"] <- data[createBond, "pxmain"]
+
+        ## Get the maturity:
+        data[createBond, "maturity"] <- data[createBond, "expiry"]
+
+        ## Get the pxfactor:
+        data[createBond, "pxfactor"] <- data[createBond, "quantity"]
+
+        ## Create BOND and get response:
+        bondResourceResponse <- createBondResource(data[createBond,], session)
+
+        ## Assign the newly created resmain:
+        data[createBond,"resmain"] <- as.character(sapply(bondResourceResponse, function(e) e$id))
+    }
+
+    ## Any BOND to be created?
+    createZCPN <- naResmain & data[, "ctype"] == "ZCPN"
+
+    ## Create BOND if needed:
+    if (any(createZCPN)) {
+
+        ## Get the maturity:
+        data[createZCPN, "maturity"] <- data[createZCPN, "expiry"]
+
+        ## Get the pxfactor:
+        data[createZCPN, "pxfactor"] <- data[createZCPN, "quantity"]
+
+        ## Create BOND and get response:
+        zcpnResourceResponse <- createZCPNResource(data[createZCPN,], session)
+
+        ## Assign the newly created resmain:
+        data[createZCPN,"resmain"] <- as.character(sapply(zcpnResourceResponse, function(e) e$id))
+    }
+
+    ## Any SP to be created?
+    createSP <- naResmain & data[, "ctype"] == "SP"
+
+    ## Create SP if needed:
+    if (any(createSP)) {
+
+        ## Set the pxfactor:
+        data[createSP, "pxfactor"] <- data[createSP, "quantity"]
+
+        ## Create SP and get response:
+        spResourceResponse <- createSpResource(data[createSP,], session)
+
+        ## Assign the newly created resmain:
+        data[createSP,"resmain"] <- as.character(sapply(spResourceResponse, function(e) e$id))
+    }
+
+    ## Any FUT to be created?
+    createFut <- naResmain & data[, "ctype"] == "FUT"
+
+    ## Create FUT if needed:
+    if (any(createFut)) {
+
+        ## Get the contract size:
+        contractsize <- records[match(data[, "isin"], newResources[, "ISIN"]), "CONTRACTSIZE"]
+
+        ## Set the contract size:
+        data[createFut, "contractsize"] <- contractsize[createFut]
+
+        ## Create the Fut and get response:
+        futResourceResponse <- createFutureResource(data[createFut,], session)
+
+        ## Assign the newly create resmain:
+        data[createFut,"resmain"] <- as.character(sapply(futResourceResponse, function(e) e$id))
+    }
+
+    ## Any OPT to be created?
+    createOpt <- naResmain & data[, "ctype"] == "OPT"
+
+    ## Create OPT if needed:
+    if (any(createOpt)) {
+
+        ## Get the contract size:
+        contractsize <- records[match(data[, "isin"], newResources[, "ISIN"]), "CONTRACTSIZE"]
+
+        ## Set the contract size:
+        data[createOpt, "contractsize"] <- contractsize[createOpt]
+
+        ## Set the strike:
+        data[createOpt, "strike"] <- data[createOpt, "pxmain"]
+
+        ## Create the OPT and get response:
+        optResourceResponse <- createOptionResource(data[createOpt,], session)
+
+        ## Assign the newly created resmain:
+        data[createOpt,"resmain"] <- as.character(sapply(optResourceResponse, function(e) e$id))
+    }
+
+    ## Any COMM to be created?
+    createComm <- naResmain & data[, "ctype"] == "COMM"
+
+    ## Create COMM if needed:
+    if (any(createComm)) {
+
+        ## Create COMM and get response:
+        commResourceResponse <- createCommodityResource(data[createComm,], session)
+
+        ## Assign the newly created resmain:
+        data[createComm,"resmain"] <- as.character(sapply(commResourceResponse, function(e) e$id))
+    }
+
+    ## Any OTHER to be created?
+    createOther <- naResmain & data[, "ctype"] == "OTHER"
+
+    ## Create OTHER if needed:
+    if (any(createOther)) {
+
+        data[createOther, "pxfactor"] <- data[createOther, "quantity"]
+
+        ## Create OTHER and get response:
+        otherResourceResponse <- createOtherResource(data[createOther,], session)
+
+        ## Assign the newly created resmain:
+        data[createOther,"resmain"] <- as.character(sapply(otherResourceResponse, function(e) e$id))
+    }
+
+    ## Any OTHER to be created?
+    createLoan <- naResmain & data[, "ctype"] == "LOAN"
+
+    if (any(createLoan)) {
+
+        ## Create OTHER and get response:
+        loanResourceResponse <- createOtherResource(data[createLoan,], session)
+
+        ## Assign the newly created resmain:
+        data[createLoan,"resmain"] <- as.character(sapply(loanResourceResponse, function(e) e$id))
+
+    }
+
+    ## Any OTHER to be created?
+    createDepo <- naResmain & data[, "ctype"] == "DEPO"
+
+    if (any(createDepo)) {
+
+        ## Create OTHER and get response:
+        depoResourceResponse <- createLoanDepoResource(data[createDepo,], session)
+
+        ## Assign the newly created resmain:
+        data[createDepo,"resmain"] <- as.character(sapply(depoResourceResponse, function(e) e$id))
+
+    }
+
+
+    ## Done, return resources:
+    data
 }

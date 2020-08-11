@@ -1647,3 +1647,91 @@ rSync <- function(server, location, target, folderNames, exclude=""){
     ## Message:
     messageHandler(result, 0, condition="greater", errortext=paste0(" error code: ", result))
 }
+
+
+##' This function applies the account preemble method 1.
+##'
+##' Accounts are created with the name as provided if such
+##' name is missing.If target portfolio name does not exist
+##' yet, function creates. If such portfolio assignment is missing,
+##' this functions creates a portfolio with the same name
+##' as account.
+##'
+##' @param records A data frame with columns ACCNAME, targetPortName and REFCCY.
+##' @param sysAccs A data frame with the system accounts.
+##' @param custodian The custodian id.
+##' @param session The rdecaf session.
+##' @return Returns the side by side comparison of decaf position and provider position.
+##' @export
+accountPreembleMethod1 <- function(records, sysAccs, custodian, session) {
+
+    ## Get the accmains:
+    records[, "accmain"] <- sysAccs[match(records[, "ACCNAME"], sysAccs[, "name"], incomparables=NA), "id"]
+
+    ## If all accounts exist, return:
+    if (all(!is.na(records[, "accmain"]))) {
+        return(records)
+    }
+
+    ## Get the system portfolios:
+    sysPorts <- as.data.frame(getResource("portfolios", params=list("format"="csv", "page_size"=-1), session=session))
+
+    ## Get the records with missing accmain:
+    recs <- records[is.na(records[, "accmain"]), ]
+
+    ## Get the portfolio id:
+    recs[, "portfolio"] <- sysPorts[match(trimConcatenate(recs[, "targetPortName"]), trimConcatenate(sysPorts[, "name"])), "id"]
+
+    ## If portfolios are missing, create:
+    if (any(is.na(recs[, "portfolio"]))) {
+
+        ## Get the NA portfolios:
+        naPorts <- is.na(recs[, "portfolio"])
+
+        guids <- apply(recs[naPorts, c("targetPortName", "REFCCY")], MARGIN=1, function(x) digest::digest(paste0(x, custodian, collapse="")))
+
+        ## Get the portfolio name:
+        port <- data.frame("name"=recs[naPorts, "targetPortName"],
+                           "rccy"=recs[naPorts, "REFCCY"],
+                           "refccy"=recs[naPorts, "REFCCY"],
+                           "guid"=guids,
+                           "team"=1)
+
+        ## Get the portfolio payload:
+        payload <- toJSON(list(portfolios=port), auto_unbox=TRUE, na="null", digits=10)
+
+        ## Inbulk portfolios:
+        response <- pushPayload(payload=payload, session=session, import=FALSE, inbulk=TRUE, params=list(sync="True"))
+
+        ## Assign the portfolio id:
+        recs[naPorts, "portfolio"] <- sapply(response[[1]][[1]][[1]], function(x) x[[1]])
+
+    }
+
+    ## Get the account guids:
+    guids <- apply(recs[, c("targetPortName", "ACCNAME", "REFCCY")], MARGIN=1, function(x) digest::digest(paste0(x, custodian, collapse="")))
+
+    ## Get the account data frame:
+    accs <- data.frame("name"=recs[, "ACCNAME"],
+                       "rccy"=as.character(recs[, "REFCCY"]),
+                       "portfolio"=recs[, "portfolio"],
+                       "custodian"=as.character(custodian),
+                       "guid"=guids,
+                       "atype"=NA)
+
+    ## Get  the account payload:
+    payload <- toJSON(list(accounts=accs), auto_unbox=TRUE, na="null", digits=10)
+
+    ## Inbulk accounts:
+    response <- pushPayload(payload=payload, session=session, import=FALSE, inbulk=TRUE, params=list(sync="True"))
+
+    ## Assign the portfolio id:
+    recs[, "accmain"] <- sapply(response[[1]][[1]][[1]], function(x) x[[1]])
+
+    ## Append previously existing accmain records and new accmain records:
+    records <- rbind(records[!is.na(records[, "accmain"]), ], recs)
+
+    ## Done, return
+    records
+
+}

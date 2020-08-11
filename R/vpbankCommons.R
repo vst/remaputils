@@ -30,25 +30,25 @@ vpbankSecTypeMapper <- function(reference) {
     retval <- auxFun(byAstGrp, "Funds", "SHRE")
 
     ## Map the shares to share:
-    retval <- c(retval, .auxFun(byAstGrp, "Shares", "SHRE"))
+    retval <- c(retval, auxFun(byAstGrp, "Shares", "SHRE"))
 
     ## Map the bonds to bond:
-    retval <- c(retval, .auxFun(byAstGrp, "Bonds", "BOND"))
+    retval <- c(retval, auxFun(byAstGrp, "Bonds", "BOND"))
 
     ## Map the options to opt:
-    retval <- c(retval, .auxFun(byAstGrp, "Options", "OPT"))
+    retval <- c(retval, auxFun(byAstGrp, "Options", "OPT"))
 
     ## Map the futures to fut:
-    retval <- c(retval, .auxFun(byAstGrp, "Futures", "FUT"))
+    retval <- c(retval, auxFun(byAstGrp, "Futures", "FUT"))
 
     ## Map the money market deposit to depo:
-    retval <- c(retval, .auxFun(byAstGrp, "money market deposit", "DEPO", FALSE))
+    retval <- c(retval, auxFun(byAstGrp, "money market deposit", "DEPO", FALSE))
 
     ## Map the credit to loan:
-    retval <- c(retval, .auxFun(byAstGrp, "Credit", "LOAN", FALSE))
+    retval <- c(retval, auxFun(byAstGrp, "Credit", "LOAN", FALSE))
 
     ## Map the structured products to sp:
-    retval <- c(retval, .auxFun(byAstGrp, "Structured products", "SP"))
+    retval <- c(retval, auxFun(byAstGrp, "Structured products", "SP"))
 
     ## Map fx forwards and cash instruments:
     retval <- c(retval, list("FX forward"=list("ctype"="FXFWD", "stype"=NA),

@@ -148,7 +148,7 @@ settleFuturePnL <- function(futurePositions, accounts, resources, session) {
 
         ## if not closed, set close to Sys.Date()
         if (is.na(row["close"])) {
-            row["close"] <- Sys.Date()
+            row["close"] <- as.character(Sys.Date())
         }
 
         ## Get the dates for which we need to know the PnL:

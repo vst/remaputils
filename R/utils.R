@@ -274,6 +274,9 @@ getMTDSlice <- function(df, date) {
     ## Get the month-year of the report date:
     monYear <- substr(date, 1, 7)
 
+    ## Get the previous months month-year:
+    prevMonYear <- substr(dateOfPeriod("M-0", date), 1, 7)
+
     ## If no date matches the month-year of the report date, return NULL:
     if (all(substr(df[, "date"], 1, 7) != monYear)) {
         return(NULL)
@@ -287,8 +290,12 @@ getMTDSlice <- function(df, date) {
         return(NULL)
     }
 
-    ## Return the slice:
-    df[1:which(periodChange)[1],]
+    ## Get the slice until first period change:
+    df <- df[1:which(periodChange)[1],]
+
+    ## Remove any row which does not correspond to current month-year and previous month-year:
+    df[substr(df[, "date"], 1, 7) == monYear | substr(df[, "date"], 1, 7) == prevMonYear, ]
+
 }
 
 

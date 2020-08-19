@@ -28,19 +28,19 @@ safeMatch <- function (str, key) {
 getDissimilarRows <- function(altered, original, idField) {
 
     ## Align the original to the altered by id field:
-    original <- original[match(treated[, idField], original[, idField]), ]
+    original <- original[match(altered[, idField], original[, idField]), ]
 
     ## Get the NA's identical?
-    nanCompare <- is.na(treated) == is.na(original)
+    nanCompare <- is.na(altered) == is.na(original)
 
     ## Are the values identical?
-    valCompare <- treated == original
+    valCompare <- altered == original
 
     ## Replace NA's in values check with the NA check:
     valCompare[is.na(valCompare)] <- nanCompare[is.na(valCompare)]
 
     ## Get the rows where any value is different:
-    treated[!apply(valCompare, MARGIN=1, all), ]
+    altered[!apply(valCompare, MARGIN=1, all), ]
 
 }
 

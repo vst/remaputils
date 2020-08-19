@@ -13,7 +13,8 @@ alertMissingAssetClass(
   url,
   gte = "00:00:00",
   lte = "23:59:00",
-  tz = "UTC"
+  tz = "UTC",
+  stockOnly = TRUE
 )
 }
 \arguments{
@@ -34,6 +35,8 @@ alertMissingAssetClass(
 \item{lte}{Less than or equal to this time (HH:MM:SS) to run this alert.}
 
 \item{tz}{The time-zone for gte and lte.}
+
+\item{stockOnly}{Shall we check only open positions? Default: TRUE}
 }
 \value{
 NULL. Email with the alert will be sent.

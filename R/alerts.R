@@ -580,6 +580,7 @@ alertMissingMonthEndPx <- function (session,
 ##' @param gte Greater than or equal to this time (HH:MM:SS) to run this alert.
 ##' @param lte Less than or equal to this time (HH:MM:SS) to run this alert.
 ##' @param tz The time-zone for gte and lte.
+##' @param stockOnly Shall we check only open positions? Default: TRUE
 ##' @return NULL. Email with the alert will be sent.
 ##' @export
 alertMissingAssetClass <- function (session,
@@ -590,7 +591,8 @@ alertMissingAssetClass <- function (session,
                                     url,
                                     gte="00:00:00",
                                     lte="23:59:00",
-                                    tz = "UTC") {
+                                    tz = "UTC",
+                                    stockOnly=TRUE) {
 
     ## Check if  parameters are defined:
     if (!hasArg("session") || !hasArg("resources") || !hasArg("emailParams") || !hasArg("deployment") || !hasArg("url")) {
@@ -605,12 +607,21 @@ alertMissingAssetClass <- function (session,
         return(NULL)
     }
 
-    ## Get the stocks:
-    stocks <- as.data.frame(getResource("stocks", params=list("page_size"=1, "format"="csv"), session=session))
+    if (stockOnly) {
 
-    resByAssetClass <- resources[match(stocks[, "artifact"], resources[, "id"]), c("symbol", "assetclass", "id", "ctype", "name")]
+        ## Get the stocks:
+        stocks <- as.data.frame(getResource("stocks", params=list("page_size"=1, "format"="csv"), session=session))
 
-    missingAssetClass <- resByAssetClass[is.na(resByAssetClass[, "assetclass"]), ]
+        resources <- resources[!is.na(match(resources[, "id"], unique(stocks[, "artifact"]))), ]
+
+        ## resByAssetClass <- resources[match(stocks[, "artifact"], resources[, "id"]), c("symbol", "assetclass", "id", "ctype", "name")]
+        ## resources <- resources[match(stocks[, "artifact"], resources[, "id"]), c("symbol", "assetclass", "id", "ctype", "name")]
+
+    }
+
+    resources <- resources[, c("symbol", "assetclass", "id", "ctype", "name")]
+
+    missingAssetClass <- resources[is.na(resources[, "assetclass"]), ]
 
     if (NROW(missingAssetClass) == 0) {
         missingAssetClass <- initDF(colnames(missingAssetClass), 1)
@@ -620,7 +631,7 @@ alertMissingAssetClass <- function (session,
     instrumentLink <- gsub(" ", "%20", instrumentLink)
 
     result <- data.frame("Link"=instrumentLink,
-                         "Name"=missingAssetClass[, "name"],
+                         "Name"=ellipsify(missingAssetClass[, "name"]),
                          "Symbol"=missingAssetClass[, "symbol"],
                          check.names=FALSE,
                          stringsAsFactors=FALSE)

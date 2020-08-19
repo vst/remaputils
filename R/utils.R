@@ -1,3 +1,50 @@
+##' A function to safely check the condition of a vector of a string.
+##'
+##' This is a description.
+##'
+##' @param str A vector with strings.
+##' @param key Key to be found.
+##' @return A vector with "1" for TRUE and "0" for FALSE.
+##' @export
+safeMatch <- function (str, key) {
+
+    ## Get the match:
+    isMatch <- ifelse(str == key, "1", "0")
+
+    ## Replace NA's with "0":
+    ifelse(is.na(isMatch), "0", isMatch)
+}
+
+
+##' Thsi funciton returns rows of a treated data frame which are different compared to the original
+##'
+##' This is the description
+##'
+##' @param altered The altered data frame.
+##' @param original The original data frame.
+##' @param idField The field to be used to align the data frames.
+##' @return A data frame with altered rows only.
+##' @export
+getDissimilarRows <- function(altered, original, idField) {
+
+    ## Align the original to the altered by id field:
+    original <- original[match(treated[, idField], original[, idField]), ]
+
+    ## Get the NA's identical?
+    nanCompare <- is.na(treated) == is.na(original)
+
+    ## Are the values identical?
+    valCompare <- treated == original
+
+    ## Replace NA's in values check with the NA check:
+    valCompare[is.na(valCompare)] <- nanCompare[is.na(valCompare)]
+
+    ## Get the rows where any value is different:
+    treated[!apply(valCompare, MARGIN=1, all), ]
+
+}
+
+
 ##' This function produces a vector with the month year for a date's year.
 ##' Such as: Jan 19, Feb 19, ... , Dec 19 if date is 2019-06-01.
 ##'
@@ -658,12 +705,17 @@ mxgrep <- function(df, key) {
 ##'
 ##' @param x  A vector with strings.
 ##' @param keys A vector with keys to grep in x.
+##' @param useMatch Shall match be used instead of grep?
 ##' @return A 'x' by 'keys' size data frame with the grepped keys.
 ##' @export
-mgrep <- function(x, keys) {
+mgrep <- function(x, keys, useMatch=FALSE) {
 
-    ## For each key in keys, safely grep in vector x:
-    kList <- lapply(keys, function(key) safeGrep(x, key))
+    ## For each key in keys, safely grep/match in vector x:
+    if (useMatch) {
+            kList <- lapply(keys, function(key) safeMatch(x, key))
+        } else {
+            kList <- lapply(keys, function(key) safeGrep(x, key))
+        }
 
     ## In each key list, replace the "1" (matched key) with the key itself:
     ## And combine to matrix:

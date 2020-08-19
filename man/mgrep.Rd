@@ -4,12 +4,14 @@
 \alias{mgrep}
 \title{A function to grep multiple keys in vector.}
 \usage{
-mgrep(x, keys)
+mgrep(x, keys, useMatch = FALSE)
 }
 \arguments{
 \item{x}{A vector with strings.}
 
 \item{keys}{A vector with keys to grep in x.}
+
+\item{useMatch}{Shall match be used instead of grep?}
 }
 \value{
 A 'x' by 'keys' size data frame with the grepped keys.

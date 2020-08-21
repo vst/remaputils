@@ -131,8 +131,8 @@ emailHTMLTable <- function(df,
 
     ## Construct the alternative background color for rows if NULL:
     if (length(rowBGColor) == 0) {
-        rowBGColor[["rowsOdd"]] <- seq(2, NROW(df)+1, 2)
-        rowBGColor[["rowsEvn"]] <- seq(3, NROW(df)+1, 2)
+        rowBGColor[["rowsOdd"]] <- seq(min(NROW(df), 2), NROW(df) + 1, 2)
+        rowBGColor[["rowsEvn"]] <- seq(min(NROW(df), 3), NROW(df) + 1, 2)
     }
 
     ## Construct the footer if NULL:

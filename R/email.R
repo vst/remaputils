@@ -108,16 +108,51 @@ syncUpdateEmail <- function(template, updateText, emailParams, timezone="CET", s
 ##' @param provider The name of the provider of the data to be used in the footer.
 ##' @param caption The caption of the table to be used.
 ##' @param sourceType The type of the source data to be used for the footer.E.g., 'Api'.
+##' @param rowGroups A list of two elements of the same length. The first
+##' element will contain the row spans (i.e. a numeric atomic vector) whereas
+##' the second element will contain the names (i.e. a character atomic vector).
+##' See the examples for more info. Defauls to NULL
+##' @param rowBGColor A list of two elements with the row indices for alternative background color.
+##' Default in NULL in which case it constructs itself.
+##' @param collapse The table collapse parameters. Default is separate.
+##' @param spacing The cell spacing of the table. Default is 4px.",
+##' @param footer The footer to be used. Default is NULL in which case it constructs itself.
 ##' @return A java-object of class org.apache.commons.mail.SimpleEmail
 ##' @export
-emailHTMLTable <- function(df, provider, caption, sourceType="API") {
+emailHTMLTable <- function(df,
+                           provider,
+                           caption,
+                           sourceType="API",
+                           rowGroups=NULL,
+                           rowBGColor=list(),
+                           collapse="separate",
+                           spacing="4px",
+                           footer=NULL) {
+
+    ## Construct the alternative background color for rows if NULL:
+    if (length(rowBGColor) == 0) {
+        rowBGColor[["rowsOdd"]] <- seq(2, NROW(df)+1, 2)
+        rowBGColor[["rowsEvn"]] <- seq(3, NROW(df)+1, 2)
+    }
+
+    ## Construct the footer if NULL:
+    if (is.null(footer)) {
+        footer <- paste0("Source Reference: ", toupper(provider), " " , sourceType)
+    }
+
+    ## Get the html table for df:
     tableHTML::tableHTML(df,
                          border=0,
-                         spacing="4px",
-                         footer=paste0("Source Reference: ", toupper(provider), " " , sourceType),
+                         spacing=spacing,
+                         collapse=collapse,
+                         row_groups=rowGroups,
+                         footer=footer,
                          caption=caption,
                          rownames=FALSE) %>%
-        tableHTML::add_css_caption(css = list(c('color', 'font-size', 'text-align', 'margin-bottom'), c("#666666", '18px', 'center', '10px'))) %>%
-        tableHTML::add_css_footer(css = list(c('color', 'font-size', 'text-align', 'margin-top'), c("#999999", '12px', 'center', '10px'))) %>%
-        tableHTML::add_css_column(css = list(c("text-align"), c("left")), columns=colnames(df))
+    tableHTML::add_css_caption(css = list(c('color', 'font-size', 'text-align', 'margin-bottom'), c("#666666", '18px', 'center', '10px'))) %>%
+    tableHTML::add_css_footer(css = list(c('color', 'font-size', 'text-align', 'margin-top'), c("#999999", '12px', 'center', '10px'))) %>%
+    tableHTML::add_css_column(css = list(c("text-align"), c("left")), columns=colnames(df)) %>%
+    tableHTML::add_css_row(css = list(c('background-color'), c('#E5E8E8')), rows = rowBGColor[["rowsOdd"]]) %>%
+    tableHTML::add_css_row(css = list(c('background-color'), c('#BFC9CA')), rows = rowBGColor[["rowsEvn"]])
+
 }

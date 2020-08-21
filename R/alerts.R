@@ -2,6 +2,123 @@
 ##'
 ##' This is the description
 ##'
+##' @param session The rdecaf session.
+##' @param resources The data-frame of the resources in the decaf instance.
+##' @param emailParams The parameters for the email dispatch.
+##' @param occurThreshold For common instrument culprits, what is the occurance threshold? Default = 2.
+##' @param greeting The greetings string.
+##' @param deployment The name of the deployment / client.
+##' @param url The url of the deployment.
+##' @param gte Greater than or equal to this time (HH:MM:SS) to run this alert.
+##' @param lte Less than or equal to this time (HH:MM:SS) to run this alert.
+##' @param tz The time-zone for gte and lte.
+##' @return NULL. Email with the alert will be sent.
+##' @export
+alertsComplianceBreachInspector <- function(session,
+                                            resources,
+                                            emailParams,
+                                            occurThreshold=2,
+                                            greeting,
+                                            deployment,
+                                            url,
+                                            gte,
+                                            lte,
+                                            tz) {
+
+    ## Is it alert time?
+    itsAlertTime <- itsTime(tz=tz, gte=gte, lte=lte)
+
+    ## If it is not alert time, return NULL:
+    if (!itsAlertTime) {
+        return(NULL)
+    }
+
+    ## Get the report:
+    data <- complianceBreachInspector(resources, session, occurThreshold)
+
+    ## This is a helper function:
+    auxFun <- function(df, caption, footer) {
+
+        ## Parse the instrument link:
+        df[, "Link"] <- paste0("<a href='", df[, "Link"], "'>LINK</a>")
+
+        ## Construct the indices for the row groups:
+        rowGrpIdx <- as.numeric(diff(which(!isNAorEmpty(c(df[, "Common ID"], "TAIL")))))
+
+        ## Prapare the row group parameter:
+        rowGroups <- list(rowGrpIdx, df[!isNAorEmpty(df[, "Common ID"]), "Common ID"])
+
+        if (any(sapply(rowGroups, length) == 0)) {
+            rowGroups <- NULL
+        }
+
+        ## Prepare the alternative row background color indices:
+        bgColorIdx <- which(!isNAorEmpty(c(df[, "Common ID"], "TAIL")))
+        bgColorIdx <- apply(cbind(bgColorIdx, c(tail(bgColorIdx, -1), NROW(df))), MARGIN=1, function(x) tail(x[1]:x[2], -1))
+
+        ## Get rid of tail of bgColorIdx if length is more than 1:
+        if (length(bgColorIdx) > 1) {
+            bgColorIdx <- bgColorIdx[-length(bgColorIdx)]
+        }
+
+        ## Assign the background color indices to the list:
+        rowBGColor <- list()
+        rowBGColor[["rowsOdd"]] <- as.numeric(unlist(bgColorIdx[seq(1, length(bgColorIdx), 2)]))
+        rowBGColor[["rowsEvn"]] <- as.numeric(unlist(bgColorIdx[seq(min(2, length(bgColorIdx)), length(bgColorIdx), 2)]))
+
+        ## Remove the Common ID column:
+        df[, "Common ID"] <- NULL
+
+        ## Prepare the html table and return:
+        emailHTMLTable(df,
+                       provider,
+                       caption,
+                       sourceType="API",
+                       rowGroups=rowGroups,
+                       rowBGColor=rowBGColor,
+                       collapse="separate",
+                       spacing="4px",
+                       footer=footer)
+    }
+
+    ## HTMLize data frames and combine the tables:
+    result <- paste0(as.character(auxFun(data[["culpritsWithoutAClass"]], "Common Culprits Without Asset Class", "")),
+                     as.character(auxFun(data[["culpritsWithAClass"]], "Common Culprits With Asset Class", NULL)),
+                     collapse="")
+
+    ## Clean the HTML text:
+    result <- gsub("&#62;LINK&#60;/a&#62;", ">LINK<aya/a>", result)
+    result <- gsub("&#60;a href", "<a href", result)
+
+    emailBody <- paste0("Please find below a list of instruments which commonly appear in compliance breaches. ",
+                        "We advice to assign the appropriate asset class to the missing ones and to review the ",
+                        "asset class assignment for the existing ones. Please note that this is not a exaustive ",
+                        "list of instruments for either case. ")
+
+    ## Construct the text:
+    UPDATETEXT <- list("GREETINGPLACEHOLDER"="Dear SAWM Team",
+                       "EMAILBODYPLACEHOLDER"=emailBody,
+                       "CALLTOACTIONPLACEHOLDER"="Go to System",
+                       "DEPLOYMENT"="SwissAsia WM",
+                       "URLPLACEHOLDER"=gsub("api", "", session[["location"]]),
+                       "FINALPARAGRAPHPLACEHOLDER"="Please contact us if you experience any issues or have questions/feedback.",
+                       "ADDRESSPLACEHOLDER"="",
+                       "GOODBYEPLACEHOLDER"="Best Regards,<br>DECAF TEAM",
+                       "ADDENDUMPLACEHOLDER"=result)
+
+    ## Send it:
+    syncUpdateEmail(template=readLines("../assets/update_email.html"),
+                     updateText=UPDATETEXT,
+                     emailParams=emailParams,
+                     subject=" DECAF Compliance Inspector: ")
+
+}
+
+
+##' A function to push a payload to a decaf instance.
+##'
+##' This is the description
+##'
 ##' @param accounts The data-frame with the rdecaf accounts. If NULL, all accounts of session are considered. Default is NULL.
 ##' @param resources The data-frame of the resources in the decaf instance.
 ##' @param session The rdecaf session.

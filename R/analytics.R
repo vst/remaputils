@@ -1,3 +1,117 @@
+##' A function to inspect the breaches in the latest compliance checks.
+##'
+##' @param resources The resources data frame.
+##' @param session The rdecaf session.
+##' @param occurThreshold For common instrument culprits, what is the occurance threshold? Default = 2.
+##' @return A list with the inspected data.
+##' @export
+##'
+complianceBreachInspector <- function(resources, session, occurThreshold=2) {
+
+    ## Define the column names for the result:
+    resultColnames <- c("Common ID",
+                        "Link",
+                        "Name",
+                        "Symbol",
+                        "ISIN",
+                        "Asset Class")
+
+    ## Get the compliance checks:
+    complChecks <- getResource("compliancechecks", params=list("page_size"=-1), session=session)[[1]]
+
+    ## Get the compliance check items:
+    complCheckitems <- getResource("compliancecheckitems", params=list("page_size"=-1, "parent"=complChecks[["id"]]), session=session)
+
+    ## Get the failed compliance checks:
+    complCheckitems <- complCheckitems[!sapply(complCheckitems, function(x) x[["passed"]])]
+
+    ## Get the compliance checks which failed and flatten:
+    complCheckitems <- do.call(rbind, lapply(1:length(complCheckitems), function(i) {
+        compl <- complCheckitems[[i]][["auxdata"]]
+        do.call(rbind, lapply(compl[["groups"]], function(x) {
+            !length(x[["items"]]) == 0 || return(NULL)
+            data.frame(do.call(rbind, x[["items"]]), "passed"=x[["passed"]])
+        }))
+    }))
+
+
+    ## Get the failed groups:
+    failedGroups <- complCheckitems[!complCheckitems[, "passed"], ]
+
+    ## If no group failed, return:
+    if (NROW(failedGroups) == 0) {
+        return(list("complianceCheckitems"=complCheckitems,
+                    "failedGroups"=NULL,
+                    "culpritsWithoutAClass"=initDF(resultColnames),
+                    "culpritsWithAClass"=initDF(resultColnames)))
+    }
+
+    ## Get the asset class:
+    failedGroups[, "assetclass"] <- resources[match(unlist(failedGroups[, "symbol"]), resources[, "symbol"]), "assetclass"]
+
+    ## Get the isin:
+    failedGroups[, "isin"] <- resources[match(unlist(failedGroups[, "symbol"]), resources[, "symbol"]), "isin"]
+
+    ## Compose the custom ID:
+    failedGroups[, "customID"] <- as.character(unlist(ifelse(isNAorEmpty(failedGroups[, "isin"]), failedGroups[, "symbol"], failedGroups[, "isin"])))
+
+    ## Compute the occurances:
+    occurances <- table(unlist(failedGroups[, "symbol"]))
+
+    ## Assign the occurances:
+    failedGroups[, "occurances"] <- as.numeric(occurances[match(unlist(failedGroups[, "symbol"]), names(occurances))])
+
+    ## Extract by custom id:
+    idWise <- extractToList(failedGroups, "customID")
+
+    ## Order list:
+    idWise <- idWise[order(as.numeric(lapply(idWise, NROW)), decreasing=TRUE)]
+
+    ## Exclude rows with less than N occurances:
+    idWise <- idWise[sapply(idWise, function(x) NROW(x) >= occurThreshold)]
+
+    if (length(idWise) == 0) {
+        return(list("complianceCheckitems"=complCheckitems,
+                    "failedGroups"=failedGroups,
+                    "culpritsWithoutAClass"=initDF(resultColnames),
+                    "culpritsWithAClass"=initDF(resultColnames)))
+    }
+
+    ## Remove duplidates:
+    idWise <- lapply(idWise, function(x) x[!duplicated(x[, "symbol"]), ])
+
+    ## Prepare the data frame in the list:
+    idWise <- lapply(idWise, function(x) data.frame("Common ID"=ellipsify(as.character(c(x[1, "customID"], rep("", NROW(x)-1)))),
+                                                    "Link"=paste0(gsub("api", "", session[["location"]]), "resource/details/", as.character(x[, "id"])),
+                                                    "Name"=ellipsify(as.character(x[, "name"])),
+                                                    "Symbol"=ellipsify(as.character(x[, "symbol"])),
+                                                    "ISIN"=as.character(x[, "isin"]),
+                                                    "Asset Class"=as.character(x[, "assetclass"]),
+                                                    check.names=FALSE,
+                                                    stringsAsFactors=FALSE))
+
+    ## Get the list elements which have NA asset class:
+    naAclss <- unlist(sapply(idWise, function(x) any(is.na(x[, "Asset Class"]))))
+
+    ## Get the data frame without asset classes:
+    nonAClss <- do.call(rbind, idWise[naAclss])
+    rownames(nonAClss) <- NULL
+
+
+    ## Get the data frame with asset classes:
+    hasAClss <- do.call(rbind, idWise[!naAclss])
+    rownames(hasAClss) <- NULL
+
+    ## Done, return list:
+    list("complianceCheckitems"=complCheckitems,
+         "failedGroups"=failedGroups,
+         "culpritsWithoutAClass"=nonAClss,
+         "culpritsWithAClass"=hasAClss)
+
+}
+
+
+
 ##' A function to compute the aggregate exposure of holdings data frame.
 ##'
 ##' @param holdings A data frame with column names.
@@ -141,17 +255,21 @@ getUsageMetrics <- function(userActions, tokenSession) {
 ##' @param endpoint The endpoint to investigate, i.e "trades", "quants".
 ##' @param exclCols The columns to exclude.
 ##' @param exclKeys The keys to exclude from exclCols.
-##' @param actionQueryParams Addtional query parameters to be passed to params.
+##' @param asof Addtional query parameters to be passed to params.
 ##' @return A table with the automation rate.
 ##' @export
 ##'
-getHistoricalUserActions <- function(session, endpoint, exclCols=NULL, exclKeys=NULL, actionQueryParams=NULL) {
+getHistoricalUserActions <- function(session, endpoint, sample=1000, exclCols=NULL, exclKeys=NULL, asof=NULL) {
 
     ## Action params:
-    params <- c(list("page_size"=-1, "format"="csv"), actionQueryParams)
+    params <- c(list("page_size"=sample, "format"="csv", "created__lte"=asof))
 
     ## Get actions:
     actions <- as.data.frame(getResource(endpoint, params=params, session=session))
+
+    if (NROW(actions) == 0) {
+        return(NULL)
+    }
 
     ## Get users:
     users <- as.data.frame(getResource("users", params=list("page_size"=-1, "format"="csv"), session=session))
@@ -221,7 +339,11 @@ getHistoricalUserActions <- function(session, endpoint, exclCols=NULL, exclKeys=
 ##' @return A table with the automation rate.
 ##' @export
 ##'
-computeAutomationRate <- function(userActions) {
+computeAutomationRate <- function(userActions, includeAUTO=TRUE) {
+
+    if (is.null(userActions)) {
+        return(NULL)
+    }
 
     ## Get the user names:
     users <- names(userActions)
@@ -229,14 +351,20 @@ computeAutomationRate <- function(userActions) {
     ## Compute the action counts:
     aTable <- as.data.frame(do.call(rbind, lapply(userActions, colSums)))
 
+    if (!includeAUTO) {
+        aTable <- aTable[rownames(aTable) != "AUTO", ]
+        users <- users[!users == "AUTO"]
+    }
+
     ## Sum the rows of the action counts:
     aTable[, "Total"] <- as.numeric(rowSums(aTable))
 
     ## Compute the percentages:
     percentages <-  apply(aTable, MARGIN=2, function(x) x / sum(x))
 
-    ## Parse the percentages:
-    percentages <- trimws(apply(percentages, MARGIN=2, percentify))
+    if (class(percentages) == "numeric") {
+        percentages <- as.data.frame(t(percentages))
+    }
 
     ## Add column names:
     colnames(percentages) <- paste0(colnames(aTable), " (%)")

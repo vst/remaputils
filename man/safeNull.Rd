@@ -4,13 +4,15 @@
 \alias{safeNull}
 \title{A function to replace null and length 0 value with NA}
 \usage{
-safeNull(x)
+safeNull(x, replace = NA)
 }
 \arguments{
 \item{x}{A variable}
+
+\item{replace}{The value to be returned if NULL. Default = NA.}
 }
 \value{
-Returns x or NA.
+Returns x or replace.
 }
 \description{
 This is the description

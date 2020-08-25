@@ -1,3 +1,93 @@
+##' A function to infer dubious user login behaviour.
+##'
+##' @param data The data frame.
+##' @param configJSON The json config file
+##' @return A user wise list with the user login analysis.
+##' @export
+##'
+userMultipleCountryLogin <- function(data, configJSON) {
+
+    ## Get the config list
+    config <- fromJSON(configJSON)
+
+    ## Exclude countries if any:
+    data <- data[is.na(match(as.character(data[, "country_name"]), config[["excl_countries"]])), ]
+
+    ## Get the date:
+    data[, "date"] <- substr(as.character(data[, "datetime"]), 1, 10)
+
+    ## Get user-wise list:
+    userWise <- extractToList(data, "username")
+
+    ## For each user, aggregate country name by date:
+    result <- lapply(userWise, function(user) aggregate(user[, "country_name"], list(user[, "date"]), function(x) {unique(as.character(x))}))
+
+    ## Empty data:
+    data <- NULL
+
+    ## Clean:
+    gc()
+
+    result <- lapply(1:length(result), function(i) {
+
+        ## Assign column names:
+        colnames(result[[i]]) <- c("date", "countries")
+
+        value <- sapply(result[[i]][, "countries"], function(x) paste(x, collapse=", "))
+        date <- result[[i]][, "date"]
+
+        ## Get the user specific exemptions:
+        exempt <- safeNull(config[["exemptions"]][[names(result)[i]]], getRandString())
+
+        ## Get the country count:
+        countryCount <- table(unlist(result[[i]][, 2]))
+
+        ## Infer the base country:
+        baseCountry <- names(countryCount)[countryCount == max(countryCount)[1]]
+
+        ## Get the dubious index:
+        isDubious <- sapply(result[[i]][, 2], function(x) length(x) > 1)
+
+        if (all(!isDubious)) {
+            return(list("is_dubious"=FALSE, "was_exempted"=FALSE, "dubious_data"=NULL,
+                        "exemptions"=config[["exemptions"]][[names(result)[i]]]))
+        }
+
+        ## Get the dubious countries:
+        result[[i]][isDubious, "dubiousCountry"] <- sapply(result[[i]][isDubious, 2], function(x) paste0(x[x != baseCountry], collapse=", "))
+
+        ## Get the dubious data frame:
+        dubious <- result[[i]][isDubious, ]
+
+        ## Exclude exemptions:
+        isExempted <- !apply(mgrep(dubious[, "dubiousCountry"], exempt), MARGIN=1, function(x) all(x == "0"))
+
+        ## Return if all are exempted:
+        if (all(isExempted)) {
+            return(list("is_dubious"=FALSE, "was_exempted"=TRUE, "dubious_data"=NULL,
+                        "exemptions"=config[["exemptions"]][[names(result)[i]]]))
+
+        }
+
+        ## Get the dubious lines:
+        dubious <- dubious[!isExempted, ]
+
+        ## Name the columns:
+        colnames(dubious) <- c("date", "countries", "dubiousCountry")
+
+        ## Done, return:
+        list("is_dubious"=TRUE, "was_exempted"=any(isExempted), "dubious_data"=dubious,
+             "exemptions"=config[["exemptions"]][[names(result)[i]]])
+
+    })
+
+    ## Assign names:
+    names(result) <- names(userWise)
+
+    return(result)
+}
+
+
 ##' A function to inspect the breaches in the latest compliance checks.
 ##'
 ##' @param resources The resources data frame.

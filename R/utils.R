@@ -1228,18 +1228,19 @@ stringMatch <- function(sourceStr, targetStr, jaccard=0.15){
 ##' This is the description
 ##'
 ##' @param x A variable
-##' @return Returns x or NA.
+##' @param replace The value to be returned if NULL. Default = NA.
+##' @return Returns x or replace.
 ##' @export
-safeNull <- function(x){
+safeNull <- function(x, replace=NA){
 
     ## If null, return NA:
     if (is.null(x)) {
-        return(NA)
+        return(replace)
     }
 
     ## If length is zero, return NA:
     if (length(x) == 0){
-        return(NA)
+        return(replace)
     }
 
     ## Else, return value:

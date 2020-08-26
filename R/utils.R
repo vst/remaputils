@@ -332,6 +332,11 @@ getMTDSlice <- function(df, date) {
     ## Determine the indices with the period change:
     periodChange <- c(0, diff(as.numeric(substr(df[, "date"], 6, 7)))) != 0
 
+    if (all(substr(df[, "date"], 1, 7) == monYear)) {
+        periodChange[length(periodChange)] <- TRUE
+
+    }
+
     ## If no date corresponds to a period change, return NULL:
     if (all(!periodChange)) {
         return(NULL)

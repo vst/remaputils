@@ -39,6 +39,8 @@ alertsComplianceBreachInspector <- function(session,
     ## This is a helper function:
     auxFun <- function(df, caption, footer) {
 
+        !is.null(df) || return(NULL)
+
         ## Parse the instrument link:
         df[, "Link"] <- paste0("<a href='", df[, "Link"], "'>LINK</a>")
 

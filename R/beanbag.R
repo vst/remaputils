@@ -668,13 +668,16 @@ getHoldingsSummary <- function(holdings, col="Subtype", key="Cash") {
     holdings[holdings == "NA"] <- ""
     holdings[holdings == "NA %"] <- ""
 
+    types <- holdings[, "Type"]
+
     ## Select the columns
     holdings <- holdings[, c("Name", "Value", "Value (%)", "Exposure", "Exp (%)", "PnL (Unrl)")]
 
     ## Done, return list:
     list("holdingsSummary"=holdings,
          "subtlIdx"=subtlRowIdx,
-         "totalIdx"=totalRowIdx)
+         "totalIdx"=totalRowIdx,
+         "types"=types)
 }
 
 

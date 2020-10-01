@@ -1,3 +1,152 @@
+##' A function to send latest trades alert.
+##'
+##' This is the description
+##'
+##' @param session The rdecaf session.
+##' @param resources The data-frame of the resources in the decaf instance.
+##' @param days The number of days until the expiry.
+##' @param emailParams The parameters for the email dispatch.
+##' @param greeting The greetings string.
+##' @param deployment The name of the deployment / client.
+##' @param url The url of the deployment.
+##' @param gte Greater than or equal to this time (HH:MM:SS) to run this alert.
+##' @param lte Less than or equal to this time (HH:MM:SS) to run this alert.
+##' @param tz The time-zone for gte and lte.
+##' @param adhoc If TRUE, email gets send only if there are expiring instruments.
+##' @return NULL. Email with the alert will be sent.
+##' @export
+alertBondCoupon <- function(session,
+                            resources,
+                            days,
+                            emailParams,
+                            greeting,
+                            deployment,
+                            url,
+                            gte,
+                            lte,
+                            tz="UTC",
+                            adhoc) {
+
+    ## Is it alert time?
+    itsAlertTime <- itsTime(tz = tz, gte = gte, lte = lte)
+
+    ## If not alert time, return NULL:
+    if (!itsAlertTime) {
+        return(NULL)
+    }
+
+    ## Prepare stock params:
+    params <- list(page_size = -1, format = "csv")
+
+    ## Get the params:
+    stocks <- as.data.frame(getResource("stocks", params=params, session=session))
+
+    ## Get unique stocks:
+    stocks <- stocks[!duplicated(stocks[, "artifact"]), ]
+
+    ## Append the ctype to stocks:
+    stocks[, "ctype"] <- resources[match(stocks[, "artifact"], resources[, "id"]), "ctype"]
+
+    ## Append the resource name:
+    stocks[, "name"] <- resources[match(stocks[, "artifact"], resources[, "id"]), "name"]
+
+    ## Append the expiry:
+    stocks[, "expiry"] <- resources[match(stocks[, "artifact"], resources[, "id"]), "expiry"]
+
+    ## Append the coupon
+    stocks[, "pxmain"] <- resources[match(stocks[, "artifact"], resources[, "id"]), "pxmain"]
+
+    ## Append the frequency:
+    stocks[, "frequency"] <- resources[match(stocks[, "artifact"], resources[, "id"]), "frequency"]
+
+    ## Append the issue:
+    stocks[, "issued"] <- resources[match(stocks[, "artifact"], resources[, "id"]), "issued"]
+
+    ## Append the launch:
+    stocks[, "launch"] <- resources[match(stocks[, "artifact"], resources[, "id"]), "launch"]
+
+    ## Append the convday:
+    stocks[, "convday"] <- resources[match(stocks[, "artifact"], resources[, "id"]), "convday"]
+
+    ## Get the bonds:
+    stocks <- stocks[stocks[, "ctype"] == "BOND", ]
+
+    ## Get stocks with expiry:
+    stocks <- stocks[!isNAorEmpty(stocks[, "expiry"]), ]
+
+    ## If no expiries, exit:
+    if (NROW(stocks) == 0 & adhoc){
+        return(NULL)
+    }
+
+    ## If no expiries, mask:
+    if (NROW(stocks) == 0) {
+        stocks <- initDF(colnames(stocks), 1)
+    }
+
+    ## Infer the next coupons:
+    stocks[, "nextCoupon"] <- as.character(apply(stocks, MARGIN=1, function(x) {
+        as.character(jrvFinance::coupons.next(Sys.Date(), x["expiry"], as.numeric(x["frequency"])))
+    }))
+
+    ## Get the stocks with imminent expiry:
+    stocks <- stocks[as.Date(stocks[, "nextCoupon"]) - Sys.Date() <= days, ]
+
+    ## If no stocks, exit:
+    if (NROW(stocks) == 0 & adhoc){
+        return(NULL)
+    }
+
+    ## If no stocks, mask:
+    if (NROW(stocks) == 0) {
+        stocks <- initDF(colnames(stocks), 1)
+    }
+
+    ## Construct the consolidation links:
+    resourceLink <- paste0(gsub("api", "", session[["location"]]), "resource/details/", stocks[, "artifact"])
+
+    ## Prepare the result data frame:
+    result <- data.frame("Name"=ellipsify(stocks[, "name"]),
+                         "Type"=stocks[, "ctype"],
+                         "Link"=resourceLink,
+                         check.names = FALSE,
+                         stringsAsFactors = FALSE)
+
+    result[, "Link"] <- paste0("<a href='", result[, "Link"], "'>LINK</a>")
+
+    result <- as.character(emailHTMLTable(result, provider = "DECAF",
+                                          caption="Coupon Paying Bonds",
+                                          sourceType = "API"))
+
+    result <- gsub("&#62;LINK&#60;/a&#62;", ">LINK<aya/a>", result)
+    result <- gsub("&#60;a href", "<a href", result)
+
+    ## Prepare email body:
+    emailBody <- paste0("Find below active bonds which will pay coupons within the next ",
+                        days, " days. Please note, this the coupon payment dates may be ",
+                        "derived theoretically using the instrument information available ",
+                        "and may not be precise")
+
+    ## Prepare the email content:
+    .UPDATETEXT <- list(GREETINGPLACEHOLDER = greeting,
+                        EMAILBODYPLACEHOLDER = emailBody,
+                        CALLTOACTIONPLACEHOLDER = "Go to System",
+                        DEPLOYMENT = deployment,
+                        URLPLACEHOLDER = url,
+                        FINALPARAGRAPHPLACEHOLDER = "Please contact us if you experience any issues or have questions/feedback.",
+                        ADDRESSPLACEHOLDER = "",
+                        GOODBYEPLACEHOLDER = "Best Regards,<br>DECAF TEAM",
+                        ADDENDUMPLACEHOLDER = result)
+
+    ## Send:
+    syncUpdateEmail(template = readLines("../assets/update_email.html"),
+                    updateText = .UPDATETEXT,
+                    emailParams = emailParams,
+                    subject = " DECAF Bond Coupon Alert: ")
+
+}
+
+
 ##' A function to push a payload to a decaf instance.
 ##'
 ##' This is the description
@@ -73,8 +222,8 @@ alertsComplianceBreachInspector <- function(session,
 
         ## Prepare the html table and return:
         emailHTMLTable(df,
-                       provider,
-                       caption,
+                       provider=NULL,
+                       caption=caption,
                        sourceType="API",
                        rowGroups=rowGroups,
                        rowBGColor=rowBGColor,
@@ -371,6 +520,7 @@ alertLatestTrades <- function(session,
 ##' @param gte Greater than or equal to this time (HH:MM:SS) to run this alert.
 ##' @param lte Less than or equal to this time (HH:MM:SS) to run this alert.
 ##' @param tz The time-zone for gte and lte.
+##' @param adhoc If TRUE, email gets send only if there are expiring instruments.
 ##' @return NULL. Email with the alert will be sent.
 ##' @export
 alertExpiry <- function (session,
@@ -382,7 +532,8 @@ alertExpiry <- function (session,
                          url= "",
                          gte="10:01:00",
                          lte="10:19:00",
-                         tz="UTC") {
+                         tz="UTC",
+                         adhoc=FALSE) {
 
     ## Is it alert time?
     itsAlertTime <- itsTime(tz = tz, gte = gte, lte = lte)
@@ -413,7 +564,12 @@ alertExpiry <- function (session,
     ## Get stocks with expiry:
     stocks <- stocks[!isNAorEmpty(stocks[, "expiry"]), ]
 
-    ## If no overdrafts, mask:
+    ## If no expiries, exit:
+    if (NROW(stocks) == 0 & adhoc){
+        return(NULL)
+    }
+
+    ## If no expiries, mask:
     if (NROW(stocks) == 0) {
         stocks <- initDF(colnames(stocks), 1)
     }
@@ -446,7 +602,7 @@ alertExpiry <- function (session,
     result <- gsub("&#60;a href", "<a href", result)
 
     .UPDATETEXT <- list(GREETINGPLACEHOLDER = greeting,
-                        EMAILBODYPLACEHOLDER = paste0("Find below instruments which will expire within the next ", days, " days"),
+                        EMAILBODYPLACEHOLDER = paste0("Find below active instruments which will expire within the next ", days, " days or have already expired"),
                         CALLTOACTIONPLACEHOLDER = "Go to System",
                         DEPLOYMENT = deployment,
                         URLPLACEHOLDER = url,

@@ -414,6 +414,7 @@ performanceOutliers <- function(portfolio, start=NULL, factor=8, session) {
 ##' @param accounts The data-frame with the rdecaf accounts.
 ##' @param resources The data-frame of the resources in the decaf instance.
 ##' @param emailParams The parameters for the email dispatch.
+##' @param exclType The resource type to be excluded.
 ##' @param hours The number of hours to look back.
 ##' @param greeting The greetings string.
 ##' @param deployment The name of the deployment / client.
@@ -427,6 +428,7 @@ alertLatestTrades <- function(session,
                               accounts,
                               resources,
                               emailParams,
+                              exclType="CCY",
                               hours=24,
                               greeting="",
                               deployment="",
@@ -450,7 +452,7 @@ alertLatestTrades <- function(session,
     trades <- as.data.frame(getResource("trades", params=params, session=session))
 
     ## Filter out the cash trades:
-    trades <- trades[trades[, "resmain_ctype"] != "CCY", ]
+    trades <- trades[trades[, "resmain_ctype"] != exclType, ]
 
     ## Filter the latest trades:
     trades <- trades[difftime(as.POSIXct(format(Sys.time(), tz="UTC")), as.POSIXct(trades[, "created"]), units="hours") < hours, ]

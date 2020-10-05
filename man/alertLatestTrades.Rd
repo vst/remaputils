@@ -9,6 +9,7 @@ alertLatestTrades(
   accounts,
   resources,
   emailParams,
+  exclType = "CCY",
   hours = 24,
   greeting = "",
   deployment = "",
@@ -26,6 +27,8 @@ alertLatestTrades(
 \item{resources}{The data-frame of the resources in the decaf instance.}
 
 \item{emailParams}{The parameters for the email dispatch.}
+
+\item{exclType}{The resource type to be excluded.}
 
 \item{hours}{The number of hours to look back.}
 

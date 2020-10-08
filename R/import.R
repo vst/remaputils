@@ -2108,15 +2108,11 @@ accountPreembleMethod1 <- function(records, sysAccs, custodian, session) {
 }
 
 
-##' This function applies the account preemble method 1.
+##' This function applies the account preemble method 2.
 ##'
-##' Accounts are created with the name as provided if such
-##' name is missing.If target portfolio name does not exist
-##' yet, function creates. If such portfolio assignment is missing,
-##' this functions creates a portfolio with the same name
-##' as account.
+##' This is a description.
 ##'
-##' @param records A data frame with columns ACCNAME, targetPortName and REFCCY.
+##' @param accounts  The accounts list
 ##' @param sysAccs A data frame with the system accounts.
 ##' @param custodian The custodian id.
 ##' @param session The rdecaf session.

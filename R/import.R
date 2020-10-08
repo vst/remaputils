@@ -1,3 +1,374 @@
+##' This function gets the data base object as data frame.
+##'
+##' This is the description
+##'
+##' @param endpoint The endpoint.
+##' @param session The rdecaf session.
+##' @return A data frame with the endpoint as data frame.
+##' @export
+getDBObject <- function(endpoint, session) {
+    as.data.frame(getResource(endpoint, params=list(format="csv", "page_size"=-1), session=session))
+}
+
+
+##' This function returns the id of a data frame with name colum and id columns.
+##'
+##' This is the description
+##'
+##' @param df The data frame.
+##' @param name The name to be matched.
+##' @param naVal The value to be returned if no match.
+##' @return A vector with ids.
+##' @export
+getObjectIDByName <- function(df, name, naVal=1) {
+
+    id <- df[match(.emptyToNA(name), df[, "name"], incomparables=NA), "id"]
+
+    ifelse(isNAorEmpty(id), naVal, id)
+}
+
+
+##' This function prepares the portfolio payload as data frame.
+##'
+##' This is the description
+##'
+##' @param accounts The accounts list.
+##' @param teams The teams data frame.
+##' @param rccy The fallback value for the portfolios currency.
+##' @return The portfolio payload as data frame.
+##' @export
+preparePortfolioPayload <- function(accounts, teams, rccy="USD") {
+
+    do.call(rbind, lapply(1:length(accounts), function(i) {
+
+        ## Prepare the name:
+        name <- accounts[[i]][["portfolio"]]
+
+        ## Prepare the team:
+        team <- getObjectIDByName(teams, .emptyToNA(accounts[[i]][["team"]]))
+
+        ## Prepare the rccy:
+        rccy <- ifelse(isNAorEmpty(.emptyToNA(accounts[[i]][["rccy"]])), rccy, accounts[[i]][["rccy"]])
+
+        ## Prepare the data frame:
+        data.frame("name"=name,
+                   "rccy"=rccy,
+                   "team"=team,
+                   "guid"=digest(paste0(name)))
+    }))
+}
+
+
+##' This function prepares the account payload as data frame.
+##'
+##' This is the description
+##'
+##' @param accounts The accounts list.
+##' @param portfolios The corresponding portfolio id's in the oder of account list.
+##' @param institutions The institutions data frame.
+##' @param rccy The fallback value for the account currency.
+##' @param atype The analytical type of account. Default is NA.
+##' @return The accounts payload as data frame.
+##' @export
+prepareAccountPayload <- function(accounts, portfolios, institutions, rccy="USD", atype=NA) {
+
+    do.call(rbind, lapply(1:length(accounts), function(i) {
+
+        ## Prepare the name:
+        name <- accounts[[i]][["account"]]
+
+        ## Prepare the team:
+        institution <- getObjectIDByName(institutions, .emptyToNA(accounts[[i]][["institution"]]))
+
+        ## Prepare the rccy:
+        rccy <- ifelse(isNAorEmpty(.emptyToNA(accounts[[i]][["rccy"]])), rccy, accounts[[i]][["rccy"]])
+
+        ## Prepare the data frame:
+        data.frame("name"=name,
+                   "rccy"=rccy,
+                   "portfolio"=portfolios[i],
+                   "custodian"=institution,
+                   "guid"=digest(paste0(name, institution)),
+                   "atype"=atype)
+    }))
+}
+
+
+##' This function syncs the resources between source DECAF and target DECAF.
+##'
+##' This is the description
+##'
+##' @param tSession The target session.
+##' @param sSession The source session.
+##' @param sAccountNames The account names at source.
+##' @return The target resources data frame.
+##' @export
+decafSyncResources <- function (tSession, sSession, sAccountNames) {
+
+    ## Get the stocks:
+    stocks <- getStocksFromContainerNames(sSession, "accounts", sAccountNames, zero = 1, date=Sys.Date())
+
+    ## Get the source resources:
+    resources <- getResourcesByStock(stocks, sSession)
+
+    ## Set fields to NULL:
+    for (fld in c("created", "creator", "updated", "updater", "incomplete", "tags")) {
+        resources[, fld] <- NULL
+    }
+
+    ## ## Get underlying resources sync:
+    ## if (any(resources[, "is_underlying"])) {
+
+    ##     underlyings <- list(artifacts = resources[resources[,"is_underlying"], ])
+
+    ##     payload <- toJSON(underlyings, auto_unbox = TRUE, na = "null",
+    ##                       digits = 10)
+    ##     response <- pushPayload(payload = payload, endpoint = NULL,
+    ##                             session = tSession, import = FALSE, inbulk = TRUE,
+    ##                             params = list(sync = "True"))
+    ## }
+
+    ## Has isin?
+    hasISIN <- !isNAorEmpty(resources[, "isin"])
+
+    ## Run the figi:
+    figiResult <-  figi(resources[hasISIN, ], idType="ID_ISIN", fld="isin", ccy="ccymain", "d49bdbc7-7b61-4791-bf67-7a543af1b5ab")
+
+    ## Match the figi result identifier with the records identifier:
+    matchIdx <- match(paste0(resources[, "isin"], resources[, "ccymain"]), paste0(figiResult[, "idValue"], figiResult[, "currency"]))
+
+    ## Get the notes:
+    resources[, "notes"] <- resources[, "name"]
+
+    ## Append the symbol from figi result to records:
+    resources[!is.na(matchIdx), "name"] <- figiResult[matchIdx[!is.na(matchIdx)], "name"]
+
+    ## Get the ticker:
+    resources[!is.na(matchIdx), "ticker"] <- figiResult[matchIdx[!is.na(matchIdx)], "symbol"]
+
+    ##  Construct the ISIN symbols:
+    resources[hasISIN, "symbol"] <- paste(resources[hasISIN, "isin"], resources[hasISIN, "ccymain"], "[CUB]")
+
+    ## Is Loan or Deposit:
+    isLoanDepo <- resources[, "ctype"] == "DEPO" | resources[, "ctype"] == "LOAN"
+    dubiousDenom <- safeCondition(data.frame("aa"=substr(gsub("-", "", trimConcatenate(resources[, "pxmain"])), 1, 2)), "aa", "00")
+
+    ## Correct the pxmain for money markets:
+    resources[isLoanDepo & dubiousDenom, "pxmain"] <- as.numeric(resources[isLoanDepo & dubiousDenom, "pxmain"]) * 100
+
+    ## Heblee:
+    resources[resources[, "ctype"] == "BOND", "pxmain"] <- figiResult[match(resources[resources[, "ctype"] == "BOND", "isin"], figiResult[, "idValue"], incomparables=NA), "cpn"]
+
+    ## Set all bonds to 0.01 quantity:
+    resources[resources[, "ctype"] == "BOND" | resources[, "ctype"] == "ZCPN", "quantity"] <- "0.01"
+
+    ## Set NA quantities to 1:
+    resources[is.na(resources[, "quantity"]), "quantity"] <- 1
+
+    ## Get fcci resources:
+    tResources <- getSystemResources(tSession)
+
+    ## Get the NA resources:
+    naResources <- is.na(match(resources[, "symbol"], tResources[, "symbol"], incomparables=NA))
+
+    ## If all exist, return:
+    if (all(!naResources)) {
+        return(tResources)
+    }
+
+    ## Get the resources:
+    resources <- resources[naResources, ]
+
+    ## Create payload:
+    payload <- toJSON(list(artifacts=resources), auto_unbox=TRUE, na="null", digits=10)
+
+    ## Push the payload:
+    response <- pushPayload(payload=payload, session=tSession, import=FALSE, inbulk=TRUE, params=list(sync="True"))
+
+    ## Get target resources and return:
+    getSystemResources(tSession)
+}
+
+
+##' This function syncs the trades between source DECAF and target DECAF.
+##'
+##' This is the description
+##'
+##' @param accounts The accounts list.
+##' @param sSession The target session.
+##' @param tSession The source session.
+##' @param resources The resources data frame at target.
+##' @param gte The greater than or equal to date for commitment.
+##' @return NULL.
+##' @export
+decafSyncTrades <- function(accounts, sSession, tSession, resources, gte) {
+
+    ## Get the account names:
+    containerNames <- names(accounts[!substr(names(accounts), 1,1) == "_"])
+
+    ## Get the account wise trades and account info:
+    visionTrades <- getTradesFromContainerNames(containerNames, sessionV, type="accounts", gte = gte)
+
+    ## Get the vision accounts:
+    visionAccounts <- visionTrades[["container"]]
+
+    ## Get the vision trades:
+    visionTrades <- visionTrades[["trades"]]
+
+    ## If no trades, return NULL:
+    if (NROW(visionTrades) == 0) {
+        return(NULL)
+    }
+
+    ## Get the transfer key index:
+    isTRA <- safeCondition(visionTrades, "stype", "Client Money Transfer")
+    isTRA <- isTRA | safeCondition(visionTrades, "stype", "Transfer")
+    isTRA <- isTRA | safeCondition(visionTrades, "stype", "Internal transfer without performance")
+    isTRA <- isTRA | safeCondition(visionTrades, "stype", "Position Transfer")
+    isTRA <- isTRA | safeCondition(visionTrades, "stype", "In Payment")
+    isTRA <- isTRA | safeCondition(visionTrades, "stype", "receipt free of payment")
+
+    ## Set to transfer:
+    visionTrades[isTra, "ctype"] <- "30"
+
+    ## Get the resmains:
+    visionTrades[, "resmain"] <- paste0("dcf:artifact?guid=", visionTrades[, "resmain_guid"])
+    visionTrades[, "resmain_guid"] <- NULL
+
+    ## Get the accmain:
+    visionTrades[, "accmain"] <- sapply(accounts[match(as.character(visionTrades[, "accmain_name"]), names(accounts))], function(x) x[["accmain"]])
+    visionTrades[, "accmain_guid"] <- NULL
+
+    ## Set fields to NULL:
+    for (fld in c("created", "creator", "updated", "updater")){
+        visionTrades[, fld] <- NULL
+    }
+
+    ## Get the cash index:
+    isCash <- visionTrades[, "resmain_type"] == "Cash"
+
+    ## Append the cash resmain:
+    visionTrades[isCash, "resmain"] <- resources[match(visionTrades[isCash, "resmain_symbol"], resources[, "symbol"]), "id"]
+
+    ## Create batches:
+    batches <- createBatches(NROW(visionTrades), 500)
+
+    ## Iterate over patches and import:
+    for (i in 1:length(batches[[1]])) {
+
+        print(paste0("Updating batch ", batches$startingIdx[[i]], ":", batches$endingIdx[[i]], " of ", NROW(visionTrades)))
+
+        start <- batches$startingIdx[[i]]
+        end <- batches$endingIdx[[i]]
+        payload <- toJSON(list(actions = visionTrades[start:end, ]), auto_unbox = TRUE, na = "null", digits = 10)
+        response <- pushPayload(payload = payload, endpoint = NULL, session = session, import = FALSE, inbulk = TRUE, params = list(sync="True"))
+    }
+
+}
+
+
+##' This function syncs the ohlcs observations between source DECAF and target DECAF.
+##'
+##' This is the description
+##'
+##' @param sSession The target session.
+##' @param tSession The source session.
+##' @param resources The resources data frame at target.
+##' @param lte The less than or equal to date for ohlc observations. Default=NULL
+##' @param lookBack The lookback period. Default=NULL.
+##' @param ohlccodeKey The key for ohlccode to be used as filter.
+##' @return A data frame with ohlc observations.
+##' @export
+decafSyncOHLC <- function (sSession,
+                           tSession,
+                           resources,
+                           lte=NULL,
+                           lookBack=NULL,
+                           ohlccodeKey="~DEBSM") {
+
+    ## Get the ohlc codes from resources:
+    ohlccodes <- resources[, "ohlccode"]
+
+    ## Get ohlc codes with ~DEBSM:
+    ohlccodes <- ohlccodes[safeGrep(ohlccodes, ohlccodeKey) == "1"]
+
+    ## Get the ohlc observations for ohlc codes:
+    ohlcObsList <- lapply(ohlccodes, function(sym) getOhlcObsForSymbol(sSession, sym, lte, lookBack))
+
+    ## Exclude empty ohlc observations:
+    ohlcObsList <- ohlcObsList[sapply(ohlcObsList, function(x) dim(x)[1] !=0)]
+
+    ## Get the dates:
+    dates <- do.call(c, lapply(ohlcObsList, function(x) as.character(x[,"date"])))
+
+    ## Make data frame:
+    ohlcObs <- safeRbind(ohlcObsList)
+
+    ## Append dates:
+    ohlcObs[, "date"] <- dates
+
+    ## Remove id:
+    ohlcObs[, "id"] <- NULL
+
+    ## Prepare chunks:
+    chunk <- 1000
+    start <- 1
+    iterations <- ceiling(NROW(ohlcObs)/chunk)
+
+    ## Get the fx forwards:
+    fxfwd <- resources[resources[, "ctype"] == "FXFWD", ]
+
+    ## Prepare the data frame:
+    df <- data.frame("priceid"=ifelse(isNAorEmpty(as.character(fxfwd[, "ohlccode"])), fxfwd[, "symbol"], fxfwd[, "ohlccode"]),
+                      "symbol"=fxfwd[, "symbol"],
+                      "rate"=fxfwd[, "pxmain"])
+
+
+    ## Get the match index for symbols and price id's:
+    matchIdx <- match(ohlcObs[, "symbol"], df[, "priceid"])
+
+    ## Get the forward ohlcs:
+    fwdOhlc <- ohlcObs[!is.na(matchIdx), ]
+
+    ## Get the rest:
+    ohlcObs <- ohlcObs[is.na(matchIdx), ]
+
+    ## Compute and append forward ohlc observations:
+    fwdOhlc[, "close"] <- (1+as.numeric(fwdOhlc[, "close"])) * as.numeric(as.character(df[match(fwdOhlc[, "symbol"], df[, "priceid"]), "rate"]))
+
+    ## Rbind:
+    ohlcObs <- rbind(ohlcObs, fwdOhlc)
+
+    ## Iterate over chunks and push ohlc observations:
+    for (i in 1:iterations) {
+
+        chunk <- min(NROW(ohlcObs) - start, chunk)
+
+        end <- start + chunk
+
+        ## Print pushing chunk:
+        print(paste0("Pushing chunk: ", end, " of ", NROW(ohlcObs)))
+        ohlcObsN <- ohlcObs[start:end, ]
+
+        ## ohlcObsN <- as.data.frame(ohlcObsN, row.names=NULL)
+        rownames(ohlcObsN) <- NULL
+
+        ## Prepare payload:
+        payload <- toJSON(ohlcObsN, auto_unbox=TRUE, na=c("null"))
+
+        ##
+        result <- httr::POST(paste0(tSession[["location"]],
+                                    "/ohlcobservations/updatebulk/"), authenticate(tSession[["username"]],
+                                                                                   tSession[["password"]]), body = payload, add_headers(.headers = c(`Content-Type` = "application/json")))
+        start <- start + chunk + 1
+
+    }
+
+    ## Done, return:
+    ohlcObs
+}
+
+
 ##' This function gets the portfolio information give a portfolio id.
 ##'
 ##' This is the description
@@ -1733,5 +2104,108 @@ accountPreembleMethod1 <- function(records, sysAccs, custodian, session) {
 
     ## Done, return
     records
+
+}
+
+
+##' This function applies the account preemble method 1.
+##'
+##' Accounts are created with the name as provided if such
+##' name is missing.If target portfolio name does not exist
+##' yet, function creates. If such portfolio assignment is missing,
+##' this functions creates a portfolio with the same name
+##' as account.
+##'
+##' @param records A data frame with columns ACCNAME, targetPortName and REFCCY.
+##' @param sysAccs A data frame with the system accounts.
+##' @param custodian The custodian id.
+##' @param session The rdecaf session.
+##' @return Returns the side by side comparison of decaf position and provider position.
+##' @export
+accountPreembleMethod2 <- function(accounts, sysAccs, custodian, session) {
+
+    ## Get the account mapping index:
+    accountIdx <- !substr(names(accounts), 1, 1) == "_"
+
+    ## Get the account meta:
+    accountMeta <- accounts[!accountIdx]
+
+    ## Get the account mapping:
+    accounts <- accounts[accountIdx]
+
+    ## Store the account names:
+    accountNames <- names(accounts)
+
+    ## Get the accmains:
+    accmain <- sysAccs[match(as.character(sapply(accounts, function(x) x["account"])), sysAccs[, "name"], incomparables=NA), "id"]
+
+    ## Append the accmain's to the account mapping list:
+    accounts <- lapply(1:length(accounts), function(i) {
+        c(accounts[[i]], "accmain"=accmain[i])
+    })
+
+    ## Reassign the names:
+    names(accounts) <- accountNames
+
+    ## If all accounts exist, return:
+    if (all(!is.na(accmain))) {
+        return(c(accounts, accountMeta))
+    }
+
+    ## Get the system portfolios:
+    sysPorts <- as.data.frame(getResource("portfolios", params=list("format"="csv", "page_size"=-1), session=session))
+
+    ## Get the records with missing accmain:
+    naIdx <- is.na(accmain)
+
+    naAccounts <- accounts[naIdx]
+
+    ##:
+    accountNames <- as.character(sapply(naAccounts, function(x) x[["account"]]))
+
+    ##:
+    portfolioId <- sysPorts[match(sapply(naAccounts, function(x) x[["portfolio"]]), sysPorts[, "name"], incomparables=NA), "id"]
+
+    ## If portfolios are missing, create:
+    if (any(is.na(portfolioId))) {
+
+        ##: Get the NA portfolios:
+        naPorts <- is.na(portfolioId)
+
+        ##:
+        port <- preparePortfolioPayload(naAccounts[naPorts], getDBObject("teams", session), "USD")
+
+        ## Get the portfolio payload:
+        payload <- toJSON(list(portfolios=port), auto_unbox=TRUE, na="null", digits=10)
+
+        ## Inbulk portfolios:
+        response <- pushPayload(payload=payload, session=session, import=FALSE, inbulk=TRUE, params=list(sync="True"))
+
+        ## Fill the missing portfolio id's:
+        portfolioId[naPorts] <- sapply(response[[1]][[1]][[1]], function(x) x[[1]])
+
+    }
+
+    accs <- prepareAccountPayload(naAccounts, portfolioId, getDBObject("institutions", session), rccy="USD", atype=NA)
+
+    ## Get  the account payload:
+    payload <- toJSON(list(accounts=accs), auto_unbox=TRUE, na="null", digits=10)
+
+    ## Inbulk accounts:
+    response <- pushPayload(payload=payload, session=session, import=FALSE, inbulk=TRUE, params=list(sync="True"))
+
+    ## Assign the portfolio id:
+    accmain <- sapply(response[[1]][[1]][[1]], function(x) x[[1]])
+
+    ## Append the accmain's to the account mapping list:
+    newAccounts <- lapply(1:length(naAccounts), function(i) {
+        naAccounts[[i]][["accmain"]] <- accmain[i]
+        naAccounts[[i]]
+    })
+
+    names(newAccounts) <- names(accounts)[naIdx]
+
+    ## Done, return
+    c(accounts[!naIdx], newAccounts, accountMeta)
 
 }

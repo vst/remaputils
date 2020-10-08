@@ -229,7 +229,7 @@ decafSyncTrades <- function(accounts, sSession, tSession, resources, gte) {
     isTRA <- isTRA | safeCondition(visionTrades, "stype", "receipt free of payment")
 
     ## Set to transfer:
-    visionTrades[isTra, "ctype"] <- "30"
+    visionTrades[isTRA, "ctype"] <- "30"
 
     ## Get the resmains:
     visionTrades[, "resmain"] <- paste0("dcf:artifact?guid=", visionTrades[, "resmain_guid"])

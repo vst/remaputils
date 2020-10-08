@@ -207,7 +207,7 @@ decafSyncTrades <- function(accounts, sSession, tSession, resources, gte) {
     containerNames <- names(accounts[!substr(names(accounts), 1,1) == "_"])
 
     ## Get the account wise trades and account info:
-    visionTrades <- getTradesFromContainerNames(containerNames, sessionV, type="accounts", gte = gte)
+    visionTrades <- getTradesFromContainerNames(containerNames, sSession, type="accounts", gte = gte)
 
     ## Get the vision accounts:
     visionAccounts <- visionTrades[["container"]]
@@ -261,7 +261,7 @@ decafSyncTrades <- function(accounts, sSession, tSession, resources, gte) {
         start <- batches$startingIdx[[i]]
         end <- batches$endingIdx[[i]]
         payload <- toJSON(list(actions = visionTrades[start:end, ]), auto_unbox = TRUE, na = "null", digits = 10)
-        response <- pushPayload(payload = payload, endpoint = NULL, session = session, import = FALSE, inbulk = TRUE, params = list(sync="True"))
+        response <- pushPayload(payload = payload, endpoint = NULL, session = tSession, import = FALSE, inbulk = TRUE, params = list(sync="True"))
     }
 
 }

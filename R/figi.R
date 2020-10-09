@@ -70,6 +70,9 @@ figiWrapper <- function(data, idType="ID_ISIN", fld="isin", ccy="ccymain", figiA
 ##' @export
 figi <- function(data, idType="ID_ISIN", fld="isin", ccy="ccymain", figiApi){
 
+    ## If not data, return empty data frame:
+    !(NROW(data) == 0) || return(initDF(c("idType", "idValue", "currency", "name")))
+
     ## Prepare the figi job:
     figiJob <- prepareOpenFigiData(data, idType, fld, ccy)
 

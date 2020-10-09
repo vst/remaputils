@@ -53,7 +53,6 @@ alertNAVComparison <- function(sSession,
                                       tSession,
                                       tDeployment,
                                       sDeployment,
-                                      emailParams,
                                       charLimit=100)
 
     ## Prepare email body:

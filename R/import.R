@@ -295,6 +295,9 @@ decafSyncOHLC <- function (sSession,
     ## Get the ohlc observations for ohlc codes:
     ohlcObsList <- lapply(ohlccodes, function(sym) getOhlcObsForSymbol(sSession, sym, lte, lookBack))
 
+    ## If no observations, return NULL:
+    !length(ohlcObsList) == 0 || return(NULL)
+
     ## Exclude empty ohlc observations:
     ohlcObsList <- ohlcObsList[sapply(ohlcObsList, function(x) dim(x)[1] !=0)]
 

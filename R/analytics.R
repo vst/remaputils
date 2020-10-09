@@ -1,3 +1,97 @@
+##' A function to compare NAV's between 2 decaf systems.
+##'
+##' @param accounts The account mapping list.
+##' @param type The type of container. Either 'accounts' or 'portfolios'.
+##' @param ccy The currency to be valued.
+##' @param date The date of the consolidations.
+##' @param sSession The source session.
+##' @param tSession The target session.
+##' @param tDeployment The name of the target deployment.
+##' @param sDeployment The name of the source deployment.
+##' @param charLimit The character limit for names.
+##' @return A data frame with the NAv comparisons.
+##' @export
+##'
+decafNAVComparison <- function(accounts,
+                               type,
+                               ccy,
+                               date,
+                               sSession,
+                               tSession,
+                               tDeployment,
+                               sDeployment,
+                               charLimit=100) {
+
+    ## Get the source resources:
+    sResources <- getSystemResources(sSession)
+
+    ## Get the target resources:
+    tResources <- getSystemResources(tSession)
+
+    ## Assing main function to shorter variable name:
+    .gcfcn <-getConsolidationFromContainerName
+    .trcon <- trimConcatenate
+
+    ## Get the account consolidations for source:
+    sCons <- .gcfcn("containerNames"=names(accounts),
+                    "containerType"=type,
+                    "ccy"=ccy,
+                    "date"=date,
+                    "session"=sSession,
+                    "resources"=sResources,
+                    "charLimit"=charLimit)
+
+    ## Get the portfolio consolidations for target:
+    tCons <- .gcfcn("containerNames"=sapply(accounts, function(x) x[[substr(type, 1, nchar(type)-1)]]),
+                    "containerType"=type,
+                    "ccy"=ccy,
+                    "date"=date,
+                    "session"=tSession,
+                    "resources"=tResources,
+                    "charLimit"=charLimit)
+
+    ## Get the target container names:
+    tConsNames <- sapply(tCons, function(x) x[1, "CName"])
+
+    ## Get the source container names:
+    sConsNames <- sapply(sCons, function(x) x[1, "CName"])
+
+    ## Align the source and target container consolidations:
+    sConsNames <- sapply(accounts[match(sConsNames, names(accounts))], function(x) x[[substr(type, 1, nchar(type)-1)]])
+    sCons <- sCons[match(tConsNames, sConsNames)]
+
+    ## Get the reconciliation data-frame:
+    reconciliation <- do.call(rbind, lapply(1:length(sCons), function(i) {
+        data.frame("target NAV"=safeTry(try(sum(tCons[[i]][, "Value"]), silent=TRUE)),
+                   "source NAV"=safeTry(try(sum(sCons[[i]][, "Value"]), silent=TRUE)),
+                   "target Name"=tCons[[i]][1, "CName"],
+                   "source Name"=sCons[[i]][1, "CName"],
+                   "target ID"=tCons[[i]][1, capitalise(substr(type, 1, nchar(type)-1))],
+                   "diff"=safeTry(try(sum(tCons[[i]][, "Value"]) / sum(sCons[[i]][, "Value"]) - 1, silent=TRUE)),
+                   check.names=FALSE)
+    }))
+
+    ## Generate a presentable table:
+    reconciliation <- data.frame("NAVt"=beautify(reconciliation[, "target NAV"]),
+                                 "NAVs"=beautify(reconciliation[, "source NAV"]),
+                                 "Name"=reconciliation[, "target Name"],
+                                 "Diff (%)"=percentify(reconciliation[, "diff"], 3),
+                                 "ID"=reconciliation[, "target ID"],
+                                 check.names=FALSE)
+
+    ## Name the columns:
+    colnames(reconciliation) <- c(sprintf("NAV (%s)", c(tDeployment)),
+                                  sprintf("NAV (%s)", c(sDeployment)),
+                                  sprintf("Name (%s)", c(tDeployment)),
+                                  "Diff (%)",
+                                  "ID")
+
+    ## Done, return:
+    return(reconciliation)
+
+}
+
+
 ##' A function to infer dubious user login behaviour.
 ##'
 ##' @param data The data frame.

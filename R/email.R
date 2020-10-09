@@ -1,3 +1,116 @@
+##' A function to email alerts.
+##'
+##' This is the description
+##'
+##' @param df The data frame to be shown as html at bottom of email.
+##' @param team The name of team. To be provided if team-wise email is chosen. Default=NULL.
+##' @param emailList The list of email addresses to be sent to.
+##' @param emailParams The email parameters.
+##' @param provider The name of the data provider. Default = 'DECAF'.
+##' @param caption The caption for the table. Default = NULL.
+##' @param sourceType The name of the source. Descriptive only. Default = API.
+##' @param emailBody The email body text.
+##' @param deployment The name of the deployment.
+##' @param subject The subject of the email.
+##' @param session The rdecaf session.
+##' @return NULL. An email with the alert will be sent.
+##' @export
+emailAlert <- function(df,
+                       team=NULL,
+                       emailList,
+                       emailParams,
+                       provider="DECAF",
+                       caption=NULL,
+                       sourceType="API",
+                       emailBody,
+                       deployment,
+                       subject,
+                       session) {
+
+    ## If empty data frame, return NULL:
+    !NROW(df) == 0 || return(NULL)
+
+    ## Prepare the data frame as html:
+    result <- as.character(emailHTMLTable(df,
+                                          provider=provider,
+                                          caption=caption,
+                                          sourceType=sourceType))
+
+    ## Parse LINK columns, if any:
+    result <- gsub("&#62;LINK&#60;/a&#62;", ">LINK<aya/a>", result)
+    result <- gsub("&#60;a href", "<a href", result)
+
+    ## Prepare the greeting:
+    greeting <- strsplit(paste0("Dear ", team, " Team"), " ")[[1]]
+    greeting <- trimExcessWs(paste(greeting[!duplicated(greeting)], collapse=" "))
+
+    ## Prepare the email content:
+    .UPDATETEXT <- list(GREETINGPLACEHOLDER=greeting,
+                        EMAILBODYPLACEHOLDER=emailBody,
+                        CALLTOACTIONPLACEHOLDER = "Go to System",
+                        DEPLOYMENT=deployment,
+                        URLPLACEHOLDER=gsub("/api", "", session[["location"]]),
+                        FINALPARAGRAPHPLACEHOLDER = "Please contact us if you experience any issues or have questions/feedback.",
+                        ADDRESSPLACEHOLDER="",
+                        GOODBYEPLACEHOLDER="Best Regards,<br>DECAF TEAM",
+                        ADDENDUMPLACEHOLDER=result)
+
+    ## Override email list:
+    emailParams[["emailList"]] <- emailList
+
+    ## Send:
+    syncUpdateEmail(template=readLines("../assets/update_email.html"),
+                    updateText=.UPDATETEXT,
+                    emailParams = emailParams,
+                    subject=subject)
+
+}
+
+
+##' A function to extract a data frame to a list based on ownership.
+##'
+##' This is the description
+##'
+##' @param df The data frame.
+##' @param fld The column name where account id information is.
+##' @param session The rdecaf session.
+##' @return A team wise list with the segregated data frame, team name and users.
+##' @export
+separateDFByTeam <- function(df, fld, session) {
+
+    ## Construct the params:
+    params <- list("page_size"=-1,
+                   "format"="csv")
+
+    ## Get the users:
+    users <- as.data.frame(getResource("users", params=params, session=session))
+
+    ## Get the teams:
+    teams <- as.data.frame(getResource("teams", params=params, session=session))
+
+    ## Get the accounts:
+    accounts <- as.data.frame(getResource("accounts", params=params, session=session))
+
+    ## Appned the portfolio id to trades:
+    df[, "portfolio"] <- accounts[match(df[, fld], accounts[, "id"]), "portfolio"]
+
+    ## Iterate over teams and separete by team users:
+    teamWise <- apply(teams, MARGIN=1, function(row) {
+
+        ## Get the trades with portfolio id matching portfolio id in team:
+        df <- df[!is.na(match(df[, "portfolio"] , as.numeric(na.omit(row[safeGrep(names(row), "portfolios.") == "1"])))), ]
+
+        list("df"=df,
+             "users"=users[!is.na(mxgrep(users[, safeGrep(colnames(users), "teams.") == "1"], row["id"])), ],
+             "team"=row["name"])
+    })
+
+    ## Done, return:
+    return(teamWise)
+
+}
+
+
 ##' A function to send email with a custom email body.
 ##'
 ##' This is the description

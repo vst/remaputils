@@ -64,8 +64,8 @@ decafNAVComparison <- function(accounts,
     reconciliation <- do.call(rbind, lapply(1:length(sCons), function(i) {
         data.frame("target NAV"=safeTry(try(sum(tCons[[i]][, "Value"]), silent=TRUE)),
                    "source NAV"=safeTry(try(sum(sCons[[i]][, "Value"]), silent=TRUE)),
-                   "target Name"=tCons[[i]][1, "CName"],
-                   "source Name"=sCons[[i]][1, "CName"],
+                   "target Name"=safeNull(tCons[[i]][1, "CName"]),
+                   "source Name"=safeNull(sCons[[i]][1, "CName"]),
                    "target ID"=tCons[[i]][1, capitalise(substr(type, 1, nchar(type)-1))],
                    "diff"=safeTry(try(sum(tCons[[i]][, "Value"]) / sum(sCons[[i]][, "Value"]) - 1, silent=TRUE)),
                    check.names=FALSE)

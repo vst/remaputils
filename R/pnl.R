@@ -382,6 +382,12 @@ computePnL <- function(quantContext) {
                         "Totals"=NULL))
         }
 
+
+        if (all(story[story[, "type"] == "Start" | story[, "type"] == "End", "qQty"] == "0")) {
+            return(list("PnLs"=NULL,
+                        "Total"=NULL))
+        }
+
         story[, "PNL::isInc"] <- !apply(mgrep(story[, "type"], c("Dividend", "Coupon")), MARGIN=1, function(x) all(x == "0"))
         story[, "PNL::isFee"] <- !apply(mgrep(story[, "type"], c("Fee")), MARGIN=1, function(x) all(x == "0"))
 

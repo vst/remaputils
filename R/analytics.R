@@ -727,11 +727,15 @@ getInternalMonthlyReturns <- function(intPrice, date, session) {
     if (all(returns[, "periodic"] == 0)) {
         mrets <- rep(NA, length(months))
     } else {
-        mrets <- as.numeric(returns[returns[, "periodic"] != 0, "periodic"])
+        mrets <- returns[returns[, "periodic"] != 0, "periodic"]
+        monthVerb <- toupper(format(zoo::index(mrets), "%b"))
+        mrets <- as.numeric(mrets)
     }
 
     ## Assign monthly returns to the monthly table:
-    df[1:length(mrets)] <- mrets
+    df[!is.na(match(colnames(df), monthVerb))] <- mrets
+
+    ## df[1:length(mrets)] <- mrets
 
     ## Parse the monthly returns:
     monthlyrets <- t(data.frame(paste0(sprintf("%.2f", df*100), " %")))

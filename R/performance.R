@@ -369,22 +369,38 @@ positionPnLWrapper <- function(holdings, holdingsParams, resources, ccy, date, s
 
     quantParams <- list("account__portfolio"=portfolio,
                         "format"="csv",
+                        "commitment__gte"=dateOfPeriod(begPeriod, date),
+                        "nojournal"=TRUE,
                         "page_size"=-1)
 
     ## Get the quents:
     quants <- as.data.frame(getResource("quants", params=quantParams, session=session))
+
+    if (NROW(quants) == 0) {
+        quants <- initDF(quantFields())
+    }
+
     quants <- quants[quants[, "commitment"] >= begDate, ]
 
     ## Get the trades list:
     trdParams <- list("accmain__portfolio"=portfolio,
                       "page_size"=-1,
+                      "commitment__gte"=dateOfPeriod(begPeriod, date),
+                      "nojournal"=TRUE,
                       "format"="csv")
 
     trades <- as.data.frame(getResource("trades", params=trdParams, session=session))
+
+    if (NROW(trades) == 0) {
+        trades <- initDF(tradeFields())
+    }
+
     trades <- trades[trades[, "commitment"] >= begDate, ]
 
+    quants[, "trade_reference"] <- trades[match(quants[, "trade"], trades[, "id"]), "reference"]
+
     ## The column selections for the consolidations:
-    colSelect <- c("Name", "ID", "QTY", "Value", "Type", "Symbol")
+    colSelect <- c("Name", "ID", "QTY", "Value", "Exposure", "Type", "Symbol")
 
     holdingsYTDX <- holdingsYTD[["rawHoldings"]]
 
@@ -408,17 +424,22 @@ positionPnLWrapper <- function(holdings, holdingsParams, resources, ccy, date, s
     ## Get the quant contexts':
     ytdContext <- contextualizeQuants(ytdPreemble, begDate, date)
 
-    ## Construct composite ids:
-    ytdContext <- lapply(ytdContext, function(x) cbind(x, "comp"=paste0(x[, "date"], x[, "symbol"], abs(as.numeric(x[, "qQty"])), x[, "type"]!="End")))
-
+    ## ##########################################
     ## IMPORTANT: We need to eliminate REVERSALS:
-    ## ###########################################
+    ## ##########################################
+    ## Construct composite ids:
+    ytdContext <- lapply(ytdContext, function(x) cbind(x, "comp"=paste0(x[, "date"], x[, "symbol"], x[, "reference"], x[, "valamt"], abs(as.numeric(x[, "qQty"])), x[, "type"]!="End")))
+
     ## Extract each composit id to list:
     idWiseContext <- lapply(ytdContext, function(x) extractToList(x, "comp"))
+
     ## Get the YTD context:
     ytdContext <- lapply(idWiseContext, function(x) do.call(rbind, x[sapply(x, function(z) sum(as.numeric(z[, "qQty"])) != 0 |
                                                                                            tail(z[, "type"],1) == "End" |
                                                                                            head(z[, "type"],1) == "Start")]))
+
+    ytdContext <- lapply(ytdContext, function(x) {rownames(x) <- NULL; x[, c("reference", "comp")] <- NULL; x})
+
     ## Compute PnLs:
     ytdPnL <- computePnL(ytdContext)
 
@@ -449,6 +470,7 @@ positionPnLWrapper <- function(holdings, holdingsParams, resources, ccy, date, s
 ##' @param session The rdecaf session.
 ##' @param includeStats Should advanced stats be included?
 ##' @param excludeWeekends Should weekends be excluded from consideration?
+##' @param zero Should closed positions be considered? 1 = Yes, 0 = No. Default = 1.
 ##' @param holdings If pnls are desired, holdings mus be supplied. Default is NULL.
 ##' @param hParams If pnls are desired, holdings params must be supplied. Default is NULL.
 ##' @param resources The resources data frame. If NULL (Default), function will get.
@@ -461,6 +483,7 @@ assetPerformanceWrapper <- function(portfolio,
                                     session,
                                     includeStats=FALSE,
                                     excludeWeekends=TRUE,
+                                    zero=1,
                                     holdings=NULL,
                                     hParams=NULL,
                                     resources=NULL) {
@@ -474,7 +497,7 @@ assetPerformanceWrapper <- function(portfolio,
 
     if (is.null(resources)) {
         ## Get resources:
-        resources <- getResourcesByStock(getStocks(portfolio[, "id"], session, zero=1, date=date, c="portfolio"), session, getUnderlying=FALSE)
+        resources <- getResourcesByStock(getStocks(portfolio[, "id"], session, zero=zero, date=date, c="portfolio"), session, getUnderlying=FALSE)
     }
 
     ## Get the asset returns:

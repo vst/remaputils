@@ -33,13 +33,13 @@ getPnlPreemble <- function(posBeg, posEnd, resources, quants, trades, portfolio,
     quants <- data.frame(quants, trades[match(quants[, "trade"], trades[, "id"]), c("resmain", "resaltn", "resundr")])
 
     ## Filter required columns:
-    quants <- quants[, c("commitment", "ctype", "type", "quantity", "valamt", "resource", "symbol", "trade", "resmain", "resaltn", "resundr")]
+    quants <- quants[, c("commitment", "ctype", "type", "quantity", "valamt", "resource", "symbol", "trade", "resmain", "resaltn", "resundr", "trade_reference")]
 
     ## Append the resource ctype to the quants:
     quants[, "resource_type"] <- resources[match(quants[, "resource"], resources[, "id"]), "ctype"]
 
     ## Rename the columns:
-    colnames(quants) <- c("date", "ctype", "type", "qQty", "valamt", "qRes", "symbol", "trade", "tResmain", "tResaltn", "tResundr", "resCtype")
+    colnames(quants) <- c("date", "ctype", "type", "qQty", "valamt", "qRes", "symbol", "trade", "tResmain", "tResaltn", "tResundr", "reference", "resCtype")
 
     ## Round quantities:
     quants[, "qQty"] <- round(as.numeric(quants[, "qQty"]), 4)
@@ -62,7 +62,6 @@ getPnlPreemble <- function(posBeg, posEnd, resources, quants, trades, portfolio,
     posBeg <- posBeg[posBeg[, "Type"] != "Time Deposit", ]
     posBeg <- posBeg[posBeg[, "Type"] != "Loan", ]
 
-
     ## Remove the cash from end positions:
     posEnd <- posEnd[posEnd[, "Type"] != "Cash", ]
     posEnd <- posEnd[posEnd[, "Type"] != "FX Forward", ]
@@ -77,6 +76,18 @@ getPnlPreemble <- function(posBeg, posEnd, resources, quants, trades, portfolio,
 
     ## Extend the ned positions by closed ones:
     posEnd <- cleanNARowsCols(posEnd)
+
+    colNames <- c("Name", "ID", "QTY", "Value", "Exposure", "Type", "Symbol")
+
+    ##:
+    if (NROW(posBeg) == 0) {
+        posBeg <- initDF(colNames)
+    }
+
+    ##:
+    if (NROW(posEnd) == 0) {
+        posEnd <- initDF(colNames)
+    }
 
     ## Append the resource quantity:
     posBeg[, "resqty"] <- resources[match(posBeg[, "ID"], resources[, "id"]), "quantity"]
@@ -105,6 +116,9 @@ getPnlPreemble <- function(posBeg, posEnd, resources, quants, trades, portfolio,
 
     quants[, "valamt(org)"] <- quants[, "valamt"]
     quants[, "valamt"] <- quants[, "valamt"] * quants[, "fxrate"]
+
+    orderCols <- trades[match(quants[, "trade"], trades[, "id"]), c("pseudorder", "created")]
+    quants <- quants[order(orderCols[, 1], orderCols[, 2], decreasing=FALSE), ]
 
     return(list("extendedQuants"=quants,
                 "extendedPosBeg"=posBeg,
@@ -146,7 +160,7 @@ pnlPreembleWrapper <- function(portfolio, startDate, endDate, session) {
                                     session=session)[["holdings"]])})
 
     ## The column selections for the consolidations:
-    colSelect <- c("Name", "ID", "QTY", "Value", "Type", "Symbol")
+    colSelect <- c("Name", "ID", "QTY", "Value", "Exposure", "Type", "Symbol")
 
     ## Get the starting period positions:
     posBeg <- consolidations[[1]][, colSelect]
@@ -182,9 +196,15 @@ contextualizeQuants <- function(pnlPreemble, dateBeg, dateEnd) {
 
     ## Get the extended beginning positions:
     extPosBeg <- pnlPreemble[["extendedPosBeg"]]
+    noBeg <- NROW(extPosBeg) == 1 & all(is.na(extPosBeg[1, ]))
 
     ## Get the extended ending positions:
     extPosEnd <- pnlPreemble[["extendedPosEnd"]]
+    noEnd <- NROW(extPosEnd) == 1 & all(is.na(extPosEnd[1, ]))
+
+    if (noBeg & noEnd) {
+        return(NULL)
+    }
 
     ## Get the extended quants:
     quants <- pnlPreemble[["extendedQuants"]]
@@ -192,7 +212,9 @@ contextualizeQuants <- function(pnlPreemble, dateBeg, dateEnd) {
     ## For each position row,
     qu <- lapply(extPosBeg[, "ID"], function(id) quants[apply(quants[, c("tResmain", "tResaltn", "tResundr")], MARGIN=1, function(x) any(!is.na(match(x, id)))), ])
 
-    if (length(qu) == 0) {
+    isEmpty <- all(is.na(qu[[1]][, colnames(qu[[1]]) != "fx" & colnames(qu[[1]]) != "fxrate"])) & length(qu) == 1
+
+    if (length(qu) == 0 | isEmpty) {
         return(NULL)
     }
 
@@ -219,18 +241,19 @@ contextualizeQuants <- function(pnlPreemble, dateBeg, dateEnd) {
             quT <- rbind(rep(NA, NCOL(quT)), quT)
         }
 
-
         ## The columns to be filled:
-        tCols <- c("type", "date", "qQty", "valamt", "qRes", "symbol", "resqty")
+        tCols <- c("type", "date", "qQty", "valamt", "qRes", "symbol", "resqty", "reference")
 
         ## Fill the columns with the beginning position values:
         quT[1, tCols] <- c("Start",
                            as.character(dateBeg),
                            as.numeric(extPosBeg[i, "QTY"]),
-                           as.numeric(extPosBeg[i, "Value"]),
+                           ## as.numeric(extPosBeg[i, "Value"]),
+                           as.numeric(safeNull(extPosBeg[i, "Exposure"])),
                            as.numeric(extPosBeg[i, "ID"]),
                            as.character(extPosBeg[i, "Symbol"]),
-                           as.numeric(extPosBeg[i, "resqty"]))
+                           as.numeric(extPosBeg[i, "resqty"]),
+                           NA)
 
         ## Append a row for the ending position:
         quT <- rbind(quT, rep(NA, NCOL(quT)))
@@ -239,11 +262,11 @@ contextualizeQuants <- function(pnlPreemble, dateBeg, dateEnd) {
         quT[NROW(quT), tCols] <- c("End",
                                    as.character(dateEnd),
                                    as.numeric(extPosEnd[match(quT[1, "qRes"], extPosEnd[, "ID"]), "QTY"]),
-                                   as.numeric(extPosEnd[match(quT[1, "qRes"], extPosEnd[, "ID"]), "Value"]),
+                                   as.numeric(safeNull(extPosEnd[match(quT[1, "qRes"], extPosEnd[, "ID"]), "Exposure"])),
                                    as.numeric(extPosEnd[match(quT[1, "qRes"], extPosEnd[, "ID"]), "ID"]),
                                    as.character(extPosEnd[match(quT[1, "qRes"], extPosEnd[, "ID"]), "Symbol"]),
-                                   as.character(extPosEnd[match(quT[1, "qRes"], extPosEnd[, "ID"]), "resqty"]))
-
+                                   as.character(extPosEnd[match(quT[1, "qRes"], extPosEnd[, "ID"]), "resqty"]),
+                                   NA)
 
         ## If position type is Share and any quant types have options, get rid of the options:
         if (extPosBeg[i, "Type"] == "Share" & any(safeCondition(quT, "resCtype", "OPT"))) {
@@ -268,7 +291,7 @@ contextualizeQuants <- function(pnlPreemble, dateBeg, dateEnd) {
             #quT[actions, "valamt"] <- as.numeric(quT[actions, "valamt"]) * ifelse(quT[actions, "qQty"] > 0, -1, 1)
         }
 
-        quT <- quT[, c("date", "symbol", "type", "qQty", "valamt", "resqty")]
+        quT <- quT[, c("date", "symbol", "type", "qQty", "valamt", "resqty", "reference")]
 
         ## Append columns for pnl computation:
         quT[, c("PNL::isInc", "PNL::isCls", "PNL::isFee", "PNL::QTY", "PNL::tQTY", "PNL::InvAmt", "PNL::CumInv", "PNL::Income", "PNL::Real")] <- NA
@@ -277,16 +300,12 @@ contextualizeQuants <- function(pnlPreemble, dateBeg, dateEnd) {
         quT
     })
 
-
     ## Assign the names and return:
     ## retval <- lapply(1:length(retval), function(i) list("symbol"=extPosBeg[i, "Symbol"], "type"=extPosBeg[i, "Type"], "quants"=retval[[i]]))
 
     names(retval) <- extPosBeg[, "Symbol"]
 
     retval
-
-
-
 
 }
 
@@ -377,18 +396,19 @@ computePnL <- function(quantContext) {
 
         story <- quantContext[[row]]
 
+        story <- story[story[, "type"] != "PnL", ]
+
         if (all(story[, "qQty"] == "0")) {
             return(list("PnLs"=NULL,
                         "Totals"=NULL))
         }
-
 
         if (all(story[story[, "type"] == "Start" | story[, "type"] == "End", "qQty"] == "0")) {
             return(list("PnLs"=NULL,
                         "Total"=NULL))
         }
 
-        story[, "PNL::isInc"] <- !apply(mgrep(story[, "type"], c("Dividend", "Coupon")), MARGIN=1, function(x) all(x == "0"))
+        story[, "PNL::isInc"] <- !apply(mgrep(story[, "type"], c("Dividend", "Coupon", "PnL")), MARGIN=1, function(x) all(x == "0"))
         story[, "PNL::isFee"] <- !apply(mgrep(story[, "type"], c("Fee")), MARGIN=1, function(x) all(x == "0"))
 
         isStart <- story[, "type"] == "Start"
@@ -406,7 +426,10 @@ computePnL <- function(quantContext) {
         story[isInc | isFee, "PNL::QTY"] <- 0
 
         story[, "PNL::tQTY"] <- cumsum(as.numeric(!isInc) * as.numeric(!isFee * as.numeric(!isEnd)) * story[, "PNL::QTY"])
+
         story[, "PNL::isCls"] <-  c(0, diff(abs(story[, "PNL::tQTY"]))) < 0
+
+        story[, "PNL::isNew"] <-  story[, "qQty"] == story[, "PNL::tQTY"] & story[, "type"] != "Start" & story[, "type"] != "End"
 
         isCls   <- story[, "PNL::isCls"]
 
@@ -419,30 +442,53 @@ computePnL <- function(quantContext) {
             isInv[1] <- FALSE
         }
 
-
         story[isInv, "PNL::InvAmt"] <- as.numeric(story[isInv, "valamt"])
         story[isCls, "PNL::InvAmt"] <- as.numeric(story[isCls, "valamt"]) * sign(as.numeric(story[isCls, "qQty"]))
 
         story[is.na(story[, "PNL::InvAmt"]), "PNL::InvAmt"] <- 0
 
-        story[, "PNL::CumInv"] <- cumsum(story[, "PNL::InvAmt"])
+        ## ############################################################################
+        ## ############################################################################
+        for (row in 1:NROW(story)) {
+
+            if (row == 1) {
+                story[row, "PNL::CumInv"] <- story[row, "PNL::InvAmt"]
+                next
+            }
+
+            if (story[row, "PNL::isNew"]) {
+                story[row, "PNL::CumInv"] <- story[row, "PNL::InvAmt"]
+                next
+            }
+
+            story[row, "PNL::CumInv"] <- story[row, "PNL::InvAmt"] + story[row-1, "PNL::CumInv"]
+
+        }
+        ## ############################################################################
+        ## ############################################################################
+
+        ## ## #################################
+        ## story[, "PNL::CumInv"] <- cumsum(story[, "PNL::InvAmt"])
+        ## story[, "PNL::CumInv"] <- cumsum(story[, "PNL::InvAmt"] * ifelse(story[, "PNL::tQTY"] == 0, story[, "PNL::"], 1))
+        ## story[, "PNL::CumInv"] <- cumsum(story[, "PNL::InvAmt"] * ifelse(story[, "PNL::tQTY"] == 0, 0, 1))
+        ## ## #################################
 
         story[, "PNL::Income"] <-  as.numeric(isInc) * as.numeric(story[, "qQty"])
         story[, "PNL::Fees"]   <-  as.numeric(isFee) * as.numeric(story[, "qQty"])
 
-
         fullAmt <- abs(as.numeric(story[isCls, "valamt"]) / as.numeric(story[isCls, "qQty"])) * -as.numeric(story[which(isCls) -1, "PNL::tQTY"])
         story[isCls, "PNL::Real"] <- (fullAmt + story[which(isCls) -1, "PNL::CumInv"]) * (as.numeric(story[isCls, "qQty"])) / as.numeric(story[which(isCls) -1, "PNL::tQTY"])
+
         story[is.na(story[, "PNL::Real"]), "PNL::Real"] <- 0
 
         totalRealised <- sum(story[, "PNL::Real"])
 
         if (any(isCls)) {
-            story[which(isCls)[1]:NROW(story), "PNL::CumInv"] <- story[which(isCls)[1]:NROW(story), "PNL::CumInv"] + totalRealised
+             story[which(isCls)[1]:NROW(story), "PNL::CumInv"] <- story[which(isCls)[1]:NROW(story), "PNL::CumInv"] + totalRealised
         }
 
-
         unrlsd <- as.numeric(story[NROW(story), "valamt"]) - as.numeric(story[NROW(story), "PNL::CumInv"])
+        unrlsd <- ifelse(is.na(unrlsd), 0, unrlsd)
 
         realsd <- sum(as.numeric(story[, "PNL::Real"]))
 
@@ -458,7 +504,7 @@ computePnL <- function(quantContext) {
                                           "Income"=income,
                                           "Fees"=tofees,
                                           "Total"=total,
-                                          "ROI"=total / story[tail(which(isInv),1), "PNL::CumInv"]))
+                                          "ROI"=total / story[tail(which(isInv), 1), "PNL::CumInv"]))
 
     })
 

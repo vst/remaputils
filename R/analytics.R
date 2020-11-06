@@ -1169,6 +1169,9 @@ getAssetReturns <- function(date, ccy, resources, priceField="ohlcID", periods, 
     ## Get the slices ohlcs:
     slicedOhlcs <- getSlicedOhlcs(resources[, priceField], session, date, periods, excludeWeekends)
 
+    slicedOhlcs[["MTD"]] <- lapply(slicedOhlcs[["MTD"]], function(x) x[x[, "close"] > 0, ])
+    slicedOhlcs[["YTD"]] <- lapply(slicedOhlcs[["YTD"]], function(x) x[x[, "close"] > 0, ])
+
     if (treat) {
         slicedOhlcs <- lapply(slicedOhlcs, function(x) lapply(x, function(z) treatPriceSeries(z, "date", "close", quantile=0.998, surpressPlot=TRUE)))
     }

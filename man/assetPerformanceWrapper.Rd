@@ -12,6 +12,7 @@ assetPerformanceWrapper(
   session,
   includeStats = FALSE,
   excludeWeekends = TRUE,
+  zero = 1,
   holdings = NULL,
   hParams = NULL,
   resources = NULL
@@ -31,6 +32,8 @@ assetPerformanceWrapper(
 \item{includeStats}{Should advanced stats be included?}
 
 \item{excludeWeekends}{Should weekends be excluded from consideration?}
+
+\item{zero}{Should closed positions be considered? 1 = Yes, 0 = No. Default = 1.}
 
 \item{holdings}{If pnls are desired, holdings mus be supplied. Default is NULL.}
 

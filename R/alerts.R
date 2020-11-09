@@ -961,6 +961,8 @@ alertMissingMonthEndPx <- function (session,
 ##' @param lte Less than or equal to this time (HH:MM:SS) to run this alert.
 ##' @param tz The time-zone for gte and lte.
 ##' @param stockOnly Shall we check only open positions? Default: TRUE
+##' @param emailList Optionally, a vector with email addressess to overwrite emailParams.
+##' @param excludeType The ctypes of resources to be excluded. A vector. Default is 'CCY'.
 ##' @return NULL. Email with the alert will be sent.
 ##' @export
 alertMissingAssetClass <- function (session,
@@ -972,11 +974,18 @@ alertMissingAssetClass <- function (session,
                                     gte="00:00:00",
                                     lte="23:59:00",
                                     tz = "UTC",
-                                    stockOnly=TRUE) {
+                                    stockOnly=TRUE,
+                                    emailList=NULL,
+                                    excludeType="CCY") {
 
     ## Check if  parameters are defined:
     if (!hasArg("session") || !hasArg("resources") || !hasArg("emailParams") || !hasArg("deployment") || !hasArg("url")) {
         stop("Need to define session / resources / emailsParams / deployment / url")
+    }
+
+    ##:
+    if (!is.null(emailList)) {
+        emailParams[["emailList"]] <- emailList
     }
 
     ## Is it alert time:
@@ -998,6 +1007,9 @@ alertMissingAssetClass <- function (session,
         ## resources <- resources[match(stocks[, "artifact"], resources[, "id"]), c("symbol", "assetclass", "id", "ctype", "name")]
 
     }
+
+    ## Exclude certain ctypes from consideration:
+    resources <- resources[apply(mgrep(resources[, "ctype"], excludeType), MARGIN=1, function(x) all(x == "0")), ]
 
     resources <- resources[, c("symbol", "assetclass", "id", "ctype", "name")]
 

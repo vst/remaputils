@@ -14,7 +14,9 @@ alertMissingAssetClass(
   gte = "00:00:00",
   lte = "23:59:00",
   tz = "UTC",
-  stockOnly = TRUE
+  stockOnly = TRUE,
+  emailList = NULL,
+  excludeType = "CCY"
 )
 }
 \arguments{
@@ -37,6 +39,10 @@ alertMissingAssetClass(
 \item{tz}{The time-zone for gte and lte.}
 
 \item{stockOnly}{Shall we check only open positions? Default: TRUE}
+
+\item{emailList}{Optionally, a vector with email addressess to overwrite emailParams.}
+
+\item{excludeType}{The ctypes of resources to be excluded. A vector. Default is 'CCY'.}
 }
 \value{
 NULL. Email with the alert will be sent.

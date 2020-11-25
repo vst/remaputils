@@ -1,3 +1,26 @@
+##' A function to trim excess white spaces.
+##'
+##' This is a description.
+##'
+##' @param str A string.
+##' @return The trimmed string.
+##' @export
+trimExcessWs <- function(str){
+
+    ## Get rid of double white spaces:
+    excWs <- grep("  ", str)
+
+    ## Do while single white space only:
+    while (length(excWs) > 0){
+        str <- gsub("  ", " ", str)
+        excWs <- grep("  ", str)
+    }
+
+    ## Done, return:
+    as.character(str)
+}
+
+
 ##' A function to safely check the condition of a vector of a string.
 ##'
 ##' This is a description.

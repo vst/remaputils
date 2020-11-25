@@ -58,6 +58,65 @@ dubiousTradeDates <- function(trades, backdatedness) {
 }
 
 
+##' This is a wrapper function for ohlc health function.
+##'
+##' This is a description
+##'
+##' @param asof The asof date. Default is Sys.Date().
+##' @param ohlccodes The ohlccodes to be check. If NULL, it gets it from the stocks. Default is NULL.
+##' @param underlying Shall the underlying be checked as well? Default is FALSE
+##' @param lookBack The lookback periodin days. Default is 365.
+##' @param session The rdecaf session.
+##' @return A data frame with unhealthy ohlc observations.
+##' @export
+ohlcHealthWrapper <- function(asof=Sys.Date(), ohlccodes=NULL, underlying=FALSE, lookBack=365, session) {
+
+    ## If no ohlc codes are provided, get from stocks:
+    if (is.null(ohlccodes)) {
+
+        ## Get the stocks:
+        stocks <- as.data.frame(getResource("stocks", params=list("format"="csv", "page_size"=-1, "asof"=asof), session=session))
+
+        ## Get the resources:
+        resources <- getResourcesByStock(stocks, session, underlying)
+
+        ## Get ohlccodes:
+        ohlccodes <- unique(ifelse(is.na(resources[, "ohlccode"]), resources[, "symbol"], resources[, "ohlccode"]))
+
+    }
+
+    ## Get the ohlc observations:
+    ohlcObs <- lapply(ohlccodes, function(code) getOhlcObsForSymbol(session, code, lte=asof, lookBack=lookBack + 100, excludeWeekends = TRUE, addFields = NULL))
+
+    ## Mask data if ohlc observation is empty:
+    ohlcObs <- lapply(1:length(ohlccodes), function(i) {
+
+        ## If we have ohlc observations, return the same:
+        NROW(ohlcObs[[i]]) == 0 || return(ohlcObs[[i]])
+
+        df <- initDF(colnames(ohlcObs[[i]]))
+
+        df[, "symbol"] <- ohlccodes[i]
+
+        df
+
+    })
+
+    ## Run the ohlc health check on ohlc obs:
+    ohlcObsHealth <- do.call(rbind, lapply(ohlcObs, function(obs) ohlcHealth(obs, asof=Sys.Date(), lookBack=lookBack)))
+
+    ## Remove the NA symbols:
+    ohlcObsHealth <- ohlcObsHealth[!is.na(ohlcObsHealth[, "Symbol"]), ]
+
+    ## Get the suspects:
+    ohlcObsSuspects <- ohlcObsHealth[apply(ohlcObsHealth, MARGIN=1, function(x) any(trimws(x[2:4]))), ]
+
+    ## Done, return:
+    ohlcObsSuspects
+
+}
+
+
 ##' This function checks the health of the OHLC observations.
 ##'
 ##' This is a description
@@ -69,14 +128,24 @@ dubiousTradeDates <- function(trades, backdatedness) {
 ##' @export
 ohlcHealth <- function(ohlc, asof=Sys.Date(), lookBack=5) {
 
+    ## Convert close to numeric:
     ohlc[, "close"] <- as.numeric(ohlc[, "close"])
 
-    data.frame("Symbol"=ohlc[1, "symbol"],
-               "No PX in N days"=ifelse(NROW(ohlc) == 0, TRUE, all(asof - ohlc[, "date"] > lookBack)),
-               "No PX at all"=NROW(ohlc[[1]]) == 0,
-               "No PX change"=ifelse(NROW(ohlc) == 0, TRUE, all(diff(ohlc[, "close"]) == 0)),
-               check.names=FALSE,
-               stringsAsFactors=FALSE)
+    ## N days condition:
+    ndays <- NROW(ohlc) ==  0 | all(is.na(ohlc[, "close"]))
+
+    ## Prepare the data frame:
+    result <- data.frame("Symbol"=ohlc[1, "symbol"],
+                         "No PX in N days"=as.logical(ifelse(ndays, TRUE, all(asof - ohlc[, "date"] > lookBack))),
+                         "No PX at all"=as.logical(ndays),
+                         "No PX change"=as.logical(ifelse(ndays, TRUE, all(diff(ohlc[, "close"]) == 0))),
+                         "Last PX update"=max(as.Date(ohlc[, "date"])),
+                         check.names = FALSE,
+                         stringsAsFactors = FALSE)
+
+    ## Done, return:
+    result
+
 }
 
 

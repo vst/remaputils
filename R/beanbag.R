@@ -10,9 +10,10 @@
 ##' @param session The rdecaf session.
 ##' @param inception The inception date. Default is 1900-01-01
 ##' @param useInt Should the internal NAV be used if external does not exist? Default is FALSE.
+##' @param tolerance The number of days to consider as tolerance for the previous date in external table. Default is 2.
 ##' @return A list.
 ##' @export
-getPreviousNAV <- function(portfolio, date, ccy, period, external, session, inception=as.Date("1900-01-01"), useInt=FALSE) {
+getPreviousNAV <- function(portfolio, date, ccy, period, external, session, inception=as.Date("1900-01-01"), useInt=FALSE, tolerance=2) {
 
     ## Get the previous date:
     previousDate <- max(dateOfPeriod(period, date), inception)
@@ -42,7 +43,7 @@ getPreviousNAV <- function(portfolio, date, ccy, period, external, session, ince
 
                 return(data.frame(valueOfNearestDate(targetDate=previousDate,
                                                      data=shrclsVals,
-                                                     tolerance=2,
+                                                     tolerance=tolerance,
                                                      dateField="date",
                                                      valueField="nav"), "ccy"=shrclsVals[1, "ccy"]))
 

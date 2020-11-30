@@ -12,7 +12,8 @@ getPreviousNAV(
   external,
   session,
   inception = as.Date("1900-01-01"),
-  useInt = FALSE
+  useInt = FALSE,
+  tolerance = 2
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ getPreviousNAV(
 \item{inception}{The inception date. Default is 1900-01-01}
 
 \item{useInt}{Should the internal NAV be used if external does not exist? Default is FALSE.}
+
+\item{tolerance}{The number of days to consider as tolerance for the previous date in external table. Default is 2.}
 }
 \value{
 A list.

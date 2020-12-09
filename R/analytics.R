@@ -198,7 +198,8 @@ complianceBreachInspector <- function(resources, session, occurThreshold=2) {
                         "Name",
                         "Symbol",
                         "ISIN",
-                        "Asset Class")
+                        "Asset Class",
+                        "Portfolio")
 
     ## Get the compliance checks:
     complChecks <- getResource("compliancechecks", params=list("page_size"=-1), session=session)[[1]]
@@ -211,13 +212,26 @@ complianceBreachInspector <- function(resources, session, occurThreshold=2) {
 
     ## Get the compliance checks which failed and flatten:
     complCheckitems <- do.call(rbind, lapply(1:length(complCheckitems), function(i) {
+
         compl <- complCheckitems[[i]][["auxdata"]]
+        portf <- complCheckitems[[i]][["portfolio"]]
+
         do.call(rbind, lapply(compl[["groups"]], function(x) {
+
             !length(x[["items"]]) == 0 || return(NULL)
-            data.frame(do.call(rbind, x[["items"]]), "passed"=x[["passed"]])
+
+            data.frame(do.call(rbind, x[["items"]]),
+                       "passed"=x[["passed"]],
+                       "portfolio"=safeNull(portf))
         }))
+
     }))
 
+    ## Get the portfolios:
+    portfolios <- as.data.frame(getResource("portfolios", params=list("format"="csv", "page_size"=-1), session=session))
+
+    ## Replace portfolio id with portfolio name:
+    complCheckitems[, "portfolio"] <- portfolios[match(complCheckitems[, "portfolio"], portfolios[, "id"]), "name"]
 
     ## Get the failed groups:
     failedGroups <- complCheckitems[!complCheckitems[, "passed"], ]
@@ -271,6 +285,7 @@ complianceBreachInspector <- function(resources, session, occurThreshold=2) {
                                                     "Symbol"=ellipsify(as.character(x[, "symbol"])),
                                                     "ISIN"=as.character(x[, "isin"]),
                                                     "Asset Class"=as.character(x[, "assetclass"]),
+                                                    "Portfolio"=as.character(x[, "portfolio"]),
                                                     check.names=FALSE,
                                                     stringsAsFactors=FALSE))
 

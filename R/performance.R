@@ -152,7 +152,7 @@ getPerformanceV2 <- function(containerType,
                                        "window"=window)
 
     ## If no benchmark is given, return:
-    if (is.null(benchmark)) {
+    if (is.null(benchmark) | is.na(benchmark)) {
         return(list("container"=cPerformance,
                     "benchmark"=NULL,
                     "relative"=NULL))
@@ -521,8 +521,8 @@ assetPerformanceWrapper <- function(portfolio,
 
     if (!is.null(holdings)) {
         ## Contributeration:
-        pnlsYTD <- positionPnLWrapper(holdings, hParams, resources, portfolio[, "rccy"], date, session, portfolio[, "name"], portfolio[, "id"], "Y-0", assetReturns[["fxObs"]][["YTD"]])
         pnlsMTD <- positionPnLWrapper(holdings, hParams, resources, portfolio[, "rccy"], date, session, portfolio[, "name"], portfolio[, "id"], "M-0", assetReturns[["fxObs"]][["MTD"]])
+        pnlsYTD <- positionPnLWrapper(holdings, hParams, resources, portfolio[, "rccy"], date, session, portfolio[, "name"], portfolio[, "id"], "Y-0", assetReturns[["fxObs"]][["YTD"]])
     }
 
     if (includeStats) {

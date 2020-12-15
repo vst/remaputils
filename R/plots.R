@@ -425,9 +425,17 @@ areaTimeSeriesPlot <- function(df, smooth=0.3, limitFactor=0.1, title, ylab="", 
 ##' @param performance The performance list from getPerformanceV2.
 ##' @param primCol The color of the primary time series.
 ##' @param secdCol The color of the secondary time series.
+##' @param portfolioLabel The label of the portfolio. Default is 'Fund'.
 ##' @return A time series performance plot.
 ##' @export
-relativePerformancePlot <- function(performance, primCol, secdCol) {
+relativePerformancePlot <- function(performance, primCol, secdCol, portfolioLabel="Fund") {
+
+    if (is.null(performance[["benchmark"]][["xts"]])) {
+        benchmarkXTS <- xts::as.xts(1, order.by=min(zoo::index(performance[["container"]][["xts"]])))
+        benchmarkReturns <- xts::as.xts(cbind(0, 0, 0, 0), order.by=min(zoo::index(performance[["container"]][["xts"]])))
+        colnames(benchmarkReturns) <- c("raw", "monthly", "yearly", "cumrets")
+        performance[["benchmark"]] <- list("xts"=benchmarkXTS, "returns"=benchmarkReturns)
+    }
 
     ## Combine the xts for container and benchmark:
     priceIndex <- cbind("shareclass"=performance[["container"]][["xts"]], "benchmark"=performance[["benchmark"]][["xts"]])
@@ -450,7 +458,7 @@ relativePerformancePlot <- function(performance, primCol, secdCol) {
     yrIdx <- which(yearlyRets[, 1] != 0)
     yrVal <- as.numeric(yearlyRets[yearlyRets[, 2] != 0, 2])
     yearlyRets[, 2] <- 0
-    yearlyRets[yrIdx, 2] <- yrVal
+    yearlyRets[yrIdx, 2] <- ifelse(length(yrVal) == 0, 0, yrVal)
 
     ## Add 0 to the top:
     yearlyRets <- rbind(cbind(xts::as.xts(0, order.by=min(zoo::index(yearlyRets)) - 1), 0), yearlyRets)
@@ -580,7 +588,7 @@ relativePerformancePlot <- function(performance, primCol, secdCol) {
     ## Add the legend:
     legend(2,
            min(c(min((yearlyRets+1) * 0.95 - 1), max((yearlyRets+1) * 1.05 - 1))) * 0.5,
-           legend=c("Fund", "Benchmark", "Fund % p.a | YTD", "Benchmark % p.a | YTD"),
+           legend=c(portfolioLabel, "Benchmark", sprintf("%s %s p.a | YTD", portfolioLabel, "%"), "Benchmark % p.a | YTD"),
            lty=1,
            bg=adjustcolor("gray", alpha.f=0.2),
            box.lty=0,

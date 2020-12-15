@@ -823,8 +823,37 @@ prepareHoldingsTables <- function(holdings, colSelect, colOverride=NULL, summary
     ## Get the holdings summary:
     holdingsSummary <- getHoldingsSummary(holdings[["holdings"]], col="Subtype", key="HEBELE1234")
 
+    ## Now, we create the asset class details by deducing from holdings details:
+    assetClassDetails <- holdingsDetails
+
+    ## Get all the indices of the totals and subtype indices:
+    subIndices <- c(assetClassDetails[["subtlIdx"]], assetClassDetails[["totalIdx"]])
+
+    ## Rank the sub indices:
+    rankedIndices <- cbind(subIndices, "rank"=rank(subIndices))
+
+    ## Re-index subtypes:
+    assetClassDetails[["subtlIdx"]] <- rankedIndices[match(assetClassDetails[["subtlIdx"]], rankedIndices[, "subIndices"]), "rank"]
+
+    ## Re-index totals:
+    assetClassDetails[["totalIdx"]] <- rankedIndices[match(assetClassDetails[["totalIdx"]], rankedIndices[, "subIndices"]), "rank"]
+
+    ## Exclude holdings:
+    assetClassDetails[["holdingsDetails"]] <- assetClassDetails[["holdingsDetails"]][-assetClassDetails[["holdsIdx"]], ]
+
+    ## Exclude holdings-relevant columns:
+    assetClassDetails[["holdingsDetails"]] <- assetClassDetails[["holdingsDetails"]][, c("Name", "Value", "Weight", "Exposure", "Exp (%)", "PnL")]
+
+    ## Set row names to NULL:
+    rownames(assetClassDetails[["holdingsDetails"]]) <- NULL
+
+    ## Set holdings indices to NA:
+    assetClassDetails[["holdsIdx"]] <- NA
+
+    ## Done, combine and return:
     return(list("holdingsDetails"=holdingsDetails,
                 "holdingsSummary"=holdingsSummary,
+                "assetClassDetails"=assetClassDetails,
                 "holdings"=holdings))
 
 }

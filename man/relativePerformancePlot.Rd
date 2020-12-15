@@ -5,7 +5,7 @@
 \title{This function plots a relative time series plot using the list from getPerformanceV2.
 It assumes there are benchmark values.}
 \usage{
-relativePerformancePlot(performance, primCol, secdCol)
+relativePerformancePlot(performance, primCol, secdCol, portfolioLabel = "Fund")
 }
 \arguments{
 \item{performance}{The performance list from getPerformanceV2.}
@@ -13,6 +13,8 @@ relativePerformancePlot(performance, primCol, secdCol)
 \item{primCol}{The color of the primary time series.}
 
 \item{secdCol}{The color of the secondary time series.}
+
+\item{portfolioLabel}{The label of the portfolio. Default is 'Fund'.}
 }
 \value{
 A time series performance plot.

@@ -259,7 +259,9 @@ performance.GetPeriodicTable <- function(period, returns, window) {
     ## Initilize a data frame with forward window dates:
     df <- initDF(zoo::index(do.call(pFun[[period]][["apply"]], list(fwdXts))), NROW(currentWindowReturns))
 
-    matchIdx <- match(currentWindowReturns["date", ], colnames(df))
+    daysDistance <- lapply(as.character(currentWindowReturns["date", ]), function(x) abs(as.numeric(difftime(as.Date(x), as.Date(colnames(df)), units="days"))))
+
+    matchIdx <- sapply(daysDistance, function(x) which(x == min(x))[1])
 
     if (any(is.na(matchIdx))) {
         matchIdx[is.na(matchIdx)] <- NCOL(currentWindowReturns)

@@ -218,6 +218,19 @@ contextualizeQuants <- function(pnlPreemble, dateBeg, dateEnd) {
         return(NULL)
     }
 
+    ## ##############################
+    ## Special treatment for options.
+    ## Override valamt with exposure.
+    ## ##############################
+    ## qu <- lapply(qu, function(x) {
+    ##     isOption <- x[, "resCtype"] == "OPT"
+    ##     any(isOption) || return(x)
+    ##     x[isOption, "valamt"] <- abs(as.numeric(x[isOption, "resqty"]) * as.numeric(x[isOption, "qQty"])) * (as.numeric(x[isOption, "valamt"] / abs(as.numeric(x[isOption, "qQty"]))))
+    ##     return(x)
+    ## })
+    ## ##############################
+    ## ##############################
+
     ## Prepare the quant context list and return:
     retval <- lapply(1:NROW(qu), function(i) {
 
@@ -244,12 +257,20 @@ contextualizeQuants <- function(pnlPreemble, dateBeg, dateEnd) {
         ## The columns to be filled:
         tCols <- c("type", "date", "qQty", "valamt", "qRes", "symbol", "resqty", "reference")
 
+        if (safeGrep(extPosBeg[i, "Type"], "Option") == "1") {
+            isOption <- TRUE
+        } else {
+            isOption <- FALSE
+        }
+
+
         ## Fill the columns with the beginning position values:
         quT[1, tCols] <- c("Start",
                            as.character(dateBeg),
                            as.numeric(extPosBeg[i, "QTY"]),
+                           ifelse(isOption, as.numeric(safeNull(extPosBeg[i, "Value"])), as.numeric(safeNull(extPosBeg[i, "Exposure"]))),
                            ## as.numeric(extPosBeg[i, "Value"]),
-                           as.numeric(safeNull(extPosBeg[i, "Exposure"])),
+                           ## as.numeric(safeNull(extPosBeg[i, "Exposure"])),
                            as.numeric(extPosBeg[i, "ID"]),
                            as.character(extPosBeg[i, "Symbol"]),
                            as.numeric(extPosBeg[i, "resqty"]),
@@ -258,11 +279,18 @@ contextualizeQuants <- function(pnlPreemble, dateBeg, dateEnd) {
         ## Append a row for the ending position:
         quT <- rbind(quT, rep(NA, NCOL(quT)))
 
+        if (isOption) {
+            posEndVal <- as.numeric(safeNull(extPosEnd[match(quT[1, "qRes"], extPosEnd[, "ID"]), "Value"]))
+        } else {
+            posEndVal <- as.numeric(safeNull(extPosEnd[match(quT[1, "qRes"], extPosEnd[, "ID"]), "Exposure"]))
+        }
+
         ## Fill the column with the ending position values:
         quT[NROW(quT), tCols] <- c("End",
                                    as.character(dateEnd),
                                    as.numeric(extPosEnd[match(quT[1, "qRes"], extPosEnd[, "ID"]), "QTY"]),
-                                   as.numeric(safeNull(extPosEnd[match(quT[1, "qRes"], extPosEnd[, "ID"]), "Exposure"])),
+                                   ##as.numeric(safeNull(extPosEnd[match(quT[1, "qRes"], extPosEnd[, "ID"]), "Exposure"])),
+                                   posEndVal,
                                    as.numeric(extPosEnd[match(quT[1, "qRes"], extPosEnd[, "ID"]), "ID"]),
                                    as.character(extPosEnd[match(quT[1, "qRes"], extPosEnd[, "ID"]), "Symbol"]),
                                    as.character(extPosEnd[match(quT[1, "qRes"], extPosEnd[, "ID"]), "resqty"]),

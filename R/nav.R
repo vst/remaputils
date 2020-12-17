@@ -39,7 +39,7 @@ getInternalNAVShare <- function(portfolio, ccy, date, session) {
         }
 
         ## Construct the data frame and return:
-        return(data.frame("date"=pCons[["date"]], "price"=pCons[["price"]], "ccy"=pCons[["ccy"]]))
+        return(data.frame("date"=pCons[["date"]], "price"=pCons[["price"]], "ccy"=pCons[["ccy"]], "shrcls"=safeNull(pCons[["shareclass"]])))
     }))
 
 }

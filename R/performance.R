@@ -66,8 +66,14 @@ performance.ComputeRelative <- function(primary, secondary) {
     rPerformance[["stats"]] <- as.data.frame(cbind("label"=primary[["stats"]][, "label"], rStats), stringsAsFactors=FALSE)
 
     auxFun <- function(primary, secondary, element) {
+
         retval <- do.call(cbind, lapply(1:NCOL(primary[["periodStats"]][[element]]), function(i) {
-            round(as.numeric(primary[["periodStats"]][[element]][-1, i]) - as.numeric(secondary[["periodStats"]][[element]][-1, i]), 5)
+            retval <- round(as.numeric(primary[["periodStats"]][[element]][-1, i]) - as.numeric(secondary[["periodStats"]][[element]][-1, i]), 5)
+            if (length(retval) == 0) {
+                retval <- rep(NA, length(primary[["periodStats"]][[element]][-1, i]))
+            }
+            return(retval)
+
         }))
 
         retval <- as.data.frame(rbind(as.character(primary[["periodStats"]][[element]][1, ]), retval), stringsAsFactors=FALSE)
@@ -259,9 +265,13 @@ performance.GetPeriodicTable <- function(period, returns, window) {
     ## Initilize a data frame with forward window dates:
     df <- initDF(zoo::index(do.call(pFun[[period]][["apply"]], list(fwdXts))), NROW(currentWindowReturns))
 
-    daysDistance <- lapply(as.character(currentWindowReturns["date", ]), function(x) abs(as.numeric(difftime(as.Date(x), as.Date(colnames(df)), units="days"))))
+    daysDistance <- lapply(as.character(currentWindowReturns["date", ]), function(x) as.numeric(difftime(as.Date(x), as.Date(colnames(df)), units="days")))
 
-    matchIdx <- sapply(daysDistance, function(x) which(x == min(x))[1])
+    matchIdx <- sapply(daysDistance, function(x) {
+        x[x > 0] <- Inf
+        x <- abs(x)
+        which(x == min(x))[1]
+    })
 
     if (any(is.na(matchIdx))) {
         matchIdx[is.na(matchIdx)] <- NCOL(currentWindowReturns)

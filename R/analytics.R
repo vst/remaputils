@@ -694,14 +694,15 @@ getInternalMonthlyReturns <- function(intPrice, date, session) {
     ## Filter in relevant dates:
     intPrice <- intPrice[zoo::index(intPrice) >= startDate, ]
 
+    ##:
     intPrice[, 1] <- 100 * cumprod(c(1, head(c(as.numeric(tail(intPrice, -1)), 1) / as.numeric(intPrice), -1)))
 
     ## If the internal price start date is later than the period start date,
     ## create sequence till internal start date:
-    if (zoo::index(intPrice)[1] > dateOfPeriod("Y-0")) {
+    if (zoo::index(intPrice)[1] > startDate) {
 
         ## Create the date series to be appended:
-        new <- seq(dateOfPeriod("Y-0"), zoo::index(intPrice)[1], 1)
+        new <- seq(startDate, zoo::index(intPrice)[1], 1)
 
         ## Remove last date:
         new <- new[-length(new)]

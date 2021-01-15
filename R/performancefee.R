@@ -188,6 +188,12 @@ performancePreemble <- function(perfMeta, session, useExternal=FALSE, useExterna
     ## Get the outstanding shares?
     scTsXts <- cbind(scTsXts, "outstanding"=as.numeric(cumsum(scTsXts[, "subs"] - abs(scTsXts[, "redm"]))))
 
+    ## Overwrite reset days if necessary:
+    if (!is.null(perfMeta[["resetOverwrite"]])) {
+        scTsXts[mmatch(as.Date(names(perfMeta[["resetOverwrite"]])),  data.frame(zoo::index(scTsXts))), "reset"] <- 0
+        scTsXts[mmatch(as.Date(unlist(perfMeta[["resetOverwrite"]])), data.frame(zoo::index(scTsXts))), "reset"] <- 1
+    }
+
     ## Done, return:
     return(scTsXts)
 

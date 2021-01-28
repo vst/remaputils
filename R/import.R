@@ -182,20 +182,36 @@ preparePortfolioPayload <- function(accounts, teams, rccy="USD") {
 
     do.call(rbind, lapply(1:length(accounts), function(i) {
 
-        ## Prepare the name:
-        name <- accounts[[i]][["portfolio"]]
+        ## Get the portfolio name:
+        portfolioName <- accounts[[i]][["portfolio"]]
+
+        ## Get the team name:
+        teamName <- .emptyToNA(accounts[[i]][["team"]])
 
         ## Prepare the team:
-        team <- getObjectIDByName(teams, .emptyToNA(accounts[[i]][["team"]]))
+        team <- getObjectIDByName(teams, teamName, naVal=NA)
+
+        ## If team is NA, create:
+        if (is.na(team)) {
+
+            ## Create the payload:
+            payload <- toJSON(list(teams=data.frame("name"=teamName)), auto_unbox=TRUE, na="null", digits=10)
+
+            ## Push and get response:
+            response <- pushPayload(payload=payload, session=session, import=FALSE, inbulk=TRUE, params=list(sync="True"))
+
+            ## Get the created team id:
+            team <- sapply(response[[1]][[1]][[1]], function(x) x[[1]])
+        }
 
         ## Prepare the rccy:
         rccy <- ifelse(isNAorEmpty(.emptyToNA(accounts[[i]][["rccy"]])), rccy, accounts[[i]][["rccy"]])
 
         ## Prepare the data frame:
-        data.frame("name"=name,
+        data.frame("name"=portfolioName,
                    "rccy"=rccy,
                    "team"=team,
-                   "guid"=digest(paste0(name)))
+                   "guid"=digest(paste0(portfolioName)))
     }))
 }
 
@@ -216,20 +232,36 @@ prepareAccountPayload <- function(accounts, portfolios, institutions, rccy="USD"
     do.call(rbind, lapply(1:length(accounts), function(i) {
 
         ## Prepare the name:
-        name <- accounts[[i]][["account"]]
+        accountName <- accounts[[i]][["account"]]
+
+        ## Get the team name:
+        institutionName <- .emptyToNA(accounts[[i]][["institution"]])
 
         ## Prepare the team:
-        institution <- getObjectIDByName(institutions, .emptyToNA(accounts[[i]][["institution"]]))
+        institution <- getObjectIDByName(institutions, institutionName, naVal=NA)
+
+        ## If institution is NA, create:
+        if (is.na(institution)) {
+
+            ## Create the payload:
+            payload <- toJSON(list(institutions=data.frame("name"=institutionName)), auto_unbox=TRUE, na="null", digits=10)
+
+            ## Push and get response:
+            response <- pushPayload(payload=payload, endpoint=NULL, session=session, import=FALSE, inbulk=TRUE, params=list(sync="True"))
+
+            ## Get the created team id:
+            institution <- sapply(response[[1]][[1]][[1]], function(x) x[[1]])
+        }
 
         ## Prepare the rccy:
         rccy <- ifelse(isNAorEmpty(.emptyToNA(accounts[[i]][["rccy"]])), rccy, accounts[[i]][["rccy"]])
 
         ## Prepare the data frame:
-        data.frame("name"=name,
+        data.frame("name"=accountName,
                    "rccy"=rccy,
                    "portfolio"=portfolios[i],
                    "custodian"=institution,
-                   "guid"=digest(paste0(name, institution)),
+                   "guid"=digest(paste0(accountName, institution)),
                    "atype"=atype)
     }))
 }
@@ -2264,14 +2296,11 @@ accountPreembleMethod1 <- function(records, sysAccs, custodian, session) {
 ##' @export
 accountPreembleMethod2 <- function(accounts, sysAccs, custodian, session) {
 
-    ## Get the account mapping index:
-    accountIdx <- !substr(names(accounts), 1, 1) == "_"
+    ## Get the accounts:
+    accounts <- accounts[["accounts"]]
 
     ## Get the account meta:
-    accountMeta <- accounts[!accountIdx]
-
-    ## Get the account mapping:
-    accounts <- accounts[accountIdx]
+    accountMeta <- accounts[["meta"]]
 
     ## Store the account names:
     accountNames <- names(accounts)
@@ -2293,11 +2322,12 @@ accountPreembleMethod2 <- function(accounts, sysAccs, custodian, session) {
     }
 
     ## Get the system portfolios:
-    sysPorts <- as.data.frame(getResource("portfolios", params=list("format"="csv", "page_size"=-1), session=session))
+    sysPorts <- getDBObject("portfolios", session)
 
     ## Get the records with missing accmain:
     naIdx <- is.na(accmain)
 
+    ## Get the na accounts:
     naAccounts <- accounts[naIdx]
 
     ##:

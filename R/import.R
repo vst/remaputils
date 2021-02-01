@@ -2296,11 +2296,11 @@ accountPreembleMethod1 <- function(records, sysAccs, custodian, session) {
 ##' @export
 accountPreembleMethod2 <- function(accounts, sysAccs, custodian, session) {
 
-    ## Get the accounts:
-    accounts <- accounts[["accounts"]]
-
     ## Get the account meta:
     accountMeta <- accounts[["meta"]]
+
+    ## Get the accounts:
+    accounts <- accounts[["accounts"]]
 
     ## Store the account names:
     accountNames <- names(accounts)

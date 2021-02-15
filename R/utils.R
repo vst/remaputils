@@ -258,8 +258,11 @@ getYTDSlice <- function(df, date) {
     ## Get the year of the report date:
     year <- substr(date, 1, 4)
 
+    ##:
+    exception <- dateOfPeriod("Y-0", date) == df[, "date"] & NROW(df) == 1
+
     ## If no year corresponds to year of report date, return NULL:
-    if (all(substr(df[, "date"], 1, 4) != year)) {
+    if (all(substr(df[, "date"], 1, 4) != year) & !exception) {
         return(NULL)
     }
 

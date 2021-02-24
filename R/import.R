@@ -1,3 +1,129 @@
+##' This is a function to download document responses in decaf.
+##'
+##' This is the description
+##'
+##' @param ... TODO.
+##' @param params The rdecaf request parameters.
+##' @param session The rdecaf session.
+##' @return The request response.
+##' @export
+download <- function(..., params = list(), session = NULL) {
+    ## Get or create a session:
+    if (is.null(session)) {
+        session <- rdecaf::readSession()
+    }
+
+    ## Get the base url to start to build the endpoint URL:
+    url <- httr::parse_url(session$location)
+
+    ## Add paths ensuring that path seperator is not duplicated and a
+    ## trailing path seperator is added:
+    url$path <- c(sub("/$", "", gsub("//", "/", c(url$path, ...))), "/")
+
+    ## Add params:
+    url$query <- params
+
+    ## Construct the endpoint URL:
+    url <- httr::build_url(url)
+
+    ## Get the resource:
+    response <- httr::GET(url, httr::add_headers(Authorization = rdecaf:::.authorizationHeader(session)))
+
+    ## Get the status:
+    status <- response$status_code
+
+    ## If the status code is not 200, raise an error:
+    if (status != 200) {
+        stop(sprintf("%s returned a status code of '%d'.\n\n  Details provided by the API are:\n\n%s", url, status, httr::content(response, as = "text")))
+    }
+
+    ## Return the response:
+    response
+}
+
+
+##' This is a function for download document content function in decaf.
+##'
+##' This is the description
+##'
+##' @param ... TODO.
+##' @param params The rdecaf request parameters.
+##' @param session The rdecaf session.
+##' @return The content of request response.
+##' @export
+downloadContent <- function(..., params = list(), session = NULL) {
+    ## Attempt to download:
+    response <- download(..., params = params, session = session)
+
+    ## Return the content:
+    httr::content(response)
+}
+
+
+##' This is a function to download document files in decaf.
+##'
+##' This is the description
+##'
+##' @param ... TODO.
+##' @param params The rdecaf request parameters.
+##' @param filename The file name.
+##' @param directory The directory.
+##' @param session The rdecaf session.
+##' @return The file path
+##' @export
+downloadFile <- function(..., params = list(), filename = NULL, directory = NULL, session = NULL) {
+    ## Attempt to download:
+    response <- download(..., params = params, session = session)
+
+    ## Attempt to get the filename:
+    filename <- .getFileName(response, default = filename)
+
+    ## Attempt to get the directory to write the file to:
+    if (is.null(directory) || is.na(directory)) {
+        directory <- "./"
+    }
+
+    ## Define the filepath:
+    filepath <- sprintf("%s/%s", directory, filename)
+
+    ## Write the file:
+    writeBin(httr::content(response, as = "raw"), filepath)
+
+    ## Return the filepath:
+    filepath
+}
+
+
+##' This is a helper function for download documents function.
+##'
+##' This is the description
+##'
+##' @param response The response.
+##' @param default NULL.
+##' @return The file name
+##' @export
+.getFileName <- function(response, default = NULL) {
+    ## Attempt to get the original filename:
+    original <- gsub(
+        "^attachment;\\s+filename=\"?(?<filename>[^\"]+)\"?.*$",
+        "\\1",
+        httr::headers(response)$`content-disposition`,
+        perl = TRUE
+    )
+
+    ## Check the original and return:
+    if (is.na(original) || nchar(original) == 0) {
+        if (is.null(default) || is.na(default)) {
+            "file.dat"
+        } else {
+            default
+        }
+    } else {
+        original
+    }
+}
+
+
 ##' This function returns the fields names for quants endpoint.
 ##'
 ##' This is the description

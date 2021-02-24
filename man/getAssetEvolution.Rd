@@ -4,7 +4,7 @@
 \alias{getAssetEvolution}
 \title{Gets the asset evolution for a portfolio from pconsolidation}
 \usage{
-getAssetEvolution(portfolio, date, years = "2", session, ...)
+getAssetEvolution(portfolio, date, years = "2", gteDate = NULL, session, ...)
 }
 \arguments{
 \item{portfolio}{The portfolio id.}
@@ -12,6 +12,8 @@ getAssetEvolution(portfolio, date, years = "2", session, ...)
 \item{date}{The date__lte.}
 
 \item{years}{The number of years to look back.}
+
+\item{gteDate}{Alternative parameter for years. Default is NULL (years will be used).}
 
 \item{session}{The rdecaf session,}
 

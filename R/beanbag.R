@@ -59,7 +59,7 @@ getPreviousNAV <- function(portfolio, date, ccy, period, external, session, ince
 
         result <- valueOfNearestDate(targetDate=previousDate,
                                      data=extVal,
-                                     tolerance=4,
+                                     tolerance=tolerance,
                                      dateField="date",
                                      valueField="nav")
 
@@ -75,7 +75,7 @@ getPreviousNAV <- function(portfolio, date, ccy, period, external, session, ince
 
             return(valueOfNearestDate(targetDate=previousDate,
                                       data=assEvl,
-                                      tolerance=2,
+                                      tolerance=tolerance,
                                       dateField="date",
                                       valueField="nav"))
     }
@@ -689,20 +689,28 @@ getHoldingsSummary <- function(holdings, col="Subtype", key="Cash") {
 ##' @param portfolio The portfolio id.
 ##' @param date The date__lte.
 ##' @param years The number of years to look back.
+##' @param gteDate Alternative parameter for years. Default is NULL (years will be used).
 ##' @param session The rdecaf session,
 ##' @param ... Any additional parameters.
 ##' @return An data frame with NAV and AUM.
 ##' @export
-getAssetEvolution <- function(portfolio, date, years="2", session, ...) {
+getAssetEvolution <- function(portfolio, date, years="2", gteDate=NULL, session, ...) {
 
     account <- ifelse(is.null(list(...)[["account"]]), NA, list(...)[["account"]])
+
+    if (is.null(gteDate)) {
+            gteDate <- dateOfPeriod(paste0("Y-", years))
+        } else {
+            gteDate <- gteDate
+        }
+
 
     if (is.na(account)) {
         ## Define the params:
         params <- list("portfolio"=portfolio,
                        "account__isnull"="True",
                        "shareclass__isnull"="True",
-                       "date__gte"=dateOfPeriod(paste0("Y-", years)),
+                       "date__gte"=gteDate,
                        "date__lte"=date,
                        "page_size"=-1)
     } else {
@@ -710,7 +718,7 @@ getAssetEvolution <- function(portfolio, date, years="2", session, ...) {
         params <- list("account"=account,
                        "account__isnull"="False",
                        "shareclass__isnull"="True",
-                       "date__gte"=dateOfPeriod(paste0("Y-", years)),
+                       "date__gte"=gteDate,
                        "date__lte"=date,
                        "page_size"=-1)
     }

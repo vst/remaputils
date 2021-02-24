@@ -689,21 +689,20 @@ getHoldingsSummary <- function(holdings, col="Subtype", key="Cash") {
 ##' @param portfolio The portfolio id.
 ##' @param date The date__lte.
 ##' @param years The number of years to look back.
-##' @param gteDate Alternative parameter for years. Default is NULL (years will be used).
 ##' @param session The rdecaf session,
 ##' @param ... Any additional parameters.
 ##' @return An data frame with NAV and AUM.
 ##' @export
-getAssetEvolution <- function(portfolio, date, years="2", gteDate=NULL, session, ...) {
+getAssetEvolution <- function(portfolio, date, years="2", session, ...) {
 
     account <- ifelse(is.null(list(...)[["account"]]), NA, list(...)[["account"]])
+    gteDate <- list(...)[["gteDate"]]
 
     if (is.null(gteDate)) {
-            gteDate <- dateOfPeriod(paste0("Y-", years))
-        } else {
-            gteDate <- gteDate
-        }
-
+        gteDate <- dateOfPeriod(paste0("Y-", years))
+    } else {
+        gteDate <- gteDate
+    }
 
     if (is.na(account)) {
         ## Define the params:

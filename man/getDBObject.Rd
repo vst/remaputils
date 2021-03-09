@@ -4,12 +4,14 @@
 \alias{getDBObject}
 \title{This function gets the data base object as data frame.}
 \usage{
-getDBObject(endpoint, session)
+getDBObject(endpoint, session, addParams = NULL)
 }
 \arguments{
 \item{endpoint}{The endpoint.}
 
 \item{session}{The rdecaf session.}
+
+\item{addParams}{A list with additional parameters.}
 }
 \value{
 A data frame with the endpoint as data frame.

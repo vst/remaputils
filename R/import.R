@@ -1,3 +1,78 @@
+##' This is function converts values to desired currency.
+##'
+##' This is the description
+##'
+##' @param df The data frame.
+##' @param ccyFld The column name with the 3 letter currency information.
+##' @param dtFld The column name with the date information.
+##' @param valFld A vector with the name of the numeric columns to be converted.
+##' @param convertTo The 3 letter currency to be converted to.
+##' @param session The rdecaf session.
+##' @return The data frame with additional columns.
+##' @export
+convertValuesByFXRate <- function(df, ccyFld="ccy", dtFld="date", valFld=c("nav", "aum"), convertTo="USD", session) {
+
+    ## If data frame is empty, return the same:
+    if (NROW(df) == 0) {
+        return(df)
+    }
+
+    ## Get the unique currencies:
+    uniqueCcy <- unique(df[, ccyFld])
+
+    ## Get the look back period:
+    lookBack <- as.numeric(difftime(Sys.Date(), as.Date(min(df[, dtFld])), unit="days"))
+
+    ## Query the FX rates for constructed symbol:
+    fxobs <- lapply(uniqueCcy, function(x) getOhlcObsForSymbol("symbol"=paste0(x, convertTo), lookBack=lookBack, session=session))
+
+    ## If base currency is the same as the convertTo currency, mimick data frame with rates of 1:
+    fxobs[uniqueCcy == convertTo] <- list(data.frame("id"=NA,
+                                               "symbol"=paste0(uniqueCcy[uniqueCcy==convertTo], convertTo),
+                                               "date"=seq(Sys.Date()-lookBack, Sys.Date(), 1),
+                                               "open"=1,
+                                               "high"=1,
+                                               "low"=1,
+                                               "close"=1))
+
+    ## Make data frame:
+    fxobs <- do.call(rbind, fxobs)
+
+    ## Append the base currency:
+    fxobs[, "base"] <- substr(fxobs[, "symbol"], 1, 3)
+
+    ## Get the fx wise data frames in list:
+    fxWise <- extractToList(df, ccyFld)
+
+    ## Iterate over fx wise data frames of df, convert, append and return:
+    do.call(rbind, lapply(fxWise, function(fxW) {
+
+        ## Memorise the original column names:
+        colNames <- colnames(fxW)
+
+        ## Get the matching fx rates for the base currency:
+        fxrates <- fxobs[!is.na(match(fxobs[, "base"], fxW[, ccyFld])), ]
+
+        ## Get the unique dates in data frame:
+        uniqueDates <- data.frame("date"=unique(fxW[, "date"]), "rate"=NA)
+
+        ## Append the rates to the unique dates data frame:
+        uniqueDates[, "rate"] <- sapply(uniqueDates[, "date"], function(x) fxrates[order(abs(as.Date(x) - as.Date(fxrates[, "date"])))[1], "close"])
+
+        ## Convert:
+        fxW <- data.frame(fxW, do.call(cbind, lapply(valFld, function(col) fxW[, col] * uniqueDates[match(fxW[, "date"], uniqueDates[, "date"]), "rate"])))
+
+        ## Assign extra column names:
+        colnames(fxW) <- c(colNames, paste0(valFld, "_converted"))
+
+        ## Return:
+        return(fxW)
+
+    }))
+
+}
+
+
 ##' This is a function to download document responses in decaf.
 ##'
 ##' This is the description
@@ -265,16 +340,19 @@ tradeFields <- function() {
       "updater")
 }
 
+
 ##' This function gets the data base object as data frame.
 ##'
 ##' This is the description
 ##'
 ##' @param endpoint The endpoint.
 ##' @param session The rdecaf session.
+##' @param addParams A list with additional parameters.
 ##' @return A data frame with the endpoint as data frame.
 ##' @export
-getDBObject <- function(endpoint, session) {
-    as.data.frame(getResource(endpoint, params=list(format="csv", "page_size"=-1), session=session))
+getDBObject <- function(endpoint, session, addParams=NULL) {
+    params <- c(list(format="csv", "page_size"=-1), addParams)
+    as.data.frame(getResource(endpoint, params=params, session=session))
 }
 
 

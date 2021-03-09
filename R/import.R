@@ -28,12 +28,12 @@ convertValuesByFXRate <- function(df, ccyFld="ccy", dtFld="date", valFld=c("nav"
 
     ## If base currency is the same as the convertTo currency, mimick data frame with rates of 1:
     fxobs[uniqueCcy == convertTo] <- list(data.frame("id"=NA,
-                                               "symbol"=paste0(uniqueCcy[uniqueCcy==convertTo], convertTo),
-                                               "date"=seq(Sys.Date()-lookBack, Sys.Date(), 1),
-                                               "open"=1,
-                                               "high"=1,
-                                               "low"=1,
-                                               "close"=1))
+                                                     "symbol"=paste0(uniqueCcy[uniqueCcy==convertTo], convertTo),
+                                                     "date"=seq(Sys.Date()-lookBack, Sys.Date(), 1),
+                                                     "open"=1,
+                                                     "high"=1,
+                                                     "low"=1,
+                                                     "close"=1))
 
     ## Make data frame:
     fxobs <- do.call(rbind, fxobs)
@@ -54,13 +54,13 @@ convertValuesByFXRate <- function(df, ccyFld="ccy", dtFld="date", valFld=c("nav"
         fxrates <- fxobs[!is.na(match(fxobs[, "base"], fxW[, ccyFld])), ]
 
         ## Get the unique dates in data frame:
-        uniqueDates <- data.frame("date"=unique(fxW[, "date"]), "rate"=NA)
+        uniqueDates <- data.frame("date"=unique(fxW[, dtFld]), "rate"=NA)
 
         ## Append the rates to the unique dates data frame:
         uniqueDates[, "rate"] <- sapply(uniqueDates[, "date"], function(x) fxrates[order(abs(as.Date(x) - as.Date(fxrates[, "date"])))[1], "close"])
 
         ## Convert:
-        fxW <- data.frame(fxW, do.call(cbind, lapply(valFld, function(col) fxW[, col] * uniqueDates[match(fxW[, "date"], uniqueDates[, "date"]), "rate"])))
+        fxW <- data.frame(fxW, do.call(cbind, lapply(valFld, function(col) fxW[, col] * uniqueDates[match(fxW[, dtFld], uniqueDates[, "date"]), "rate"])))
 
         ## Assign extra column names:
         colnames(fxW) <- c(colNames, paste0(valFld, "_converted"))

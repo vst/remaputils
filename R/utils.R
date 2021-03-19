@@ -957,7 +957,7 @@ specialCharacterTreater <- function(df, cols=NULL) {
 valueOfNearestDate <- function(targetDate, data, tolerance, dateField="date", valueField="price", nameField=NULL) {
 
     ## Compute the date difference:
-    dateDist <- data[, dateField] - targetDate
+    dateDist <- as.Date(data[, dateField]) - as.Date(targetDate)
 
     ## Filter the data for negative distances:
     if (any(dateDist < 0)) {

@@ -697,6 +697,8 @@ getAssetEvolution <- function(portfolio, date, years="2", session, ...) {
 
     account <- ifelse(is.null(list(...)[["account"]]), NA, list(...)[["account"]])
     gteDate <- list(...)[["gteDate"]]
+    ccy <- list(...)[["ccy"]]
+
 
     if (is.null(gteDate)) {
         gteDate <- dateOfPeriod(paste0("Y-", years))
@@ -725,8 +727,55 @@ getAssetEvolution <- function(portfolio, date, years="2", session, ...) {
     ## Get the pconsolidaton:
     pCons <- rdecaf::getResource("pconsolidations", params=params, session=session)
 
+    ## Get all the valuation currencies in pCons:
+    xccys <- unique(sapply(pCons, function(x) x[["ccy"]]))
+
+    ## Get all the dates in pCons:
+    xdates <- sapply(pCons, function(x) x[["date"]])
+
+    ## If currency of container is not provided, assume one of the pCons currencies as reference:
+    if (is.null(ccy)) {
+        ccy <- xccys[[1]]
+    }
+
+    ## If there are multiple currencies, get fx rates for relevant period(s):
+    if (!all(xccys == ccy)) {
+
+        ## Construct the pairs:
+        fxs <- paste0(xccys[xccys != ccy], ccy)
+
+        ## Get the olhcs for pairs:
+        obs <- lapply(fxs, function(fx) getOhlcObsForSymbol("session"=session, "symbol"=fx, "lte"=as.Date(max(xdates)), lookBack=NROW(xdates)))
+        names(obs) <- fxs
+    }
+
     ## Build the asset evolution data frame:
-    as.data.frame(do.call(rbind, lapply(pCons, function(x) data.frame("nav"=x[["nav"]], "aum"=x[["aum"]], "date"=as.Date(x[["date"]]), stringsAsFactors=FALSE))))
+    as.data.frame(do.call(rbind, lapply(pCons, function(x) {
+
+        ## nav:
+        xnav <- x[["nav"]]
+
+        ## aum:
+        xaum <- x[["aum"]]
+
+        ## date:
+        xdate <- as.Date(x[["date"]])
+
+        ## ccy:
+        xccy <- x[["ccy"]]
+
+        ## If pCons ccy equals container ccy, return values:
+        if (xccy == ccy) {
+            return(data.frame(nav=xnav, aum=xaum, date=xdate, stringsAsFactors = FALSE))
+        }
+
+        ## Get the corresponding fx rate for conversion:
+        fx <- valueOfNearestDate(as.Date(xdate), obs[[paste0(xccy, ccy)]], 30, "date", "close")[["value"]]
+
+        ## Convert and return:
+        return(data.frame(nav=xnav*fx, aum=xaum*fx, date=xdate, stringsAsFactors = FALSE))
+
+    })))
 
 }
 

@@ -134,12 +134,13 @@ getLastDayOfPeriod <- function(dates, day, period) {
     lastDate <- tail(dates, 1)
 
     ## Get the period memnonic:
-    periodMemnonic <- paste0(switch(period, weekly="W", monthly="M", quarterly="Q", yearly="Y"), "-0")
+    periodMemnonic <- paste0(switch(period, weekly="W", monthly="M", quarterly="Q", semiannually="S", yearly="Y"), "-0")
 
     ## Get the period function:
     pFun <- list("weekly"=function(x){cumsum(weekdays(x) == "Friday")},
                  "monthly"=function(x){months(x)},
                  "quarterly"=function(x){quarters(x)},
+                 "semiannually"=function(x){ifelse(numerize(substr(x, 6, 10)) >= 100 & numerize(substr(x, 6, 10)) <= 0630, "S1", "S2")},
                  "yearly"=function(x){substr(x, 1,4)})
 
     ## Add 365 days to last date provided create a sequence 1 year ahead:
@@ -1445,7 +1446,9 @@ safeTry <- function(x, nullToNa=TRUE){
 periodDates <- function(periodLetter, yearsOfHistory=3, endOfWeek="Friday", date=Sys.Date()){
 
     ## Generate date sequence:
-    dateSeq <- seq(date - (365*yearsOfHistory), date, by=1)
+    dateSeq <- seq(date - (365 * yearsOfHistory), date, by=1)
+
+
 
     ## The function map:
     functionMap <- list("D"=function(x){x},
@@ -1458,6 +1461,12 @@ periodDates <- function(periodLetter, yearsOfHistory=3, endOfWeek="Friday", date
                         "Q"=function(x) {
                             x[!quarters(x) == c(tail(quarters(x), -1), tail(quarters(x) , 1))]
                         },
+
+                        "S" = function(x) {
+                            y <- ifelse(numerize(substr(x, 6, 10)) >= 100 & numerize(substr(x, 6, 10)) <= 0630, "S1", "S2")
+                            x[!y == c(tail(y, -1), tail(y, 1))]
+                        },
+
                         "Y"=function(x){
                             x[!substr(x, 1, 4) == c(tail(substr(x, 1, 4), -1), tail(substr(x, 1, 4) , 1))]
                         })

@@ -10,6 +10,12 @@
 ##' @export
 performancePreemble <- function(perfMeta, session, useExternal=FALSE, useExternalOnlyForReset=TRUE) {
 
+    ## Start dates of performance schedule:
+    sDate <- as.Date(ifelse(is.null(perfMeta[["startDate"]]), "1900-01-01", perfMeta[["startDate"]]))
+
+    ## End dates of performance schedule:
+    eDate <- as.Date(ifelse(is.null(perfMeta[["endDate"]]), "2100-01-01", perfMeta[["endDate"]]))
+
     getPJournalsByAccount <- function (id, session) {
         params <- list(account= id, format = "csv", page_size = -1)
         as.data.frame(getResource("quants", params = params, session = session))
@@ -54,6 +60,9 @@ performancePreemble <- function(perfMeta, session, useExternal=FALSE, useExterna
         benchmark <- xts::as.xts(benchmark[, "close"], order.by=as.Date(benchmark[, "date"]))
     }
 
+    ## Slice the benchmark data:
+    benchmark <-  benchmark[zoo::index(benchmark) >= sDate & zoo::index(benchmark) <= eDate, ]
+
     ## Get the Subscriptions:
     subscriptions <- investments[investments[, "qtymain"] > 0, c("commitment", "qtymain", "pxnavs", "shrcls")]
 
@@ -71,6 +80,9 @@ performancePreemble <- function(perfMeta, session, useExternal=FALSE, useExterna
                                    "aggColumn"="quantity",
                                    "aggBy"="commitment",
                                    "fallbackDate"=zoo::index(scTsXts)[1])
+
+    ## Set pjourncal outside the date range to zero:
+    pJournal[zoo::index(pJournal) <= ifelse(is.na(safeNull(perfMeta[["startDate"]])), as.Date("1900-01-01"), perfMeta[["startDate"]])] <- 0
 
     ## Append the cumulative partial journal entries:
     scTsXts <- cbind(scTsXts, "pjr"=cumsum(pJournal))
@@ -96,6 +108,22 @@ performancePreemble <- function(perfMeta, session, useExternal=FALSE, useExterna
     ## Aggregate (sum) redemptions by date and xtsify:
     scRedmShrs <- aggregateAndXTSify(scRedm, "aggColumn"="noshares", "aggBy"="commitment","fallbackDate"=zoo::index(scTsXts)[1])
     scRedm <- aggregateAndXTSify(scRedm, "aggColumn"="qtymain", "aggBy"="commitment","fallbackDate"=zoo::index(scTsXts)[1])
+
+    if (NROW(scSubs) == 0) {
+        scSubs <- NA
+    }
+
+    if (NROW(scRedm) == 0) {
+        scRedm <- NA
+    }
+
+    if (NROW(scSubsShrs) == 0) {
+        scSubsShrs <- NA
+    }
+
+    if (NROW(scRedmShrs) == 0) {
+        scRedmShrs <- NA
+    }
 
     ## XTSify subscriptions and append:
     scTsXts <- cbind(scTsXts, "subs"=scSubs, "subsShrs"=scSubsShrs)
@@ -140,8 +168,11 @@ performancePreemble <- function(perfMeta, session, useExternal=FALSE, useExterna
         scextval <- data.frame("nav"=NA, "date"=zoo::index(scTsXts)[1])
     }
 
+    ## XTSify external nav:
+    scextXts <- xts::as.xts(scextval[, "nav"], order.by=as.Date(scextval[, "date"]))
+
     ## XTSify external valuation and append:
-    scTsXts <- cbind(scTsXts, "nnavE"=xts::as.xts(scextval[, "nav"], order.by=as.Date(scextval[, "date"])))
+    scTsXts <- cbind(scTsXts, "nnavE"=scextXts)
 
     ## Add the column names:
     colnames(scTsXts)[NCOL(scTsXts)] <- "nnavE"
@@ -185,14 +216,20 @@ performancePreemble <- function(perfMeta, session, useExternal=FALSE, useExterna
     ## Append the external nav with forward filled NA's:
     scTsXts <- cbind(scTsXts, "navES"=as.numeric(zoo::na.locf(scTsXts[, "navE"])))
 
+    ## Get the outstanding:
+    outstanding <- scTsXts[, "subs"] - abs(scTsXts[, "redm"])
+
     ## Get the outstanding shares?
-    scTsXts <- cbind(scTsXts, "outstanding"=as.numeric(cumsum(scTsXts[, "subs"] - abs(scTsXts[, "redm"]))))
+    scTsXts <- cbind(scTsXts, "outstanding"=as.numeric(cumsum(outstanding)))
 
     ## Overwrite reset days if necessary:
     if (!is.null(perfMeta[["resetOverwrite"]])) {
         scTsXts[mmatch(as.Date(names(perfMeta[["resetOverwrite"]])),  data.frame(zoo::index(scTsXts))), "reset"] <- 0
         scTsXts[mmatch(as.Date(unlist(perfMeta[["resetOverwrite"]])), data.frame(zoo::index(scTsXts))), "reset"] <- 1
     }
+
+    ## Slice the data frame:
+    scTsXts <- scTsXts[zoo::index(scTsXts) >= sDate & zoo::index(scTsXts) <= eDate, ]
 
     ## Done, return:
     return(scTsXts)

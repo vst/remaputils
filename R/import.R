@@ -556,6 +556,9 @@ decafSyncResources <- function (tSession, sSession, sAccountNames) {
     ## Get the resources:
     resources <- resources[naResources, ]
 
+    ## Set assetclass to NA:
+    resources[, "assetclass"] <- NA
+
     ## Create payload:
     payload <- toJSON(list(artifacts=resources), auto_unbox=TRUE, na="null", digits=10)
 

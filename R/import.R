@@ -1,3 +1,89 @@
+##' Syncs vouchers in batches.
+##'
+##' This is the description
+##'
+##' @param vouchers The voucher data frame.
+##' @param session The rdecaf session.
+##' @param N The batch size.
+##' @return NULL
+##' @export
+decafPushVouchers <- function(vouchers, session, N=500) {
+
+    ## Create batch:
+    batches <- createBatches(NROW(vouchers), N)
+
+    ## Iterate over batch and push:
+    for (i in 1:length(batches[[1]])) {
+
+        ## Print batch:
+        print(paste0("Updating batch ", batches$startingIdx[[i]],
+                     ":", batches$endingIdx[[i]], " of ", NROW(vouchers)))
+
+        ## Get start index:
+        start <- batches$startingIdx[[i]]
+
+        ## Get end index:
+        end <- batches$endingIdx[[i]]
+
+        ## Prepare the payload:
+        payload <- toJSON(list(vouchers=vouchers[start:end, ]), auto_unbox=TRUE, na="null", digits=10)
+
+        ## Push payload:
+        response <- pushPayload(payload=payload, endpoint=NULL,
+                                session=session, import=FALSE, inbulk=TRUE,
+                                params = list(sync = "True"))
+    }
+
+    ## Return:
+    return(NULL)
+
+}
+
+
+##' Syncs actions in batches.
+##'
+##' This is the description
+##'
+##' @param actions The actions data frame.
+##' @param session The rdecaf session.
+##' @param N The batch size.
+##' @return NULL
+##' @export
+decafPushActions <- function(actions, session, N=500) {
+
+    ## Create batch:
+    batches <- createBatches(NROW(actions), N)
+
+    ## Iterate over batch and push:
+    for (i in 1:length(batches[[1]])) {
+
+        ## Print batch:
+        print(paste0("Updating batch ", batches$startingIdx[[i]],
+                     ":", batches$endingIdx[[i]], " of ", NROW(actions)))
+
+        ## Get start index:
+        start <- batches$startingIdx[[i]]
+
+        ## Get end index:
+        end <- batches$endingIdx[[i]]
+
+        ## Prepare the payload:
+        payload <- toJSON(list(actions=actions[start:end, ]), auto_unbox=TRUE, na="null", digits=10)
+
+        ## Push payload:
+        response <- pushPayload(payload=payload, endpoint=NULL,
+                                session=session, import=FALSE, inbulk=TRUE,
+                                params = list(sync = "True"))
+
+    }
+
+    ## Return:
+    return(NULL)
+
+}
+
+
+
 ##' This is function converts values to desired currency.
 ##'
 ##' This is the description

@@ -1,3 +1,73 @@
+##' Pushes vouchers in batches.
+##'
+##' This is the description
+##'
+##' @param accounts The accounts data frame.
+##' @param sessionS The rdecaf session at source.
+##' @param sessionT The rdecaf session at target.
+##' @param resources The resources data frame.
+##' @param gte The greater than date parameter.
+##' @return A data frame with the prepared trades.
+##' @export
+prepareTradesForSyncM1 <- function (accounts, sessionS, sessionT, resources, gte) {
+
+    ## Get the container names:
+    containerNames <- accounts[, "name"]
+
+    ## Get the trades and accounts from source:
+    sourceTrades <- getTradesFromContainerNames(containerNames, sessionS, type = "accounts", gte = gte)
+
+    ## Get the accounts from source:
+    sourceAccounts <- sourceTrades[["container"]]
+
+    ## Get the trades from source:
+    sourceTrades <- sourceTrades[["trades"]]
+
+    ## If no trades, skip:
+    if (NROW(sourceTrades) == 0) {
+        return(NULL)
+    }
+
+    ## Is the trade a transfer?
+    isTRA <- safeCondition(sourceTrades, "stype", "Client Money Transfer")
+    isTRA <- isTRA | safeCondition(sourceTrades, "stype", "Transfer")
+    isTRA <- isTRA | safeCondition(sourceTrades, "stype", "Internal transfer without performance")
+    isTRA <- isTRA | safeCondition(sourceTrades, "stype", "Position Transfer")
+    isTRA <- isTRA | safeCondition(sourceTrades, "stype", "In Payment")
+    isTRA <- isTRA | safeCondition(sourceTrades, "stype", "receipt free of payment")
+
+    ## Set transfer ctype:
+    sourceTrades[isTRA, "ctype"] <- "30"
+
+    ## Set the resmain:
+    sourceTrades[, "resmain"] <- paste0("dcf:artifact?guid=", sourceTrades[, "resmain_guid"])
+
+    ## Set the accmain:
+    sourceTrades[, "accmain"] <- paste0("dcf:account?guid=", sourceTrades[, "accmain_guid"])
+
+    ## Delete fields:
+    for (fld in c("created", "creator", "updated", "updater", "resmain_guid", "accmain_guid")) {
+        sourceTrades[, fld] <- NULL
+    }
+
+    ## Is the trade a cash trade?
+    isCash <- sourceTrades[, "resmain_type"] == "Cash"
+
+    ## Set the resmain of cash resources:
+    sourceTrades[isCash, "resmain"] <- resources[match(sourceTrades[isCash, "resmain_symbol"], resources[, "symbol"]), "id"]
+
+    ## Append portfolio id and name at target:
+    sysAccounts <- getDBObject("accounts", sessionT)
+
+    sourceTrades[, "portfolio"] <- sysAccounts[match(substr(sourceTrades[, "accmain"], 18, 100), sysAccounts[, "guid"]), "portfolio"]
+    sourceTrades[, "portfolio_name"] <- sysAccounts[match(substr(sourceTrades[, "accmain"], 18, 100), sysAccounts[, "guid"]), "portfolio_name"]
+
+    ## Done, return:
+    return(sourceTrades)
+}
+
+
+
 ##' Syncs vouchers in batches.
 ##'
 ##' This is the description

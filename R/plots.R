@@ -458,7 +458,12 @@ relativePerformancePlot <- function(performance, primCol, secdCol, portfolioLabe
     yrIdx <- which(yearlyRets[, 1] != 0)
     yrVal <- as.numeric(yearlyRets[yearlyRets[, 2] != 0, 2])
     yearlyRets[, 2] <- 0
-    yearlyRets[yrIdx, 2] <- ifelse(length(yrVal) == 0, 0, yrVal)
+
+    if (length(yrVal) == 0) {
+        yrVal <- 0
+    }
+
+    yearlyRets[yrIdx, 2] <- yrVal
 
     ## Add 0 to the top:
     yearlyRets <- rbind(cbind(xts::as.xts(0, order.by=min(zoo::index(yearlyRets)) - 1), 0), yearlyRets)

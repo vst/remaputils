@@ -388,7 +388,7 @@ duplicatedIsinInPortfolios <- function(accounts=NULL, resources, session) {
     }
 
     ## Get the account wise positions:
-    stocks <- getStocks(accounts, session, zero=0)
+    stocks <- getDBObject("stocks", session)
 
     ## Get the enriched stocks:
     stocks <- getEnrichedStocks(stocks, accounts, resources)

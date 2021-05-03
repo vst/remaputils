@@ -667,6 +667,16 @@ decafSyncResources <- function (tSession, sSession, sAccountNames) {
     ## Run the figi:
     figiResult <-  figi(resources[hasISIN, ], idType="ID_ISIN", fld="isin", ccy="ccymain", "d49bdbc7-7b61-4791-bf67-7a543af1b5ab")
 
+    ## Are any of the resources a structured product?
+    isSP <- resources[match(figiResult[, "idValue"], resources[, "isin"]), "ctype"] == "SP"
+
+    ## If yes, keep the name from the source (don't use FIGI name)
+    if (any(isSP)) {
+        names <- resources[match(figiResult[, "idValue"], resources[, "isin"]), "name"]
+        figiResult[isSP, "name"] <- names[isSP]
+    }
+
+
     ## Match the figi result identifier with the records identifier:
     matchIdx <- match(paste0(resources[, "isin"], resources[, "ccymain"]), paste0(figiResult[, "idValue"], figiResult[, "currency"]))
 

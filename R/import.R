@@ -1,3 +1,70 @@
+##' Creates the asset class hierarcy
+##'
+##' This is the description
+##'
+##' @param aclassConfig The list with the asset class configuration.
+##' @param session The rdecaf session.
+##' @return Creates the asset classes and returns NULL
+##' @export
+createAssetClasses <- function(aclassConfig, session) {
+
+    ##  The auxiliary function:
+    auxFun <- function(x, session) {
+
+        ## Get the payload:
+        payload <- toJSON(x, auto_unbox=TRUE)
+
+        ## Post the asset class:
+        response <- try(postResource("assetclasses", payload=payload, session=session), silent=TRUE)
+
+        ## If error, return NULL:
+        if (class(response) == "try-error") {
+            return(NULL)
+        }
+
+        ## Create data frame with name and id of created asset classes:
+        data.frame(do.call(cbind, response[c("name", "id")]), stringsAsFactors=FALSE)
+
+    }
+
+    ## For each asset class row:
+    for (i in 1:length(aclassConfig)) {
+
+        ## Create data frame for current asset class:
+        data <- list("name"=names(aclassConfig)[i],
+                     "order"=aclassConfig[[i]][["config"]][["order"]],
+                     "description"=aclassConfig[[i]][["config"]][["description"]])
+
+        ## Push the asset class:
+        result_i<- auxFun(data, session)
+
+        ## Get the children of the asset class:
+        children <- aclassConfig[[i]][["children"]]
+
+        ## If no children, next:
+        if (is.null(children)) {
+            next
+        }
+
+        ## For each children:
+        for (y in 1:length(children)) {
+
+            ## Create data frame for sub asset class:
+            data <- list("name"=names(children)[y],
+                         "order"=children[[y]][["config"]][["order"]],
+                         "parent"=result_i[, "id"],
+                         "description"=children[[y]][["config"]][["description"]])
+
+            ## Push sub asset class:
+            result_y <- auxFun(data, session)
+        }
+    }
+
+    ## Done, return NULL
+    return(NULL)
+}
+
+
 ##' Pushes vouchers in batches.
 ##'
 ##' This is the description

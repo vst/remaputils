@@ -815,10 +815,20 @@ beanbagPerformanceTable <- function(stats) {
     }
 
     ## Percentify rows:
-    stats[c(1, 2, 3), ] <- t(apply(stats[c(1,2,3), ], MARGIN=1, percentify))
+    for (fld in c("return", "stddev", "maxddown")) {
+
+        if (any(rownames(stats) == fld)) {
+            ## Percentify rows:
+            stats[fld, ] <- trimws(percentify(stats[fld, ]))
+        }
+
+    }
 
     ## Round row(s):
-    stats[4, ] <- round(as.numeric(stats[4,]), 2)
+    if (any(rownames(stats) == "sharpe")) {
+        ## Round row(s):
+        stats["sharpe", ] <- round(as.numeric(stats["sharpe",]), 2)
+    }
 
     ## Get rid of unwanted characters:
     stats[stats == "0 %"] <- NA

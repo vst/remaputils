@@ -4,10 +4,20 @@
 \alias{executeValuationAndPool}
 \title{This function executes a job give a portfolio id and pools the result until finished.}
 \usage{
-executeValuationAndPool(id, session, maxWait = 900)
+executeValuationAndPool(
+  id = NULL,
+  type = "portfolios",
+  start = NULL,
+  session,
+  maxWait = 900
+)
 }
 \arguments{
-\item{id}{The portfolio id.}
+\item{id}{The container id. Default is NULL, i.e all containers.}
+
+\item{type}{What type container, accounts or portfolios?}
+
+\item{start}{The start date. Default is NULL, i.e from inception.}
 
 \item{session}{The rdecaf session.}
 

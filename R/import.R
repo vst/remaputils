@@ -1080,15 +1080,30 @@ getPJournalsByAccount <- function(id, session) {
 ##'
 ##' This is the description
 ##'
-##' @param id The portfolio id.
+##' @param id The container id. Default is NULL, i.e all containers.
+##' @param type What type container, accounts or portfolios?
+##' @param start The start date. Default is NULL, i.e from inception.
 ##' @param session The rdecaf session.
 ##' @param maxWait The maximum waiting time in seconds.
 ##' @return NULL
 ##' @export
-executeValuationAndPool <- function(id, session, maxWait=900) {
+executeValuationAndPool <- function(id=NULL, type="portfolios", start=NULL, session, maxWait=900) {
+
+    ## Construct the base command:
+    baseCMD <- sprintf("jobs/valuations/%s/", type)
+
+    ## If id is not null, append to the base command:
+    if (!is.null(id)) {
+        baseCMD <- paste0(baseCMD, id)
+    }
+
+    ## If start is not null, append to the base command:
+    if (!is.null(start)) {
+        baseCMD <- paste0(baseCMD, "?start=", start)
+    }
 
     ## Post the horses job for portfolio:
-    job <- getResource(paste0("jobs/valuations/portfolios/", id), session=session)
+    job <- getResource(baseCMD, session=session)
 
     ## Assign the state of the job:
     state <- job[["state"]]

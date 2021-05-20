@@ -1438,17 +1438,15 @@ safeTry <- function(x, nullToNa=TRUE){
 ##' This is a description.
 ##'
 ##' @param periodLetter Any of "D", "W", "M", "Q", "Y"
-##' @param yearsOfHistory The amount of years to lookback. Default is 3.
+##' @param yearsOfHistory The amount of years to lookback. Default is 5.
 ##' @param endOfWeek For weekly periodicity, the end of week day. Default is "Friday".
 ##' @param date The date to traverse back from.
 ##' @return A sequence of dates for periodicity.
 ##' @export
-periodDates <- function(periodLetter, yearsOfHistory=3, endOfWeek="Friday", date=Sys.Date()){
+periodDates <- function(periodLetter, yearsOfHistory=5, endOfWeek="Friday", date=Sys.Date()){
 
     ## Generate date sequence:
     dateSeq <- seq(date - (365 * yearsOfHistory), date, by=1)
-
-
 
     ## The function map:
     functionMap <- list("D"=function(x){x},

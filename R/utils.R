@@ -1792,6 +1792,11 @@ parseDate <- function(str, origin="1899-12-30"){
     }
 
     ## If trial was error, try next possible format:
+    if (any(is.na(trial) && ncharStr >= 8)) {
+        trial <- as.Date(str, format="%Y/%m/%d")
+    }
+
+    ## If trial was error, try next possible format:
     if (any(is.na(trial) &&  ncharStr > 6)) {
         trial <- as.Date(str, format="%d/%m/%y")
     }

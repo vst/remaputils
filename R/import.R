@@ -571,10 +571,11 @@ tradeFields <- function() {
 ##' @param endpoint The endpoint.
 ##' @param session The rdecaf session.
 ##' @param addParams A list with additional parameters.
+##' @param pageSize numeric to return number of pages, default -1 = all.
 ##' @return A data frame with the endpoint as data frame.
 ##' @export
-getDBObject <- function(endpoint, session, addParams=NULL) {
-    params <- c(list(format="csv", "page_size"=-1), addParams)
+getDBObject <- function(endpoint, session, addParams=NULL, pageSize=-1) {
+    params <- c(list(format="csv", "page_size"=pageSize), addParams)
     as.data.frame(getResource(endpoint, params=params, session=session))
 }
 

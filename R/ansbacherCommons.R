@@ -226,7 +226,7 @@ ansbacherFilePreemble <- function(data) {
         colName <- "H__REPORTNAME"
     }
 
-    ## ## Get the file type (position or transaction?)
+    ## Get the file type (position or transaction?)
     fileType <- gsub("_", "", as.character(data[, colName])[1])
 
     if (colName == "REPNAME") {
@@ -239,6 +239,11 @@ ansbacherFilePreemble <- function(data) {
 
     if (safeGrep(file, "SEC_V001") == "1") {
         fileType <- "SECV001"
+        return(list(data = data, type = fileType))
+    }
+
+    if (safeGrep(file, "ITG") == "1") {
+        return(list(data = data, type = fileType))
     }
 
     dataByAccount <- extractToList(data, "ACCOUNT")

@@ -1006,26 +1006,22 @@ ansbacherCashTXN <- function(data, res, session) {
 ##' @export
 ansbacherCreateOtherResource <- function(data, session) {
 
+    naRes <- is.na(data[, "mainres"]) & data[, "APPCODE"] != "COU"
+
     ## If any NA resmains, create OTHER resource:
-    if (any(is.na(data[, "mainres"]))) {
+    if (any(naRes)) {
 
-        ## TODO:
-        nonRes <- data[, "APPCODE"] == "COU"
-
-        ## Get the na resmain index:
-        naRes <- is.na(data[, "mainres"]) & !nonRes
-
-        ## Construct the prefix for the symbol.
+        ## Get the prefix of the security identity:
         prefix <- sapply(strsplit(as.character(data[naRes, "SECIDENT"]), "\\."), function(x) x[1])
 
         ## Construct the symbol:
         symbol <- paste(prefix, data[naRes, "TXNCCY"], "[ABACHER]")
 
-        ## Get the price factor for the resource:
+        ## Get the price factor:
         pxfactor <- data[naRes, "pxfactor"]
 
-        ## Get the ccymain for the resource:
-        ccymain <-data[naRes, "TXNCCY"]
+        ## Get the ccymain of the resource:
+        ccymain <- data[naRes, "TXNCCY"]
 
         ## Construct the data frame:
         df <- data.frame("symbol"=symbol,
@@ -1035,13 +1031,20 @@ ansbacherCreateOtherResource <- function(data, session) {
                          "pxfactor"=ifelse(pxfactor == 0, 1, pxfactor),
                          "ccymain"=ifelse(ccymain == "NO", "USD", ccymain))
 
-        ## Create the resource as Other:
+        ## Create the OTHER resource:
         result <- createOtherResource(df, session)
+
+        ## Assign the resource id:
         data[naRes, "mainres"] <- sapply(result, function(x) x$id)
 
+        ## Get resources which are still NA:
         naRes <- is.na(data[, "mainres"])
+
+        ##:
         data[naRes, "mainres"] <- data[!naRes, ][match(data[naRes, "SECID"], data[!naRes, "SECID"]), "mainres"]
     }
 
     return(data)
+
+
 }

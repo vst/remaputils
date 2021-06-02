@@ -4,7 +4,7 @@
 \alias{getDBObject}
 \title{This function gets the data base object as data frame.}
 \usage{
-getDBObject(endpoint, session, addParams = NULL)
+getDBObject(endpoint, session, addParams = NULL, pageSize = -1)
 }
 \arguments{
 \item{endpoint}{The endpoint.}
@@ -12,6 +12,8 @@ getDBObject(endpoint, session, addParams = NULL)
 \item{session}{The rdecaf session.}
 
 \item{addParams}{A list with additional parameters.}
+
+\item{pageSize}{numeric to return number of pages, default -1 = all.}
 }
 \value{
 A data frame with the endpoint as data frame.

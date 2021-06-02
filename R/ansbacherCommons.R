@@ -966,6 +966,7 @@ ansbacherCashTXN <- function(data, res, session) {
 
     ## Prepare the data frame:
     records <- data.frame("ctype"="20",
+                          "stype"=paste0(data[, "APPCODE"], ": ", data[, "TXNTYPEPARSED"]),
                           "accmain"=data[, "accmain"],
                           "pxmain"=1,
                           "resmain"=res[match(data[, "TXNCCY"], res[, "symbol"]), "id"],
@@ -981,6 +982,7 @@ ansbacherCashTXN <- function(data, res, session) {
                           "reference"=data[, "OPRCODE"],
                           "guid"=guid,
                           stringsAsFactors=FALSE)
+
 
     ## Exclude the 0 qtymain's:
     records <- records[records[, "qtymain"] != 0, ]

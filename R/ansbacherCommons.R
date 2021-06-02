@@ -40,6 +40,8 @@ ansbacherSecTypeMapper <- function() {
                     "stype"="Alternative"),
          "404"=list("ctype"="SHRE",
                     "stype"="Stocks"),
+         "408"=list("ctype"="SHRE",
+                    "stype"="Warrant"),
          "201"=list("ctype"="SHRE",
                     "stype"="Alternative"),
          "320"=list("ctype"="SHRE",

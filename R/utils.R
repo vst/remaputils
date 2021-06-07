@@ -1,3 +1,50 @@
+##' A function to normalise country names.
+##'
+##' This is a description.
+##'
+##' @param str A string vector.
+##' @return The vector with the normalised country names.
+##' @export
+countryNormalizer <- function(str) {
+
+    ## The country normalizer mapping:
+    countryMap <- list("United States of America"=c("United States of America", "US", "United States"),
+                       "Germany"=c("Germany", "Deutschland", "DE"),
+                       "Switzerland"=c("Switzerland", "Schweiz"),
+                       "India"=c("India", "India (Republic of)"),
+                       "South Korea"=c("South Korea", "Korea (Republic of) (South)"),
+                       "China"=c("China", "China (People's Republic of)"),
+                       "Brazil"=c("Brazil", "BR"),
+                       "British Virgin Islands"=c("British Virgin Islands", "British Virgin"),
+                       "Cayman Islands"=c("Cayman Islands", "KY"),
+                       "United Kingdom"=c("United Kingdom", "UK", "Britain"),
+                       "United Arab Emirates"=c("United Arab Emirates", "UAE"))
+
+    ## Iterate over the string vector:
+    retval <- as.character(sapply(str, function(x) {
+
+        ## If string is NA, return the same:
+        if (is.na(x)) {
+            return(NA)
+        }
+
+        ## Attempt to match the string to the countrMap list elements:
+        idx <- sapply(countryMap, function(z) any(toupper(trimws(z)) == toupper(trimws(x))))
+
+        ## If any match, use the name of the corresponding countryMap list:
+        if (any(idx)) {
+            return(as.character(names(countryMap)[idx]))
+        }
+
+        ## If no match, return the same:
+        return(as.character(x))
+    }))
+
+    ## Finally, capitalise the string and return:
+    return(capitalise(retval))
+}
+
+
 ##' A function to trim excess white spaces.
 ##'
 ##' This is a description.

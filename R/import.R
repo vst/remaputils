@@ -1,3 +1,40 @@
+##' Get the asset class data frame with the full names appended
+##'
+##' This is the description
+##'
+##' @param session The rdecaf session.
+##' @return A data frame with the asset classes.
+##' @export
+getAssetClasses <- function(session) {
+
+    ## Get the asset classes in system:
+    assetclasses <- getDBObject("assetclasses", session=session)
+
+    ## Get the full asset class names:
+    fullnames <- apply(assetclasses[, safeGrep(colnames(assetclasses), "path") == "1"], MARGIN=1, function(x) {
+
+        ## If no asset class, return NA:
+        if (is.na(x[1])) {
+            return(NA)
+        }
+
+        ## If no subclass, return parent:
+        if (is.na(x[2])) {
+            return(x[1])
+        }
+
+        ## Return data frame with full name appended:
+        return(paste0(x[1], "|", x[2]))
+
+    })
+
+    ## Append the fullname and return:
+    return(data.frame(assetclasses, "fullname"=fullnames, stringsAsFactors=FALSE))
+
+}
+
+
+
 ##' Creates the asset class hierarcy
 ##'
 ##' This is the description

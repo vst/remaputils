@@ -578,6 +578,7 @@ getFormattedHoldings <- function(holdings){
 ##' @param session The rdecaf session
 ##' @param ... Additional parameters
 ##' @return A data-frame with the printable format of holdings
+##' @import tidyverse
 ##' @export
 getPrintableHoldings <- function(portfolio=NA,
                                  account=NA,
@@ -653,8 +654,22 @@ getPrintableHoldings <- function(portfolio=NA,
 
     ## If no holdings, return empty holdings:
     if (noHoldings) {
-        return(list("holdings"=NULL,
-                    "consolidation"=consolidation))
+
+    holdingsDetails <- list("holdings"=initDF(colselect),
+                                "subtlIdx"=1,
+                                "subtl2Idx"=1,
+                                "totalIdx"=1,
+                                "holdsIdx"=1)  
+
+
+        return(list("holdings"=holdingsDetails,
+                    "consolidation"=consolidation,
+                    "rawHoldings"=NULL,
+                    "colselect"=colselect,
+                    "resources"=NULL 
+                    )
+                    )
+
     }
 
     ## Get the stocks:
@@ -693,12 +708,19 @@ getPrintableHoldings <- function(portfolio=NA,
         colselect <- c(colselect, addCols)
     }
 
+    ## Clean the header name
+    formattedHoldings <- formattedHoldings[, colselect]  %>% 
+      mutate(isHeader=if_else(is.na(isHeader),"FALSE",isHeader))
+      
+    holdingsDetails <- getHoldingsDetails(formattedHoldings,colselect,consolidation[["nav"]])
+
     ## Return:
-    list("holdings"=formattedHoldings[, colselect],
+    list("holdingsDetails"=holdingsDetails,
          "consolidation"=consolidation,
          "rawHoldings"=enrichedHoldings,
          "colselect"=colselect,
-         "resources"=resources)
+         "resources"=resources
+         )
 }
 
 ##' TODO:
@@ -797,14 +819,10 @@ prepareHoldingsTables <- function(holdings, colSelect, colOverride=NULL, summary
 
     ## Parse the isHeader column:
     holdings[["holdings"]][, "isHeader"] <- ifelse(is.na(holdings[["holdings"]][, "isHeader"]), FALSE, holdings[["holdings"]][, "isHeader"])
-
+#should be unnecessary, this step is taken care of in `getPringtableHoldings`
     ## Get the holdings details:
     holdingsDetails <- getHoldingsDetails(holdings[["holdings"]], colSelect, holdings[["consolidation"]][["nav"]])
-
-    if (!is.null(colOverride)) {
-        colnames(holdingsDetails[["holdingsDetails"]]) <- colOverride
-    }
-
+#should be changed to: holdings[["holdingsDetails"]]
     ## Parse the Type if it exists:
     if (any(colnames(holdingsDetails[["holdingsDetails"]]) == "Type")) {
         holdingsDetails[["holdingsDetails"]][, "Type"] <- capitalise(ellipsify(holdingsDetails[["holdingsDetails"]][, "Type"], 15))

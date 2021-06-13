@@ -553,6 +553,8 @@ getHoldingsDetails <- function(holdings, colSelect, nav=NULL) {
     ## Remove the rownames:
     rownames(holdings) <- NULL
 
+    colSelect <- colSelect[match(colnames(holdings), colSelect)]
+    
     ## Select the columns:
     holdings <- holdings[, colSelect]
 

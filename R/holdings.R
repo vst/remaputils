@@ -710,12 +710,12 @@ getPrintableHoldings <- function(portfolio=NA,
 
     ## Clean the header name
     formattedHoldings <- formattedHoldings[, colselect]  %>% 
-      mutate(isHeader=if_else(is.na(isHeader),"FALSE",isHeader))
-      
+      mutate(isHeader=if_else(is.na(isHeader),FALSE,as.logical(isHeader)))
+    
     holdingsDetails <- getHoldingsDetails(formattedHoldings,colselect,consolidation[["nav"]])
 
     ## Return:
-    list("holdingsDetails"=holdingsDetails,
+    list("holdings"=holdingsDetails,
          "consolidation"=consolidation,
          "rawHoldings"=enrichedHoldings,
          "colselect"=colselect,

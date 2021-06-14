@@ -118,7 +118,8 @@ arrangeHoldings <- function(holdings, col) {
          "asstLbts" = grpSum[["asstLbts"]],
          "asstLbtsSum"=grpSum[["asstLbtsSummary"]],
          "positions"=grpSum[["positions"]],
-         "total"=sum(na.omit(holdings[is.na(holdings[, "order"]), "Value"])))
+         "total"=sum(na.omit(holdings[is.na(holdings[, "order"]), "Value"] %>% as.numeric()))
+         )
 }
 
 
@@ -140,14 +141,17 @@ getPositionsByGrp <- function(holdings, col) {
     names(grpPos) <- unique(na.omit(holdings[, col]))
 
     ## Get asset and liabilities:
-    grpAsstLbts <- lapply(grpPos, function(x) list("asset"=cleanNARowsCols(x[x[, "Value"] > 0,]), "liability"=cleanNARowsCols(x[x[, "Value"] < 0, ])))
+    grpAsstLbts <- lapply(grpPos, function(x) list("asset"=cleanNARowsCols(x[numerize(x[, "Value"]) > 0,]), "liability"=cleanNARowsCols(x[numerize(x[, "Value"]) < 0, ])))
 
     ## Assign the names:
     names(grpAsstLbts) <- unique(na.omit(holdings[, col]))
 
     ## Get the asset liability summary:
-    grpLbtsSummary <- do.call(rbind, lapply(grpAsstLbts, function(x) c("totalAsset"=sum(safeColumn(x[["asset"]], "Value")),
-                                                                       "totalLiability"=sum(safeColumn(x[["liability"]], "Value")))))
+    grpLbtsSummary <- do.call(rbind, lapply(grpAsstLbts, function(x) c("totalAsset"=sum(numerize(safeColumn(x[["asset"]], "Value"))),
+                                                                       "totalLiability"=sum(numerize(safeColumn(x[["liability"]], "Value")))
+                                                                       )
+                                                                       )
+                                                                       )
     return(list("positions"=grpPos,
                 "asstLbts"=grpAsstLbts,
                 "asstLbtsSummary"=grpLbtsSummary))
@@ -545,10 +549,10 @@ getHoldingsDetails <- function(holdings, colSelect, nav=NULL) {
     holdsRowIdx <- which(holdings[, "order"] == "3" | holdings[, "order"] == max(na.omit(holdings[, "order"])))
 
     ## Remove the order column:
-    holdings <- holdings[, !(colnames(holdings) == "order")]
+    #holdings <- holdings[, !(colnames(holdings) == "order")]
 
     ## Remove the header column:
-    holdings <- holdings[, !(colnames(holdings) == "isHeader")]
+    #holdings <- holdings[, !(colnames(holdings) == "isHeader")]
 
     ## Remove the rownames:
     rownames(holdings) <- NULL
@@ -598,6 +602,8 @@ getHoldingsDetails <- function(holdings, colSelect, nav=NULL) {
     holdings[is.na(holdings)] <- ""
     holdings[holdings == "NA"] <- ""
     holdings[holdings == "NA %"] <- ""
+    
+
 
     ## Done, return:
     list("holdingsDetails"=holdings,

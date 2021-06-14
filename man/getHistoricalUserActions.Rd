@@ -7,9 +7,10 @@
 getHistoricalUserActions(
   session,
   endpoint,
+  sample = 1000,
   exclCols = NULL,
   exclKeys = NULL,
-  actionQueryParams = NULL
+  asof = NULL
 )
 }
 \arguments{
@@ -21,7 +22,7 @@ getHistoricalUserActions(
 
 \item{exclKeys}{The keys to exclude from exclCols.}
 
-\item{actionQueryParams}{Addtional query parameters to be passed to params.}
+\item{asof}{Addtional query parameters to be passed to params.}
 }
 \value{
 A table with the automation rate.

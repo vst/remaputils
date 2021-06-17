@@ -4,7 +4,7 @@
 \alias{computeAutomationRate}
 \title{This function computes the automation rate for users.}
 \usage{
-computeAutomationRate(userActions)
+computeAutomationRate(userActions, includeAUTO = TRUE)
 }
 \arguments{
 \item{userActions}{The data frame with the use actions.}

@@ -719,7 +719,8 @@ getPrintableHoldings <- function(portfolio=NA,
          "consolidation"=consolidation,
          "rawHoldings"=enrichedHoldings,
          "colselect"=colselect,
-         "resources"=resources
+         "resources"=resources,
+         "formattedHoldings"= formattedHoldings
          )
 }
 

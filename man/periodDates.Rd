@@ -6,7 +6,7 @@
 \usage{
 periodDates(
   periodLetter,
-  yearsOfHistory = 3,
+  yearsOfHistory = 5,
   endOfWeek = "Friday",
   date = Sys.Date()
 )
@@ -14,7 +14,7 @@ periodDates(
 \arguments{
 \item{periodLetter}{Any of "D", "W", "M", "Q", "Y"}
 
-\item{yearsOfHistory}{The amount of years to lookback. Default is 3.}
+\item{yearsOfHistory}{The amount of years to lookback. Default is 5.}
 
 \item{endOfWeek}{For weekly periodicity, the end of week day. Default is "Friday".}
 

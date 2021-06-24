@@ -727,9 +727,16 @@ getInternalMonthlyReturns <- function(intPrice, date, session) {
 
     ## Fill the missing ohlc returns with internal monthly returns:
     for (i in 1:(length(months)-1)) {
+
         mIdx <- which(zoo::index(returns) == months[i+1])
+
+        if (length(mIdx) == 0) {
+            mIdx <- NROW(returns)
+        }
+
         nIdx <- which(zoo::index(returns) == months[i])
         returns[mIdx, "periodic"] <- as.numeric(tail(cumprod(1+returns[(mIdx):(nIdx+1), "internal"]) - 1, 1))
+
     }
 
     ## Compute the cumulative returns:
@@ -1066,7 +1073,9 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
                          "Quantile Ratio"=NA,
                          "Avg. Losing Month"=NA,
                          check.names=FALSE,
-                         stringsAsFactors=FALSE)
+                         stringsAsFactors=FALSE,
+                         row.names=NULL)
+
 
     ## If empty df, return NA's:
     if (is.null(df) | NROW(df) == 0) {
@@ -1084,9 +1093,9 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
 
     ## If there are a few observations, return only Total Return:
     if (NROW(df) < 7 | returnOnly) {
-        retval[, "Period:Return"] <- tail(as.numeric(ts), 1) / head(as.numeric(ts), 1) - 1
-        retval[, "Annual:Return"] <- retsAnnual
-        retval[, "Daily:Return"] <- as.numeric(mean(na.omit(rets)))
+        retval[, "Period: Return"] <- tail(as.numeric(ts), 1) / head(as.numeric(ts), 1) - 1
+        retval[, "Annual: Return"] <- retsAnnual
+        retval[, "Daily: Return"] <- as.numeric(mean(na.omit(rets)))
         return(retval)
     }
 
@@ -1214,10 +1223,23 @@ exfoliateSeries <- function(series, anchors) {
 ##' @param returnOnly Consider only Total Return?
 ##' @param excludeWeekends Should the weekends be excluded? Default to TRUE.
 ##' @param session The rdecaf session.
-##' @param treat Should the time series be treated? Default=TRUE
+##' @param treat Should the time series be treated? Default=TRUE.
+##' @param exclude Which ctypes should be excluded? Default=c("FXFWD", "DEPO", "LOAN").
 ##' @return A data frame with the asset returns.
 ##' @export
-getAssetReturns <- function(date, ccy, resources, priceField="ohlcID", periods, returnOnly, excludeWeekends, session, treat=TRUE) {
+getAssetReturns <- function(date,
+                            ccy,
+                            resources,
+                            priceField="ohlcID",
+                            periods,
+                            returnOnly,
+                            excludeWeekends,
+                            session,
+                            treat=TRUE,
+                            exclude=c("FXFWD", "DEPO", "LOAN")) {
+
+    ## Exclude ctypes:
+    resources <- resources[!mCondition(resources, "ctype", exclude), ]
 
     ## Get the slices ohlcs:
     slicedOhlcs <- getSlicedOhlcs(resources[, priceField], session, date, periods, excludeWeekends)
@@ -1232,26 +1254,39 @@ getAssetReturns <- function(date, ccy, resources, priceField="ohlcID", periods, 
     ## Get the returns:
     returnStats <- lapply(slicedOhlcs, function(s) do.call(rbind, lapply(s, function(y) computeReturnStats(y, "close", "date", method="discrete", returnOnly=returnOnly))))
 
-    ## Append the FX pair:
-    returnStats <- lapply(returnStats, function(x) data.frame(x, "pair"=as.character(paste0(resources[, "ccymain"], ccy)), check.names=FALSE))
-
-    ## Get the unique FX pairs:
-    uniquePairs <-as.character(unique(returnStats[[1]][, "pair"]))
+    ## ## Get the unique FX pairs:
+    pairs <- as.character(paste0(resources[, "ccymain"], ccy))
 
     ## Get the slices ohlcs:
-    slicedFX <- getSlicedOhlcs(uniquePairs, session, date, periods)
+    slicedFX <- getSlicedOhlcs(unique(pairs), session, date, periods)
 
     ## Get the returns:
     returnFXStats <- lapply(slicedFX, function(s) do.call(rbind, lapply(s, function(y) computeReturnStats(y, "close", "date", method="discrete", returnOnly=returnOnly))))
 
     ## Append the FX and total returns:
     returnStats <- lapply(1:length(returnStats), function(i) {
-        retval <- data.frame(returnStats[[i]],
-                             "fxRet"=returnFXStats[[i]][match(returnStats[[i]][, "pair"], rownames(returnFXStats[[i]])), "Return"],
+
+        rStats <- returnStats[[i]]
+        rFXStats <- returnFXStats[[i]]
+        pairs <- paste0(resources[match(rownames(rStats), resources[, "symbol"]), "ccymain"], ccy)
+
+        retCols <- safeGrep(colnames(rStats), "Return") == "1"
+
+        fxRet <- rStats[, retCols]
+        fxRet[is.na(fxRet)] <- 0
+        colnames(fxRet) <- paste0(gsub("Return", "Rets", colnames(fxRet)), "FX")
+
+        retval <- data.frame(rStats,
+                             fxRet,
                              check.names=FALSE)
-        retval[is.na(retval[, "fxRet"]), "fxRet"] <- 0
-        retval[, "Total Return"] <- retval[, "Return"] + retval[, "fxRet"]
-        retval
+
+        totalReturns <- retval[, safeGrep(colnames(retval), "Return") == "1"] + retval[, safeGrep(colnames(retval), "RetsFX") == "1"]
+        colnames(totalReturns) <- paste0(colnames(totalReturns), ":Total")
+
+        data.frame(retval,
+                   totalReturns,
+                   check.names=FALSE)
+
     })
 
     ## Name the list:

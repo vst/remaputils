@@ -571,7 +571,7 @@ getHoldingsDetails <- function(holdings, colSelect, nav=NULL) {
     rownames(holdings) <- NULL
 
     colSelect <- colSelect[match(colnames(holdings), colSelect)]
-    
+
     ## Select the columns:
     holdings <- holdings[, colSelect]
 
@@ -615,7 +615,7 @@ getHoldingsDetails <- function(holdings, colSelect, nav=NULL) {
     holdings[is.na(holdings)] <- ""
     holdings[holdings == "NA"] <- ""
     holdings[holdings == "NA %"] <- ""
-    
+
 
 
     ## Done, return:
@@ -826,7 +826,7 @@ beanbagStringHighlight <- function(string, textColor="white", bgColor="darkblue"
 ##' This is a description.
 ##'
 ##' @param stats The statistics data frame from the endpoint.
-##' @param percentVals The row names which should be converted to %.
+##' @param percentVals The row names which should be converted to percent.
 ##' @param roundN The number of digits to be rounded to for non percentage values. Default is 2.
 ##' @return A styled html table.
 ##' @export
@@ -836,6 +836,8 @@ beanbagPerformanceTable <- function(stats, percentVals=c("return", "stddev", "ma
     if (is.null(dim(stats))) {
         return(NULL)
     }
+
+    stats <- as.data.frame(stats, stringsAsFactors=FALSE)
 
     ## Set all DTD values besides return to NA:
     stats[rownames(stats) != "return", "DTD"] <- NA

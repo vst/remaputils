@@ -13,7 +13,7 @@ beanbagPerformanceTable(
 \arguments{
 \item{stats}{The statistics data frame from the endpoint.}
 
-\item{percentVals}{The row names which should be converted to %.}
+\item{percentVals}{The row names which should be converted to percent.}
 
 \item{roundN}{The number of digits to be rounded to for non percentage values. Default is 2.}
 }

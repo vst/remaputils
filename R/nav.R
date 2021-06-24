@@ -11,7 +11,7 @@
 getInternalNAVShare <- function(portfolio, ccy, date, session) {
 
     ## Get the persisted consolidation:
-    pConsolidation <- getResource("pconsolidations", params=list("portfolio"=portfolio, "page_size"=-1), session=session)
+    pConsolidation <- getResource("pconsolidations", params=list("portfolio"=portfolio, "page_size"=-1, "date__gte"=dateOfPeriod("Y-0", date), "price__gt"=0), session=session)
 
     if (length(pConsolidation) == 0) {
         return(data.frame("date"=seq(dateOfPeriod("Y-0"), date, 1), "price"=100, "ccy"=ccy))

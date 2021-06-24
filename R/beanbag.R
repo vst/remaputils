@@ -406,9 +406,10 @@ beanbagNAVTable <- function (x, inception, pxinfo, investments=NULL, useIntYtd=F
 ##' @param end  The desired end date.
 ##' @param freq The desired frequency.
 ##' @param session The rdecaf session.
+##' @param period The period memnonic. Default is Y-0.
 ##' @return A list with the indexed cumulative return series and performance stats.
 ##' @export
-getPerformance <- function(portfolio, start, end, freq="daily", session) {
+getPerformance <- function(portfolio, start, end, freq="daily", session, period="Y-0") {
 
     ## Construct the params:
     params <- list("portfolios"=portfolio,
@@ -416,9 +417,17 @@ getPerformance <- function(portfolio, start, end, freq="daily", session) {
                    "end"=end,
                    "frequency"=freq)
 
+    start <- dateOfPeriod(period, end)
+
+    periodN <- substr(period, 3, 3)
+
+    if (any(mgrep(periodN, c("1", "2", "3", "4")) != "0")) {
+        end <- dateOfPeriod(paste0(substr(period, 1, 2), as.numeric(substr(period, 3, 3)) - 1))
+    }
+
     ## Construct the params:
     params <- list("portfolios"=portfolio,
-                   "start"=dateOfPeriod("Y-0", end),
+                   "start"=start,
                    "end"=end,
                    "frequency"=freq)
 
@@ -448,6 +457,9 @@ getPerformance <- function(portfolio, start, end, freq="daily", session) {
     series[1] <- ifelse(is.na(series[1]), 1, series[1])
     series <- zoo::na.locf(series, fromLast=FALSE)
 
+    ## Compute the extra statistics:
+    xstats <- computeReturnStats(data.frame("price"=series, "date"=as.Date(unlist(performance[["indexed"]][["index"]]))), "price", "date", method="discrete", returnOnly=FALSE)
+
     ## Get the performance index series:
     series <- xts::as.xts(series,
                           order.by=as.Date(unlist(performance[["indexed"]][["index"]])))
@@ -469,7 +481,8 @@ getPerformance <- function(portfolio, start, end, freq="daily", session) {
 
     ## Return:
     list("series"=series,
-         "stats"=stats)
+         "stats"=stats,
+         "xstats"=xstats)
 }
 
 
@@ -558,7 +571,7 @@ getHoldingsDetails <- function(holdings, colSelect, nav=NULL) {
     rownames(holdings) <- NULL
 
     colSelect <- colSelect[match(colnames(holdings), colSelect)]
-    
+
     ## Select the columns:
     holdings <- holdings[, colSelect]
 
@@ -602,7 +615,7 @@ getHoldingsDetails <- function(holdings, colSelect, nav=NULL) {
     holdings[is.na(holdings)] <- ""
     holdings[holdings == "NA"] <- ""
     holdings[holdings == "NA %"] <- ""
-    
+
 
 
     ## Done, return:
@@ -813,35 +826,49 @@ beanbagStringHighlight <- function(string, textColor="white", bgColor="darkblue"
 ##' This is a description.
 ##'
 ##' @param stats The statistics data frame from the endpoint.
+##' @param percentVals The row names which should be converted to percent.
+##' @param roundN The number of digits to be rounded to for non percentage values. Default is 2.
 ##' @return A styled html table.
 ##' @export
-beanbagPerformanceTable <- function(stats) {
+beanbagPerformanceTable <- function(stats, percentVals=c("return", "stddev", "maxddown"), roundN=2) {
 
     ## If no data-frame, Return NULL:
     if (is.null(dim(stats))) {
         return(NULL)
     }
 
-    ## Percentify rows:
-    for (fld in c("return", "stddev", "maxddown")) {
+    stats <- as.data.frame(stats, stringsAsFactors=FALSE)
 
+    ## Set all DTD values besides return to NA:
+    stats[rownames(stats) != "return", "DTD"] <- NA
+
+    ## Get the percentage indices:
+    pctIdx <- apply(mgrep(rownames(stats), percentVals), MARGIN=1, function(x) any(x != "0"))
+
+    ## Apply the rounding if provided:
+    if (!is.null(roundN)) {
+        stats[!pctIdx, ] <- apply(stats[!pctIdx, ], MARGIN=2, function(x) round(x, roundN))
+    }
+
+    ## Percentify rows:
+    for (fld in percentVals) {
         if (any(rownames(stats) == fld)) {
             ## Percentify rows:
             stats[fld, ] <- trimws(percentify(stats[fld, ]))
         }
-
     }
 
-    ## Round row(s):
-    if (any(rownames(stats) == "sharpe")) {
-        ## Round row(s):
-        stats["sharpe", ] <- round(as.numeric(stats["sharpe",]), 2)
-    }
+    ## ## Round row(s):
+    ## if (any(rownames(stats) == "sharpe")) {
+    ##     ## Round row(s):
+    ##     stats["sharpe", ] <- round(as.numeric(stats["sharpe",]), 2)
+    ## }
 
     ## Get rid of unwanted characters:
     stats[stats == "0 %"] <- NA
     stats[stats == "NA %"] <- NA
-    stats <- trimws(stats)
+    stats[stats == "NaN"] <- NA
+    ## stats <- trimws(stats)
 
     ## Capitalise the rownames:
     rownames(stats) <- capitalise(rownames(stats))

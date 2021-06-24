@@ -4,7 +4,7 @@
 \alias{getPerformance}
 \title{Gets and prepares the performance information for a portfolio.}
 \usage{
-getPerformance(portfolio, start, end, freq = "daily", session)
+getPerformance(portfolio, start, end, freq = "daily", session, period = "Y-0")
 }
 \arguments{
 \item{portfolio}{The portfolio id.}
@@ -16,6 +16,8 @@ getPerformance(portfolio, start, end, freq = "daily", session)
 \item{freq}{The desired frequency.}
 
 \item{session}{The rdecaf session.}
+
+\item{period}{The period memnonic. Default is Y-0.}
 }
 \value{
 A list with the indexed cumulative return series and performance stats.

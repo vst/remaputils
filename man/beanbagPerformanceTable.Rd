@@ -4,10 +4,18 @@
 \alias{beanbagPerformanceTable}
 \title{Prepares the performance table as styled html.}
 \usage{
-beanbagPerformanceTable(stats)
+beanbagPerformanceTable(
+  stats,
+  percentVals = c("return", "stddev", "maxddown"),
+  roundN = 2
+)
 }
 \arguments{
 \item{stats}{The statistics data frame from the endpoint.}
+
+\item{percentVals}{The row names which should be converted to percent.}
+
+\item{roundN}{The number of digits to be rounded to for non percentage values. Default is 2.}
 }
 \value{
 A styled html table.

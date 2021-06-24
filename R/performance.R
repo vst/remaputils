@@ -512,6 +512,7 @@ assetPerformanceWrapper <- function(portfolio,
         resources <- getResourcesByStock(getStocks(portfolio[, "id"], session, zero=zero, date=date, c="portfolio"), session, getUnderlying=FALSE)
     }
 
+
     ## Get the asset returns:
     assetReturns <- getAssetReturns("date"=date,
                                     "ccy"=portfolio[, "rccy"],
@@ -522,11 +523,16 @@ assetPerformanceWrapper <- function(portfolio,
                                     "excludeWeekends"=excludeWeekends,
                                     "session"=session)
 
+
+    mtd <- assetReturns[["returnStats"]][["MTD"]][, safeGrep(colnames(assetReturns[["returnStats"]][["MTD"]]), "Return") == "1"]
+    colnames(mtd) <- c("mtd:period:return", "mtd:annual:return", "mtd:daily:return", "mtdfx:period:return", "mtdfx:annual:return", "mtdfx:daily:return")
+
+    ytd <- assetReturns[["returnStats"]][["YTD"]][, safeGrep(colnames(assetReturns[["returnStats"]][["YTD"]]), "Return") == "1"]
+    colnames(ytd) <- c("ytd:period:return", "ytd:annual:return", "ytd:daily:return", "ytdfx:period:return", "ytdfx:annual:return", "ytdfx:daily:return")
+
     ## Flatten the asset returns stats:
-    rStats <- data.frame("mtd"=assetReturns[["returnStats"]][["MTD"]][, "Return"],
-                         "ytd"=assetReturns[["returnStats"]][["YTD"]][, "Return"],
-                         "mtdfx"=assetReturns[["returnStats"]][["MTD"]][, "Total Return"],
-                         "ytdfx"=assetReturns[["returnStats"]][["YTD"]][, "Total Return"],
+    rStats <- data.frame(mtd,
+                         ytd,
                          "symbol"=rownames(assetReturns[["returnStats"]][["YTD"]]),
                          "ctype"=resources[match(rownames(assetReturns[["returnStats"]][["YTD"]]), resources[, "symbol"]), "ctype"],
                          "lastPxDate"=assetReturns[["returnStats"]][["YTD"]][, "lastPxDate"])

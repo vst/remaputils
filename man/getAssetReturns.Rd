@@ -13,7 +13,8 @@ getAssetReturns(
   returnOnly,
   excludeWeekends,
   session,
-  treat = TRUE
+  treat = TRUE,
+  exclude = c("FXFWD", "DEPO", "LOAN")
 )
 }
 \arguments{
@@ -33,7 +34,9 @@ getAssetReturns(
 
 \item{session}{The rdecaf session.}
 
-\item{treat}{Should the time series be treated? Default=TRUE}
+\item{treat}{Should the time series be treated? Default=TRUE.}
+
+\item{exclude}{Which ctypes should be excluded? Default=c("FXFWD", "DEPO", "LOAN").}
 }
 \value{
 A data frame with the asset returns.

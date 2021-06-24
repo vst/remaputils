@@ -550,7 +550,11 @@ areaTimeSeriesPlot <- function(df, smooth=0.3, limitFactor=0.1, title, ylab="", 
 ##' @export
 relativePerformancePlot <- function(performance, primCol, secdCol, portfolioLabel="Fund") {
 
-    if (is.null(performance[["benchmark"]][["xts"]])) {
+    ## :
+    hasBenchmark <- !is.null(performance[["benchmark"]][["xts"]])
+
+    ## :
+    if (!hasBenchmark) {
         benchmarkXTS <- xts::as.xts(1, order.by=min(zoo::index(performance[["container"]][["xts"]])))
         benchmarkReturns <- xts::as.xts(cbind(0, 0, 0, 0), order.by=min(zoo::index(performance[["container"]][["xts"]])))
         colnames(benchmarkReturns) <- c("raw", "monthly", "yearly", "cumrets")
@@ -576,7 +580,9 @@ relativePerformancePlot <- function(performance, primCol, secdCol, portfolioLabe
     yearlyRets <- cbind(performance[["container"]][["returns"]][, "yearly"], performance[["benchmark"]][["returns"]][, "yearly"])
     yearlyRets[is.na(yearlyRets)] <- 0
     yrIdx <- which(yearlyRets[, 1] != 0)
-    yrVal <- as.numeric(yearlyRets[yearlyRets[, 2] != 0, 2])
+
+    ## yrVal <- as.numeric(yearlyRets[yearlyRets[, 2] != 0, 2])
+    yrVal <- as.numeric(xts::apply.yearly(na.omit(diff(log(priceIndex[, 2]))), sum))
     yearlyRets[, 2] <- 0
 
     if (length(yrVal) == 0) {
@@ -710,17 +716,29 @@ relativePerformancePlot <- function(performance, primCol, secdCol, portfolioLabe
     ## Add the horizontal line:
     abline(h=0, lwd=0.4, lty=2)
 
+    if (hasBenchmark) {
+        legend <- c(portfolioLabel, "Benchmark", sprintf("%s %s p.a | YTD", portfolioLabel, "%"), "Benchmark % p.a | YTD")
+        lwd <- c(2, 2, 0, 0)
+        col <- rep(c(adjustcolor(primCol, alpha.f = 0.9), adjustcolor(secdCol, alpha.f = 0.9)), 2)
+        pch <- c(NA, NA, 15, 15)
+    } else {
+        legend <- c(portfolioLabel, sprintf("%s %s p.a | YTD", portfolioLabel, "%"))
+        lwd <- c(2, 0)
+        col <- rep(adjustcolor(primCol, alpha.f = 0.9), 2)
+        pch <- c(NA, 15)
+    }
+
     ## Add the legend:
     legend(2,
            min(c(min((yearlyRets+1) * 0.95 - 1), max((yearlyRets+1) * 1.05 - 1))) * 0.5,
-           legend=c(portfolioLabel, "Benchmark", sprintf("%s %s p.a | YTD", portfolioLabel, "%"), "Benchmark % p.a | YTD"),
+           legend=legend,
            lty=1,
            bg=adjustcolor("gray", alpha.f=0.2),
            box.lty=0,
-           lwd=c(2, 2, 0, 0),
+           lwd=lwd,
            ncol=2,
-           col=rep(c(adjustcolor(primCol, alpha.f = 0.9), adjustcolor(secdCol, alpha.f = 0.9)), 2),
-           pch=c(NA, NA, 15, 15),
+           col=col,
+           pch=pch,
            pt.cex=1.25,
            cex=1)
 

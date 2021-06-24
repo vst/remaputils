@@ -727,9 +727,16 @@ getInternalMonthlyReturns <- function(intPrice, date, session) {
 
     ## Fill the missing ohlc returns with internal monthly returns:
     for (i in 1:(length(months)-1)) {
+
         mIdx <- which(zoo::index(returns) == months[i+1])
+
+        if (length(mIdx) == 0) {
+            mIdx <- NROW(returns)
+        }
+
         nIdx <- which(zoo::index(returns) == months[i])
         returns[mIdx, "periodic"] <- as.numeric(tail(cumprod(1+returns[(mIdx):(nIdx+1), "internal"]) - 1, 1))
+
     }
 
     ## Compute the cumulative returns:
@@ -1025,28 +1032,54 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
     ## Remove zero prices:
     df <- df[df[, pxCol] != 0 | df[, pxCol] != "0", ]
 
+    retval <- data.frame("Period: Return"=NA,
+                         "Period: Volalitiy"=NA,
+                         "Period: Downside Deviation"=NA,
+                         "Period: Sharpe (STDEV)"=NA,
+                         "Period: Sharpe (VaR)"=NA,
+                         "Period: Sharpe (ES)"=NA,
+                         "Period: Calmar Ratio"=NA,
+                         "Period: Sortino Ratio"=NA,
+                         "Period: Sterling Ratio"=NA,
+                         "Period: Value-At-Risk"=NA,
+                         "Period: Expected Shortfall"=NA,
+                         "Annual: Return"=NA,
+                         "Annual: Volatility"=NA,
+                         "Annual: Downside Deviation"=NA,
+                         "Annual: Sharpe (STDEV)"=NA,
+                         "Annual: Sharpe (VaR)"=NA,
+                         "Annual: Sharpe (ES)"=NA,
+                         "Annual: Calmar Ratio"=NA,
+                         "Annual: Sortino Ratio"=NA,
+                         "Annual: Sterling Ratio"=NA,
+                         "Annual: Value-At-Risk"=NA,
+                         "Annual: Expected Shortfall"=NA,
+                         "Daily: Return"=NA,
+                         "Daily: Volatility"=NA,
+                         "Daily: Downside Deviation"=NA,
+                         "Daily: Sharpe (STDEV)"=NA,
+                         "Daily: Sharpe (VaR)"=NA,
+                         "Daily: Sharpe (ES)"=NA,
+                         "Daily: Calmar Ratio"=NA,
+                         "Daily: Sortino Ratio"=NA,
+                         "Daily: Sterling Ratio"=NA,
+                         "Daily: Value-At-Risk"=NA,
+                         "Daily: Expected Shortfall"=NA,
+                         "Avg. Drawdown"=NA,
+                         "Max. Drawdown"=NA,
+                         "Avg. Recovery"=NA,
+                         "Skewness"=NA,
+                         "Kurtosis"=NA,
+                         "Quantile Ratio"=NA,
+                         "Avg. Losing Month"=NA,
+                         check.names=FALSE,
+                         stringsAsFactors=FALSE,
+                         row.names=NULL)
+
+
     ## If empty df, return NA's:
     if (is.null(df) | NROW(df) == 0) {
-        return(data.frame("Return"=NA,
-                          "Return Annualized"=NA,
-                          "Volalitiy"=NA,
-                          "Vol Annualized"=NA,
-                          "Value-At-Risk"=NA,
-                          "Expected Shortfall"=NA,
-                          "Sharpe Ratio (STDEV)"=NA,
-                          "Sharpe Ratio (VaR)"=NA,
-                          "Sharpe Ratio (ES)"=NA,
-                          "Calmar Ratio"=NA,
-                          "Sortino Ratio"=NA,
-                          "Sterling Ratio"=NA,
-                          "Avg. Drawdown"=NA,
-                          "Max. Drawdown"=NA,
-                          "Avg. Recovery"=NA,
-                          "Skewness"=NA,
-                          "Kurtosis"=NA,
-                          "Quantile Ratio"=NA,
-                          check.names=FALSE,
-                          stringsAsFactors=FALSE))
+        return(retval)
     }
 
     ## XTSify:
@@ -1055,96 +1088,109 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
     ## Compute returns:
     rets <- diff(log(ts))
 
+    ## Compute annualized return:
+    retsAnnual <- as.numeric(PerformanceAnalytics::Return.annualized(rets, geometric=FALSE))
+
     ## If there are a few observations, return only Total Return:
     if (NROW(df) < 7 | returnOnly) {
-        return(data.frame("Return"=tail(as.numeric(ts), 1) / head(as.numeric(ts), 1) - 1,
-                          "Return Annualized"=NA,
-                          "Volalitiy"=NA,
-                          "Vol Annualized"=NA,
-                          "Value-At-Risk"=NA,
-                          "Expected Shortfall"=NA,
-                          "Sharpe Ratio (STDEV)"=NA,
-                          "Sharpe Ratio (VaR)"=NA,
-                          "Sharpe Ratio (ES)"=NA,
-                          "Calmar Ratio"=NA,
-                          "Sortino Ratio"=NA,
-                          "Sterling Ratio"=NA,
-                          "Avg. Drawdown"=NA,
-                          "Max. Drawdown"=NA,
-                          "Avg. Recovery"=NA,
-                          "Skewness"=NA,
-                          "Kurtosis"=NA,
-                          "Quantile Ratio"=NA,
-                          check.names=FALSE,
-                          stringsAsFactors=FALSE))
+        retval[, "Period: Return"] <- tail(as.numeric(ts), 1) / head(as.numeric(ts), 1) - 1
+        retval[, "Annual: Return"] <- retsAnnual
+        retval[, "Daily: Return"] <- as.numeric(mean(na.omit(rets)))
+        return(retval)
     }
 
     ## Compute standard deviation:
-    stdev <- PerformanceAnalytics::StdDev(rets)
-
-    ## Compute annualized return:
-    retsAnnual <- PerformanceAnalytics::Return.annualized(rets, geometric=FALSE)
+    stdev <- as.numeric(PerformanceAnalytics::StdDev(rets))
 
     ## Compute annualized standard deviation:
-    stdevAnnual <- PerformanceAnalytics::sd.annualized(rets)
+    stdevAnnual <- as.numeric(PerformanceAnalytics::sd.annualized(rets))
 
-    ## Compute the sharpe:
-    sharpe <- as.numeric(retsAnnual) / as.numeric(stdevAnnual)
-
-    ## Compute the calmar:
-    calmar <- PerformanceAnalytics::CalmarRatio(rets)
-
-    ## Compute the sortino:
-    sortino <- PerformanceAnalytics::SortinoRatio(rets)
-
-    ## Compute the sterling:
-    sterling <- PerformanceAnalytics::SterlingRatio(rets)
+    ## Downside Deviation:
+    downsideDev <- as.numeric(PerformanceAnalytics::DownsideDeviation(rets, MAR = 0))
 
     ## Compute the average recovery:
     avgRecovery <- PerformanceAnalytics::AverageRecovery(rets)
 
     ## Compute the average drawdown:
-    avgDrawdown <- PerformanceAnalytics::AverageDrawdown(rets)
+    avgDrawdown <- as.numeric(PerformanceAnalytics::AverageDrawdown(rets))
 
     ## Compute the maximum drawdown:
-    maxDrawdown <- PerformanceAnalytics::maxDrawdown(rets)
+    maxDrawdown <- as.numeric(PerformanceAnalytics::maxDrawdown(rets))
 
     ## Compute the VaR:
-    var <- abs(PerformanceAnalytics::VaR(rets)) * sqrt(250)
+    var <- -as.numeric(abs(PerformanceAnalytics::VaR(rets)))
 
     ## Comput the Expected Shortfall
-    es <- abs(PerformanceAnalytics::ES(rets)) * sqrt(250)
+    es <- -as.numeric(abs(PerformanceAnalytics::ES(rets)))
 
     ## Compute the skewness:
-    skew <- PerformanceAnalytics::skewness(rets)
+    skew <- as.numeric(PerformanceAnalytics::skewness(rets))
 
     ## Compute the skewness:
-    kurt <- PerformanceAnalytics::kurtosis(rets)
+    kurt <- as.numeric(PerformanceAnalytics::kurtosis(rets))
 
     ## Quantile Ratio:
     quantileRatio <- as.numeric(abs(quantile(as.numeric(na.omit(rets)))[2]) / abs(quantile(as.numeric(na.omit(rets)))[4]))
 
+    ## Compute Average Losing Month:
+    monthlyRets <- xts::apply.monthly(rets, sum)
+    avgLosingMonth <- mean(as.numeric(monthlyRets[monthlyRets < 0]))
+
+    ## Get the period return:
+    retPeriod <- as.numeric(tail(as.numeric(ts), 1) / head(as.numeric(ts), 1) - 1)
+
+    ## Get the period standard deviation:
+    stdevPeriod <- as.numeric(stdev) * sqrt(NROW(rets))
+
+    ## Get the daily return:
+    retsDaily <- as.numeric(mean(na.omit(rets)))
+
     ## Construct data frame and return:
-    data.frame("Return"=tail(as.numeric(ts), 1) / head(as.numeric(ts), 1) - 1,
-               "Return Annualized"=as.numeric(retsAnnual),
-               "Volalitiy"=as.numeric(stdev),
-               "Vol Annualized"=as.numeric(stdevAnnual),
-               "Value-At-Risk"=as.numeric(var),
-               "Expected Shortfall"=as.numeric(es),
-               "Sharpe Ratio (STDEV)"=as.numeric(retsAnnual) / as.numeric(stdevAnnual),
-               "Sharpe Ratio (VaR)"=as.numeric(retsAnnual) / as.numeric(abs(var)),
-               "Sharpe Ratio (ES)"=as.numeric(retsAnnual) / as.numeric(abs(es)),
-               "Calmar Ratio"=as.numeric(calmar),
-               "Sortino Ratio"=as.numeric(sortino),
-               "Sterling Ratio"=as.numeric(sterling),
-               "Avg. Drawdown"=as.numeric(avgDrawdown),
-               "Max. Drawdown"=as.numeric(maxDrawdown),
-               "Avg. Recovery"=as.numeric(avgRecovery),
-               "Skewness"=as.numeric(skew),
-               "Kurtosis"=as.numeric(kurt),
-               "Quantile Ratio"=as.numeric(quantileRatio),
-               check.names=FALSE,
-               stringsAsFactors=FALSE)
+    retval <- data.frame("Period: Return"=retPeriod,
+                         "Period: Volalitiy"=stdevPeriod,
+                         "Period: Downside Deviation"=downsideDev * sqrt(NROW(rets)),
+                         "Period: Sharpe (STDEV)"=retPeriod / stdevPeriod,
+                         "Period: Sharpe (VaR)"=retPeriod / (abs(var)*sqrt(NROW(rets))),
+                         "Period: Sharpe (ES)"=retPeriod / (abs(es)*sqrt(NROW(rets))),
+                         "Period: Calmar Ratio"=retPeriod / maxDrawdown,
+                         "Period: Sortino Ratio"=retPeriod / (downsideDev*sqrt(NROW(rets))),
+                         "Period: Sterling Ratio"=retPeriod / avgDrawdown,
+                         "Period: Value-At-Risk"=var*sqrt(NROW(rets)),
+                         "Period: Expected Shortfall"=es*sqrt(NROW(rets)),
+                         "Annual: Return"=retsAnnual,
+                         "Annual: Volatility"=stdevAnnual,
+                         "Annual: Downside Deviation"=downsideDev * sqrt(252),
+                         "Annual: Sharpe (STDEV)"=retsAnnual / stdevAnnual,
+                         "Annual: Sharpe (VaR)"=retsAnnual / (abs(var)*sqrt(252)),
+                         "Annual: Sharpe (ES)"=retsAnnual / (abs(es)*sqrt(252)),
+                         "Annual: Calmar Ratio"=retsAnnual / maxDrawdown,
+                         "Annual: Sortino Ratio"=retsAnnual / (downsideDev*sqrt(252)),
+                         "Annual: Sterling Ratio"=retsAnnual / avgDrawdown,
+                         "Annual: Value-At-Risk"=var*sqrt(252),
+                         "Annual: Expected Shortfall"=es*sqrt(252),
+                         "Daily: Return"=retsDaily,
+                         "Daily: Volatility"=stdev,
+                         "Daily: Downside Deviation"=downsideDev,
+                         "Daily: Sharpe (STDEV)"=retsDaily / stdev,
+                         "Daily: Sharpe (VaR)"=retsDaily / abs(var),
+                         "Daily: Sharpe (ES)"=retsDaily / abs(es),
+                         "Daily: Calmar Ratio"=retsDaily / maxDrawdown,
+                         "Daily: Sortino Ratio"=retsDaily / downsideDev,
+                         "Daily: Sterling Ratio"=retsDaily / avgDrawdown,
+                         "Daily: Value-At-Risk"=var,
+                         "Daily: Expected Shortfall"=es,
+                         "Avg. Drawdown"=avgDrawdown,
+                         "Max. Drawdown"=maxDrawdown,
+                         "Avg. Recovery"=avgRecovery,
+                         "Skewness"=skew,
+                         "Kurtosis"=kurt,
+                         "Quantile Ratio"=quantileRatio,
+                         "Avg. Losing Month"=-abs(avgLosingMonth),
+                         check.names=FALSE,
+                         stringsAsFactors=FALSE,
+                         row.names=NULL)
+
+    return(retval)
 
 }
 
@@ -1177,10 +1223,23 @@ exfoliateSeries <- function(series, anchors) {
 ##' @param returnOnly Consider only Total Return?
 ##' @param excludeWeekends Should the weekends be excluded? Default to TRUE.
 ##' @param session The rdecaf session.
-##' @param treat Should the time series be treated? Default=TRUE
+##' @param treat Should the time series be treated? Default=TRUE.
+##' @param exclude Which ctypes should be excluded? Default=c("FXFWD", "DEPO", "LOAN").
 ##' @return A data frame with the asset returns.
 ##' @export
-getAssetReturns <- function(date, ccy, resources, priceField="ohlcID", periods, returnOnly, excludeWeekends, session, treat=TRUE) {
+getAssetReturns <- function(date,
+                            ccy,
+                            resources,
+                            priceField="ohlcID",
+                            periods,
+                            returnOnly,
+                            excludeWeekends,
+                            session,
+                            treat=TRUE,
+                            exclude=c("FXFWD", "DEPO", "LOAN")) {
+
+    ## Exclude ctypes:
+    resources <- resources[!mCondition(resources, "ctype", exclude), ]
 
     ## Get the slices ohlcs:
     slicedOhlcs <- getSlicedOhlcs(resources[, priceField], session, date, periods, excludeWeekends)
@@ -1195,26 +1254,39 @@ getAssetReturns <- function(date, ccy, resources, priceField="ohlcID", periods, 
     ## Get the returns:
     returnStats <- lapply(slicedOhlcs, function(s) do.call(rbind, lapply(s, function(y) computeReturnStats(y, "close", "date", method="discrete", returnOnly=returnOnly))))
 
-    ## Append the FX pair:
-    returnStats <- lapply(returnStats, function(x) data.frame(x, "pair"=as.character(paste0(resources[, "ccymain"], ccy)), check.names=FALSE))
-
-    ## Get the unique FX pairs:
-    uniquePairs <-as.character(unique(returnStats[[1]][, "pair"]))
+    ## ## Get the unique FX pairs:
+    pairs <- as.character(paste0(resources[, "ccymain"], ccy))
 
     ## Get the slices ohlcs:
-    slicedFX <- getSlicedOhlcs(uniquePairs, session, date, periods)
+    slicedFX <- getSlicedOhlcs(unique(pairs), session, date, periods)
 
     ## Get the returns:
     returnFXStats <- lapply(slicedFX, function(s) do.call(rbind, lapply(s, function(y) computeReturnStats(y, "close", "date", method="discrete", returnOnly=returnOnly))))
 
     ## Append the FX and total returns:
     returnStats <- lapply(1:length(returnStats), function(i) {
-        retval <- data.frame(returnStats[[i]],
-                             "fxRet"=returnFXStats[[i]][match(returnStats[[i]][, "pair"], rownames(returnFXStats[[i]])), "Return"],
+
+        rStats <- returnStats[[i]]
+        rFXStats <- returnFXStats[[i]]
+        pairs <- paste0(resources[match(rownames(rStats), resources[, "symbol"]), "ccymain"], ccy)
+
+        retCols <- safeGrep(colnames(rStats), "Return") == "1"
+
+        fxRet <- rStats[, retCols]
+        fxRet[is.na(fxRet)] <- 0
+        colnames(fxRet) <- paste0(gsub("Return", "Rets", colnames(fxRet)), "FX")
+
+        retval <- data.frame(rStats,
+                             fxRet,
                              check.names=FALSE)
-        retval[is.na(retval[, "fxRet"]), "fxRet"] <- 0
-        retval[, "Total Return"] <- retval[, "Return"] + retval[, "fxRet"]
-        retval
+
+        totalReturns <- retval[, safeGrep(colnames(retval), "Return") == "1"] + retval[, safeGrep(colnames(retval), "RetsFX") == "1"]
+        colnames(totalReturns) <- paste0(colnames(totalReturns), ":Total")
+
+        data.frame(retval,
+                   totalReturns,
+                   check.names=FALSE)
+
     })
 
     ## Name the list:

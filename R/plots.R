@@ -299,9 +299,10 @@ stackedBarChart <- function(df, colors=RColorBrewer::brewer.pal(9, "GnBu")[3:9])
 ##' @param title The title of the plot.
 ##' @param ylab The y-axis name.
 ##' @param col The color for the polygon.
+##' @param lout The number of ticks to display.
 ##' @return An line time series plot.
 ##' @export
-timeSeriesPlot <- function(df, smooth=0.3, limitFactor=0.05, title, ylab="", col="darkslategray3") {
+timeSeriesPlot <- function(df, smooth=0.3, limitFactor=0.1, title, ylab="", col="darkslategray3", lout=10) {
 
     ## Transform and arrange data frame:
     trans <- timeSeriesTransform(df, smooth, limitFactor=limitFactor)
@@ -313,7 +314,7 @@ timeSeriesPlot <- function(df, smooth=0.3, limitFactor=0.05, title, ylab="", col
     value <- trans[["value"]]
 
     ## Length out:
-    lout <- 10
+    lout <- lout
 
     ## X-Axis Index:
     axis1Index <- seq(1, length(date), length.out=lout)
@@ -343,6 +344,125 @@ timeSeriesPlot <- function(df, smooth=0.3, limitFactor=0.05, title, ylab="", col
     mtext("Index", cex=1.5, font=2, side=2, at=par('usr')[4]*1.0075, las=2)
 
 }
+
+##' Provides a line time series plot, with series for optional benchmarks.
+##'
+##' This is the description
+##'
+##' @param df A data frame with columns of all time series values, col1 is the target, 2:n are the benchmarks.
+##' @param date A date vector (needs to be same length as the timeseries df) of x axis date values.
+##' @param smooth The smoothing parameter.
+##' @param limitFactor The factor with which to expand the limits.
+##' @param title The title of the plot.
+##' @param col The color for the polygon.
+##' @param lout The number of ticks to display.
+##' @param palette_all An optional vector parameter of colors to assign to addl lines in same order as df e.g. element 1 is the first benchmark color.
+##' @param labels An optional vector parameter of legend labels for target and n benchmarks - needs to be same length as df.
+##' @param legpos The legend position.
+##' @param ylab The y axis header.
+##' @param grid A parameter to decide whether to add line grids background.
+##' @param ... Option for additional params.
+##' @return An line time series plot.
+##' @import RColorBrewer
+##' @export
+mTSPlot <- function(df, date, smooth=.1, limitFactor=.05, title, col="#79CDCD", lout=10, palette_all=NULL, labels=NULL, legpos="topright", ylab="Index", grid=1, ...) {
+
+    ## Create random set of colors, if not provided
+    if(is.null(palette_all)) {
+    palette_info <- brewer.pal.info[brewer.pal.info$category == "qual", ]  # Extract color info
+    palette_all <- unlist(mapply(brewer.pal,                     # Create vector with all colors
+                              palette_info$maxcolors,
+                              rownames(palette_info)))
+
+    }
+    
+    ## create the transformed values into a df
+    trans <- lapply(1:NCOL(df), function(i) timeSeriesTransform(data.frame("value"=df[, i], "date"=date), smooth, limitFactor))
+    df <- do.call(cbind, lapply(trans, function(x) x[["value"]]))
+    
+    ## get default axis limits
+    limMax <- max(sapply(trans, function(x) x[["limits"]][["upper"]]))
+    limMin <- min(sapply(trans, function(x) x[["limits"]][["lower"]]))
+
+    ## get a vector of colors for the series
+    allCols <- sapply(1:NCOL(df), function(i) {
+
+        if (i==1){
+            return(col)
+        }
+        set.seed(1234)
+        sample(palette_all[palette_all!=col])[1]
+
+    })  
+    
+    ## X-Axis Index:
+    axis1Index <- seq(1, length(date), length.out=lout)
+
+    ## X-Axis Labels:
+    axis1Labls <- format(as.Date(date[seq(1, length(date), length.out=lout)]), "%b %d, %y")
+
+    ## Y-Axis Index:
+    axis2Index <- seq(limMin, limMax, length.out=lout)
+
+    ## X-Axis Labels:
+    axis2Labls <- round(axis2Index * 100, 2)
+
+    ## Add Legends
+    if(is.null(labels) | length(labels) != NCOL(df)) {
+        labels <- "Target"
+        if(ncol(df)>1)
+        labels <- c(labels,paste(rep("Benchmark",ncol(df)-1),c(1:(ncol(df)-1))))
+    }
+    
+    ## output chart
+    par(mai = c(1.25, 1, 0.75, 0.75)) #margins
+    plot(df[, 1], 
+         main=title, 
+         cex.main=2, 
+         cex.axis=1.5, 
+         lty=4, 
+         type="l", 
+         lwd=3,
+         ylim=c(limMin, limMax),
+         yaxt="n", 
+         xaxt="n", 
+         ylab="", 
+         xlab="",
+         col=allCols[1], 
+         bty="n")
+    ## add lines for additional series if they exist
+    lapply(1:NCOL(df), function(i) {
+
+    if(i==1) {
+        return(NULL)
+    }
+    
+    lines(df[, i],
+         col=allCols[i])
+    })
+    ## Add a legend
+    legend(legPos,
+           legend=labels,
+           col=allCols,
+           lty=1, 
+           box.lty=0,
+           cex=1,
+           ncol=2
+    )
+    ## add gridlines
+    if (grid==1) {
+    grid(col = "#9b6e6e", lty = "dotted", lwd = par("lwd"), equilogs = TRUE)
+    }
+    ## Add the custom x-axis:
+    axis(1, cex.axis=1.3, at=axis1Index, labels=axis1Labls, las=2)
+
+    ## Add the cusotm y-axis:
+    axis(2, cex.axis=1.3, at=axis2Index, labels=axis2Labls, las=2)
+
+    ## Place the Y-Label:
+    mtext(ylab, cex=1.5, font=2, side=2, at=par('usr')[4]*1.0075, las=2)
+}
+
 
 
 ##' Provides an area time series plot.

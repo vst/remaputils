@@ -7,10 +7,11 @@
 timeSeriesPlot(
   df,
   smooth = 0.3,
-  limitFactor = 0.05,
+  limitFactor = 0.1,
   title,
   ylab = "",
-  col = "darkslategray3"
+  col = "darkslategray3",
+  lout = 10
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ timeSeriesPlot(
 \item{ylab}{The y-axis name.}
 
 \item{col}{The color for the polygon.}
+
+\item{lout}{The number of ticks to display.}
 }
 \value{
 An line time series plot.

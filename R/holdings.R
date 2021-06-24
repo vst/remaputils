@@ -659,14 +659,14 @@ getPrintableHoldings <- function(portfolio=NA,
                                 "subtlIdx"=1,
                                 "subtl2Idx"=1,
                                 "totalIdx"=1,
-                                "holdsIdx"=1)  
+                                "holdsIdx"=1)
 
 
         return(list("holdings"=holdingsDetails,
                     "consolidation"=consolidation,
                     "rawHoldings"=NULL,
                     "colselect"=colselect,
-                    "resources"=NULL 
+                    "resources"=NULL
                     )
                     )
 
@@ -709,9 +709,9 @@ getPrintableHoldings <- function(portfolio=NA,
     }
 
     ## Clean the header name
-    formattedHoldings <- formattedHoldings[, colselect]  %>% 
+    formattedHoldings <- formattedHoldings[, colselect]  %>%
       mutate(isHeader=if_else(is.na(isHeader),FALSE,as.logical(isHeader)))
-    
+
     holdingsDetails <- getHoldingsDetails(formattedHoldings,colselect,consolidation[["nav"]])
 
     ## Return:
@@ -811,25 +811,24 @@ addTagsAsColumns <- function(holdings, resources, addTagsBy) {
 ##'
 ##' @param holdings The holdings list from getPrintableHoldings.
 ##' @param colSelect Which columns from the getPrintableHoldings should be selected?
-##' @param colOverride Custom column names. Default is NULL.
 ##' @param summaryCol The column of holdings by which to summarize the holdings by.
 ##' @param summaryKey Optionally, you may select sublevels for the summary for a key in summaryCol.
 ##' @return A list with the holdingsDetails, holdingsSummary data frames, and the original holdings list.
 ##' @export
-prepareHoldingsTables <- function(holdings, colSelect, colOverride=NULL, summaryCol="Subtype", summaryKey="HEBELE1234") {
+prepareHoldingsTables <- function(holdings,
+                                  colSelect=c("Name", "Value", "Value (%)", "Exposure", "Exp (%)", "PnL (Unrl)"),
+                                  summaryCol="Subtype",
+                                  summaryKey="HEBELE1234") {
 
-    ## Parse the isHeader column:
-    holdings[["holdings"]][, "isHeader"] <- ifelse(is.na(holdings[["holdings"]][, "isHeader"]), FALSE, holdings[["holdings"]][, "isHeader"])
-#should be unnecessary, this step is taken care of in `getPringtableHoldings`
     ## Get the holdings details:
-    holdingsDetails <- getHoldingsDetails(holdings[["holdings"]], colSelect, holdings[["consolidation"]][["nav"]])
-#should be changed to: holdings[["holdingsDetails"]]
+    holdingsDetails <- holdings[["holdings"]][["holdingsDetails"]]
+
     ## Parse the Type if it exists:
-    if (any(colnames(holdingsDetails[["holdingsDetails"]]) == "Type")) {
-        holdingsDetails[["holdingsDetails"]][, "Type"] <- capitalise(ellipsify(holdingsDetails[["holdingsDetails"]][, "Type"], 15))
+    if (any(colnames(holdingsDetails) == "Type")) {
+        holdingsDetails[, "Type"] <- capitalise(ellipsify(holdingsDetails[, "Type"], 15))
     }
 
-    hDetailsTable <- holdingsDetails[["holdingsDetails"]]
+    hDetailsTable <- holdingsDetails
     hDetailsTable$Value <- ifelse(hDetailsTable$Value != "",
                            ifelse(hDetailsTable$Accrd != "",
                                   sprintf("%s<div class='text-muted'>%s</div>", hDetailsTable$Value, hDetailsTable$Accrd),
@@ -837,13 +836,13 @@ prepareHoldingsTables <- function(holdings, colSelect, colOverride=NULL, summary
                                       "")
     hDetailsTable$Accrd <- NULL
 
-    holdingsDetails[["holdingsDetails"]] <- hDetailsTable
+    holdings[["holdings"]][["holdingsDetails"]] <- hDetailsTable
 
     ## Get the holdings summary:
-    holdingsSummary <- getHoldingsSummary(holdings[["holdings"]], col="Subtype", key="HEBELE1234")
+    holdingsSummary <- getHoldingsSummary(holdings[["formattedHoldings"]], col=summaryCol, key=summaryKey)
 
     ## Now, we create the asset class details by deducing from holdings details:
-    assetClassDetails <- holdingsDetails
+    assetClassDetails <- holdings[["holdings"]]
 
     ## Get all the indices of the totals and subtype indices:
     subIndices <- c(assetClassDetails[["subtlIdx"]], assetClassDetails[["totalIdx"]])
@@ -861,7 +860,7 @@ prepareHoldingsTables <- function(holdings, colSelect, colOverride=NULL, summary
     assetClassDetails[["holdingsDetails"]] <- assetClassDetails[["holdingsDetails"]][-assetClassDetails[["holdsIdx"]], ]
 
     ## Exclude holdings-relevant columns:
-    assetClassDetails[["holdingsDetails"]] <- assetClassDetails[["holdingsDetails"]][, c("Name", "Value", "Weight", "Exposure", "Exp (%)", "PnL")]
+    assetClassDetails[["holdingsDetails"]] <- assetClassDetails[["holdingsDetails"]][, colSelect]
 
     ## Set row names to NULL:
     rownames(assetClassDetails[["holdingsDetails"]]) <- NULL
@@ -870,7 +869,7 @@ prepareHoldingsTables <- function(holdings, colSelect, colOverride=NULL, summary
     assetClassDetails[["holdsIdx"]] <- NA
 
     ## Done, combine and return:
-    return(list("holdingsDetails"=holdingsDetails,
+    return(list("holdingsDetails"=holdings[["holdings"]],
                 "holdingsSummary"=holdingsSummary,
                 "assetClassDetails"=assetClassDetails,
                 "holdings"=holdings))

@@ -7,8 +7,7 @@ It requires the holdings list from getPrintableHoldings.}
 \usage{
 prepareHoldingsTables(
   holdings,
-  colSelect,
-  colOverride = NULL,
+  colSelect = c("Name", "Value", "Value (\%)", "Exposure", "Exp (\%)", "PnL (Unrl)"),
   summaryCol = "Subtype",
   summaryKey = "HEBELE1234"
 )
@@ -17,8 +16,6 @@ prepareHoldingsTables(
 \item{holdings}{The holdings list from getPrintableHoldings.}
 
 \item{colSelect}{Which columns from the getPrintableHoldings should be selected?}
-
-\item{colOverride}{Custom column names. Default is NULL.}
 
 \item{summaryCol}{The column of holdings by which to summarize the holdings by.}
 

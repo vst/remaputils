@@ -441,7 +441,7 @@ mTSPlot <- function(df, date, smooth=.1, limitFactor=.05, title, col="#79CDCD", 
          col=allCols[i])
     })
     ## Add a legend
-    legend(legPos,
+    legend(legpos,
            legend=labels,
            col=allCols,
            lty=1, 

@@ -655,11 +655,11 @@ getPrintableHoldings <- function(portfolio=NA,
     ## If no holdings, return empty holdings:
     if (noHoldings) {
 
-    holdingsDetails <- list("holdings"=initDF(colselect),
-                                "subtlIdx"=1,
-                                "subtl2Idx"=1,
-                                "totalIdx"=1,
-                                "holdsIdx"=1)
+    holdingsDetails <- list("holdingsDetails"=initDF(colselect),
+                            "subtlIdx"=1,
+                            "subtl2Idx"=1,
+                            "totalIdx"=1,
+                            "holdsIdx"=1)
 
         return(list("holdings"=holdingsDetails,
                     "consolidation"=consolidation,

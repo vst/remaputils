@@ -195,6 +195,9 @@ stackedBarChart <- function(df, colors=RColorBrewer::brewer.pal(9, "GnBu")[3:9])
                        cex.main=1.5))
     }
 
+    ## Make sure values are numeric:
+    df[, 2] <- numerize(df[, 2])
+
     ## If NA value, override:
     df[, 1] <- ifelse(is.na(df[, 1]), "Notavailable", df[,1])
     df[, 2] <- ifelse(is.na(df[, 2]), 0, df[,2])
@@ -375,11 +378,11 @@ mTSPlot <- function(df, date, smooth=.1, limitFactor=.05, title, col="#79CDCD", 
                               rownames(palette_info)))
 
     }
-    
+
     ## create the transformed values into a df
     trans <- lapply(1:NCOL(df), function(i) timeSeriesTransform(data.frame("value"=df[, i], "date"=date), smooth, limitFactor))
     df <- do.call(cbind, lapply(trans, function(x) x[["value"]]))
-    
+
     ## get default axis limits
     limMax <- max(sapply(trans, function(x) x[["limits"]][["upper"]]))
     limMin <- min(sapply(trans, function(x) x[["limits"]][["lower"]]))
@@ -393,8 +396,8 @@ mTSPlot <- function(df, date, smooth=.1, limitFactor=.05, title, col="#79CDCD", 
         set.seed(1234)
         sample(palette_all[palette_all!=col])[1]
 
-    })  
-    
+    })
+
     ## X-Axis Index:
     axis1Index <- seq(1, length(date), length.out=lout)
 
@@ -413,22 +416,22 @@ mTSPlot <- function(df, date, smooth=.1, limitFactor=.05, title, col="#79CDCD", 
         if(ncol(df)>1)
         labels <- c(labels,paste(rep("Benchmark",ncol(df)-1),c(1:(ncol(df)-1))))
     }
-    
+
     ## output chart
     par(mai = c(1.25, 1, 0.75, 0.75)) #margins
-    plot(df[, 1], 
-         main=title, 
-         cex.main=2, 
-         cex.axis=1.5, 
-         lty=4, 
-         type="l", 
+    plot(df[, 1],
+         main=title,
+         cex.main=2,
+         cex.axis=1.5,
+         lty=4,
+         type="l",
          lwd=3,
          ylim=c(limMin, limMax),
-         yaxt="n", 
-         xaxt="n", 
-         ylab="", 
+         yaxt="n",
+         xaxt="n",
+         ylab="",
          xlab="",
-         col=allCols[1], 
+         col=allCols[1],
          bty="n")
     ## add lines for additional series if they exist
     lapply(1:NCOL(df), function(i) {
@@ -436,7 +439,7 @@ mTSPlot <- function(df, date, smooth=.1, limitFactor=.05, title, col="#79CDCD", 
     if(i==1) {
         return(NULL)
     }
-    
+
     lines(df[, i],
          col=allCols[i])
     })
@@ -444,7 +447,7 @@ mTSPlot <- function(df, date, smooth=.1, limitFactor=.05, title, col="#79CDCD", 
     legend(legPos,
            legend=labels,
            col=allCols,
-           lty=1, 
+           lty=1,
            box.lty=0,
            cex=1,
            ncol=2

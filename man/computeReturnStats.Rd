@@ -4,7 +4,14 @@
 \alias{computeReturnStats}
 \title{Provides the return statistics for a data frame with price and date column}
 \usage{
-computeReturnStats(df, pxCol, dtCol, method = "discrete", returnOnly = FALSE)
+computeReturnStats(
+  df,
+  pxCol,
+  dtCol,
+  method = "discrete",
+  returnOnly = FALSE,
+  benchmark = NULL
+)
 }
 \arguments{
 \item{df}{The data frame.}
@@ -16,6 +23,8 @@ computeReturnStats(df, pxCol, dtCol, method = "discrete", returnOnly = FALSE)
 \item{method}{The return calcuation method:'discrete', 'log'}
 
 \item{returnOnly}{Should only the Total Return be calculated?}
+
+\item{benchmark}{The benchmark symbol. Defaul NULL.}
 }
 \value{
 A data frame with the return statistics.

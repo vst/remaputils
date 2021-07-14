@@ -1026,12 +1026,14 @@ getSlicedOhlcs <- function(symbols, session, date, periods, excludeWeekends=TRUE
 ##' @param dtCol The name of the date column.
 ##' @param method The return calcuation method:'discrete', 'log'
 ##' @param returnOnly Should only the Total Return be calculated?
+##' @param benchmark The benchmark symbol. Defaul NULL.
 ##' @return A data frame with the return statistics.
 ##' @export
-computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=FALSE) {
+computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=FALSE, benchmark=NULL) {
 
     ## Remove zero prices:
     df <- df[df[, pxCol] != 0 | df[, pxCol] != "0", ]
+
 
     retval <- data.frame("Period: Return"=NA,
                          "Period: Volalitiy"=NA,
@@ -1073,6 +1075,10 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
                          "Kurtosis"=NA,
                          "Quantile Ratio"=NA,
                          "Avg. Losing Month"=NA,
+                         "Benchmark Relative Return"=NA,
+                         "Benchmark Correlation"=NA,
+                         "Benchmark Alpha"=NA,
+                         "Benchmark Beta"=NA,
                          check.names=FALSE,
                          stringsAsFactors=FALSE,
                          row.names=NULL)
@@ -1082,6 +1088,50 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
     if (is.null(df) | NROW(df) == 0) {
         return(retval)
     }
+
+
+    benchmarkAnalysis <- function(data) {
+
+        retval <- list("correlation"=NA,
+                       "relativeReturn"=NA,
+                       "modelAlpha"=NA,
+                       "modelBeta"=NA,
+                       "lm"=NA)
+
+        if (is.null(data)) {
+            return(retval)
+        }
+
+        if (NCOL(data) == 1) {
+            return(retval)
+        }
+
+        bData <- bData[!is.na(bData[, "benchmark"]), ]
+        bRets <- diff(log(bData))[-1, ]
+        bRets <- bRets[abs(bRets[, 1]) < sd(bRets[, 1]) * 4, ]
+        bRets <- bRets[abs(bRets[, 2]) < sd(bRets[, 2]) * 4, ]
+
+        period <- cbind(xts::apply.weekly(bRets[, "container"], sum), xts::apply.weekly(bRets[, "benchmark"], sum))
+
+        bCorl <- as.numeric(cor(period[, "container"], period[, "benchmark"]))
+        bModel <- summary(lm(period[, "container"] ~ period[, "benchmark"]))
+        coeffs <- bModel$coefficients
+
+        alpha <- paste0(gsub(" ", "", round(coeffs[1, "Estimate"], 4)), " : P(t)=", round(coeffs[1, "Pr(>|t|)"], 2))
+        beta  <- paste0(gsub(" ", "", round(coeffs[2, "Estimate"], 4)), " : P(t)=", round(coeffs[2, "Pr(>|t|)"], 2))
+
+        retval[["correlation"]] <- bCorl
+        retval[["relativeReturn"]] <- -diff(colSums(period))
+        retval[["modelAlpha"]] <- alpha
+        retval[["modelBeta"]] <- beta
+        retval[["lm"]] <- bModel
+
+        return(retval)
+
+    }
+
+    bData <- cbind("container"=xts::as.xts(df[, "price"], order.by=df[, "date"]), "benchmark"=benchmark[["xts"]])
+    bAnalysis <- benchmarkAnalysis(bData)
 
     ## XTSify:
     ts <- xts::as.xts(as.numeric(df[, pxCol]), order.by=as.Date(df[, dtCol]))
@@ -1187,6 +1237,10 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
                          "Kurtosis"=kurt,
                          "Quantile Ratio"=quantileRatio,
                          "Avg. Losing Month"=-abs(avgLosingMonth),
+                         "Benchmark Relative Return"=bAnalysis[["relativeReturn"]],
+                         "Benchmark Correlation"=bAnalysis[["correlation"]],
+                         "Benchmark Model Alpha"=bAnalysis[["modelAlpha"]],
+                         "Benchmark Model Beta"=bAnalysis[["modelBeta"]],
                          check.names=FALSE,
                          stringsAsFactors=FALSE,
                          row.names=NULL)

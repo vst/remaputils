@@ -182,6 +182,12 @@ getPerformanceV2 <- function(containerType,
     ## Ensure that the xts series of benchmark has the same length as the container:
     bPerformance[["xts"]] <- bPerformance[["xts"]][zoo::index(bPerformance[["xts"]]) >= min(zoo::index(cPerformance[["xts"]])), ]
 
+    if (is.null(bPerformance)) {
+        return(list("container"=cPerformance,
+                    "benchmark"=NULL,
+                    "relative"=NULL))
+    }
+
     ## Compute the relative performance:
     rPerformance <- performance.ComputeRelative(cPerformance, bPerformance)
 
@@ -315,6 +321,10 @@ flattenPerformance <- function(x, containerType, currentDate, startDate, periodi
     ## TODO: This should be handeled in API:
     if (length(price) < length(date)) {
         price <- c(1, price)
+    }
+
+    if (is.null(date)) {
+        return(NULL)
     }
 
     if (min(as.Date(date)) > as.Date(startDate)) {

@@ -411,12 +411,33 @@ beanbagNAVTable <- function (x, inception, pxinfo, investments=NULL, useIntYtd=F
 ##' @export
 getPerformance <- function(portfolio, start, end, freq="daily", session, period="Y-0") {
 
-    ## Construct the params:
-    params <- list("portfolios"=portfolio,
-                   "start"=start,
-                   "end"=end,
-                   "frequency"=freq)
 
+    getBenchmark <- function(portfolio, session) {
+
+        benchmarkID <- getDBObject("portfolios", session, addParams=list("id"=portfolio))[, "benchmark"]
+        benchmarkSymbol <- ifelse(is.na(benchmarkID), NA, getResource("ohlcs", params=list("id"=benchmarkID), session=session)[["results"]][[1]][["symbol"]])
+        benchmarkName <- ifelse(is.na(benchmarkID), NA, getResource("resources", params=list("symbol"=benchmarkSymbol), session=session)[["results"]][[1]][["name"]])
+
+        ## Initialize the query parameters:
+        params <- list("benchmarks"=benchmarkID,
+                       "start"=start,
+                       "end"=end,
+                       "frequency"="daily")
+
+        if (is.na(benchmarkID)) {
+            benchmark <- NULL
+        } else {
+            benchmark <- getResource("performance", params=params, session=session)
+            benchmark <- flattenPerformance(benchmark, "benchmarks", end, start, periodicity="M", window="Y")
+        }
+
+        return(benchmark)
+
+    }
+
+    benchmark <- getBenchmark(portfolio, session)
+
+    ##
     start <- dateOfPeriod(period, end)
 
     periodN <- substr(period, 3, 3)
@@ -449,8 +470,17 @@ getPerformance <- function(portfolio, start, end, freq="daily", session, period=
     }
 
     if (length(performance[["returns"]][["index"]]) == 0) {
+
+        xstats <- computeReturnStats(NULL,
+                                     "price",
+                                     "date",
+                                     method="discrete",
+                                     returnOnly=FALSE,
+                                     benchmark=benchmark)
+
         return(list("series"=NA,
-                    "stats"=auxfun()))
+                    "stats"=auxfun(),
+                    "xstats"=xstats))
     }
 
     series <- sapply(performance[["indexed"]][["data"]], function(x) ifelse(is.null(x[[1]]), NA, x[[1]]))
@@ -458,7 +488,12 @@ getPerformance <- function(portfolio, start, end, freq="daily", session, period=
     series <- zoo::na.locf(series, fromLast=FALSE)
 
     ## Compute the extra statistics:
-    xstats <- computeReturnStats(data.frame("price"=series, "date"=as.Date(unlist(performance[["indexed"]][["index"]]))), "price", "date", method="discrete", returnOnly=FALSE)
+    xstats <- computeReturnStats(data.frame("price"=series, "date"=as.Date(unlist(performance[["indexed"]][["index"]]))),
+                                 "price",
+                                 "date",
+                                 method="discrete",
+                                 returnOnly=FALSE,
+                                 benchmark=benchmark)
 
     ## Get the performance index series:
     series <- xts::as.xts(series,

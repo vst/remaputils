@@ -412,7 +412,7 @@ beanbagNAVTable <- function (x, inception, pxinfo, investments=NULL, useIntYtd=F
 getPerformance <- function(portfolio, start, end, freq="daily", session, period="Y-0") {
 
 
-    getBenchmark <- function(portfolio, session) {
+    getBenchmark <- function(portfolio, start, end, session) {
 
         benchmarkID <- getDBObject("portfolios", session, addParams=list("id"=portfolio))[, "benchmark"]
         benchmarkSymbol <- ifelse(is.na(benchmarkID), NA, getResource("ohlcs", params=list("id"=benchmarkID), session=session)[["results"]][[1]][["symbol"]])
@@ -435,7 +435,7 @@ getPerformance <- function(portfolio, start, end, freq="daily", session, period=
 
     }
 
-    benchmark <- getBenchmark(portfolio, session)
+    benchmark <- getBenchmark(portfolio, start, end, session)
 
     ##
     start <- dateOfPeriod(period, end)

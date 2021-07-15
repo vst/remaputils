@@ -1130,7 +1130,7 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
 
     }
 
-    bData <- cbind("container"=xts::as.xts(df[, "price"], order.by=df[, "date"]), "benchmark"=benchmark[["xts"]])
+    bData <- cbind("container"=xts::as.xts(df[, pxCol], order.by=df[, dtCol]), "benchmark"=benchmark[["xts"]])
     bAnalysis <- benchmarkAnalysis(bData)
 
     ## XTSify:
@@ -1305,6 +1305,8 @@ getAssetReturns <- function(date,
     if (treat) {
         slicedOhlcs <- lapply(slicedOhlcs, function(x) lapply(x, function(z) treatPriceSeries(z, "date", "close", quantile=0.998, surpressPlot=TRUE)))
     }
+
+    browser()
 
     ## Get the returns:
     returnStats <- lapply(slicedOhlcs, function(s) do.call(rbind, lapply(s, function(y) computeReturnStats(y, "close", "date", method="discrete", returnOnly=returnOnly))))

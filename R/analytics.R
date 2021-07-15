@@ -1077,8 +1077,8 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
                          "Avg. Losing Month"=NA,
                          "Benchmark Relative Return"=NA,
                          "Benchmark Correlation"=NA,
-                         "Benchmark Alpha"=NA,
-                         "Benchmark Beta"=NA,
+                         "Benchmark Model Alpha"=NA,
+                         "Benchmark Model Beta"=NA,
                          check.names=FALSE,
                          stringsAsFactors=FALSE,
                          row.names=NULL)
@@ -1305,8 +1305,6 @@ getAssetReturns <- function(date,
     if (treat) {
         slicedOhlcs <- lapply(slicedOhlcs, function(x) lapply(x, function(z) treatPriceSeries(z, "date", "close", quantile=0.998, surpressPlot=TRUE)))
     }
-
-    browser()
 
     ## Get the returns:
     returnStats <- lapply(slicedOhlcs, function(s) do.call(rbind, lapply(s, function(y) computeReturnStats(y, "close", "date", method="discrete", returnOnly=returnOnly))))

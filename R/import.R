@@ -320,7 +320,7 @@ convertValuesByFXRate <- function(df, ccyFld="ccy", dtFld="date", valFld=c("nav"
         uniqueDates[, "rate"] <- sapply(uniqueDates[, "date"], function(x) fxrates[order(abs(as.Date(x) - as.Date(fxrates[, "date"])))[1], "close"])
 
         ## Convert:
-        fxW <- data.frame(fxW, do.call(cbind, lapply(valFld, function(col) fxW[, col] * uniqueDates[match(fxW[, dtFld], uniqueDates[, "date"]), "rate"])))
+        fxW <- data.frame(fxW, do.call(cbind, lapply(valFld, function(col) as.numeric(fxW[, col]) * uniqueDates[match(fxW[, dtFld], uniqueDates[, "date"]), "rate"])))
 
         ## Assign extra column names:
         colnames(fxW) <- c(colNames, paste0(valFld, "_converted"))

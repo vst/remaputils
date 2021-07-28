@@ -185,10 +185,10 @@ getLastDayOfPeriod <- function(dates, day, period) {
 
     ## Get the period function:
     pFun <- list("weekly"=function(x){cumsum(weekdays(x) == "Friday")},
-                 "monthly"=function(x){months(x)},
-                 "quarterly"=function(x){quarters(x)},
-                 "semiannually"=function(x){ifelse(numerize(substr(x, 6, 10)) >= 100 & numerize(substr(x, 6, 10)) <= 0630, "S1", "S2")},
-                 "yearly"=function(x){substr(x, 1,4)})
+                 "monthly"=function(x){paste0(months(x), substr(x, 3,4))},
+                 "quarterly"=function(x){paste0(quarters(x), substr(x, 3,4))},
+                 "semiannually"=function(x){paste0(ifelse(numerize(substr(x, 6, 10)) >= 100 & numerize(substr(x, 6, 10)) <= 0630, "S1", "S2"), substr(x, 3,4))},
+                 "yearly"=function(x){substr(x, 1, 4)})
 
     ## Add 365 days to last date provided create a sequence 1 year ahead:
     auxSeries <- seq(lastDate, lastDate + 365, 1)

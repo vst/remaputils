@@ -43,3 +43,44 @@ scrty <- fromJSON(
 return(scrty)
 
 }
+
+##' Returns df of tickers from marketstack
+##'
+##' This is a description.
+##'
+##' @param access marketstack API key
+##' @param search free text value to search for e.g. ETF, ARCX (NYSE). Defaults to empty
+##' @param searchOrExchange are we filtering my name/ticker or exchange, default is exchange, change to &search for ticker
+##' @param lim limit of records to return, defaults to max of 1000
+##' @param EOD filter to look at just data that EOD, defaults to true
+##' @param country if we want to filter by country 2-digit code for currency. Defaults to US
+##' @return A data frame with market data.
+##' @export
+mstackSrchTicker <- function(access,search="",searchOrExchange="&exchange=",lim=1000,EOD=c(TRUE),country="US") {
+
+ETF <- fromJSON(
+      paste0(
+          "http://api.marketstack.com/v1/tickers",
+          "?access_key=",
+           access,
+           searchOrExchange,
+           search,
+          "&limit=",
+          lim
+          )
+      ) %>% 
+      .[[2]] %>%
+      dplyr::filter(
+      has_eod %in% EOD
+      ) %>% 
+      select(symbol,name,stock_exchange)
+      
+if(!is.null(country)) {
+ETF <- ETF %>%
+      dplyr::filter(stock_exchange$country_code==country)
+
+}
+return(ETF)
+
+}
+

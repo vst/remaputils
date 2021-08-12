@@ -1016,6 +1016,77 @@ getSlicedOhlcs <- function(symbols, session, date, periods, excludeWeekends=TRUE
 
 }
 
+##' A function used in computeReturnStats for benchmark metrics, e.g. treynor.
+##'
+##' This is the description
+##'
+##' @param data a df with ts columns (benchmark and container column names)
+##' @param minobs min required obs to run the advanced statitistics. defaults to 30
+##' @return A list with key metrics.
+##' @export
+benchmarkAnalysis <- function(data, minobs=30) {
+
+        retval <- list("correlation"=NA,
+                       "relativeReturn"=NA,
+                       "modelAlpha"=NA,
+                       "modelAlphaSign"=NA,
+                       "modelBeta"=NA,
+                       "modelBetaSign"=NA,
+                       "lm"=NA,
+                       "treynor"=NA)
+        
+        data <- data[!is.na(data[, "benchmark"]), ]
+              
+        if (is.null(data)||NCOL(data) == 1||NROW(data)<minobs) {
+            return(retval)
+        }
+
+        bRets <- diff(log(data))[-1, ]
+        #bRets <- bRets[abs(bRets[, 1]) < sd(bRets[, 1]) * 4, ] #need to add control for nrow == 0 
+        #bRets <- bRets[abs(bRets[, 2]) < sd(bRets[, 2]) * 4, ]
+
+        period <- cbind(xts::apply.weekly(bRets[, "container"], sum), xts::apply.weekly(bRets[, "benchmark"], sum))
+
+        bCorl <- as.numeric(cor(period[, "container"], period[, "benchmark"]))
+        bModel <- summary(lm(period[, "container"] ~ period[, "benchmark"]))
+        coeffs <- bModel$coefficients
+        
+        alpha <- NA
+        alphaPT <- NA
+        beta  <- NA
+        betaPT <- NA
+        
+        if(length(coeffs[, "Estimate"])>1) {
+
+        alpha <- round(coeffs[1, "Estimate"], 4)#paste0(gsub(" ", "", round(coeffs[1, "Estimate"], 4)), " : P(t)=", round(coeffs[1, "Pr(>|t|)"], 2))
+        alphaPT <- round(coeffs[1, "Pr(>|t|)"], 2)
+        beta  <- round(coeffs[2, "Estimate"], 4)#paste0(gsub(" ", "", round(coeffs[2, "Estimate"], 4)), " : P(t)=", round(coeffs[2, "Pr(>|t|)"], 2))
+        betaPT <- round(coeffs[2, "Pr(>|t|)"], 2)
+        }
+        
+        treynor <- NA
+        
+        if(!is.null(data[,"riskfree"])&&!is.na(beta)) {
+        retPf <- as.numeric(tail(as.numeric(data[,"container"]), 1) / head(as.numeric(data[,"container"]), 1) - 1)
+        retRf <- as.numeric(tail(as.numeric(data[,"riskfree"]), 1) / head(as.numeric(data[,"riskfree"]), 1) - 1)
+        
+        treynor <- (retPf-retRf) / coeffs[2, "Estimate"]
+        }
+        
+        retval[["correlation"]] <- bCorl
+        retval[["relativeReturn"]] <- -diff(colSums(period))
+        retval[["modelAlpha"]] <- alpha
+        retval[["modelAlphaSign"]] <- alphaPT
+        retval[["modelBeta"]] <- beta
+        retval[["modelBetaSign"]] <- betaPT
+        retval[["lm"]] <- bModel
+        retval[["treynor"]] <- treynor
+
+        return(retval)
+
+    }
+
+
 
 ##' Provides the return statistics for a data frame with price and date column
 ##'
@@ -1027,23 +1098,20 @@ getSlicedOhlcs <- function(symbols, session, date, periods, excludeWeekends=TRUE
 ##' @param method The return calcuation method:'discrete', 'log'
 ##' @param returnOnly Should only the Total Return be calculated?
 ##' @param benchmark The benchmark symbol. Defaul NULL.
+##' @param rfts The the risk free time series. Defaults NULL.
 ##' @return A data frame with the return statistics.
 ##' @export
-computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=FALSE, benchmark=NULL) {
-
-    ## Remove zero prices:
-    df <- df[df[, pxCol] != 0 | df[, pxCol] != "0", ]
-
+computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=FALSE, benchmark=NULL, rfts=NULL) {
 
     retval <- data.frame("Period: Return"=NA,
-                         "Period: Volalitiy"=NA,
+                         "Period: Volatility"=NA,
                          "Period: Downside Deviation"=NA,
                          "Period: Sharpe (STDEV)"=NA,
                          "Period: Sharpe (VaR)"=NA,
                          "Period: Sharpe (ES)"=NA,
                          "Period: Calmar Ratio"=NA,
                          "Period: Sortino Ratio"=NA,
-                         "Period: Sterling Ratio"=NA,
+                         "Period: Sterling Ratio"=NA,                       
                          "Period: Value-At-Risk"=NA,
                          "Period: Expected Shortfall"=NA,
                          "Annual: Return"=NA,
@@ -1078,64 +1146,48 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
                          "Benchmark Relative Return"=NA,
                          "Benchmark Correlation"=NA,
                          "Benchmark Model Alpha"=NA,
+                         "Benchmark Model Alpha (PT)"=NA,
                          "Benchmark Model Beta"=NA,
+                         "Benchmark Model Beta (PT)"=NA,
+                         "Benchmark Treynor Ratio"=NA,
                          check.names=FALSE,
                          stringsAsFactors=FALSE,
-                         row.names=NULL)
+                         row.names=NULL) 
 
 
     ## If empty df, return NA's:
     if (is.null(df) | NROW(df) == 0) {
         return(retval)
     }
-
-
-    benchmarkAnalysis <- function(data) {
-
-        retval <- list("correlation"=NA,
-                       "relativeReturn"=NA,
-                       "modelAlpha"=NA,
-                       "modelBeta"=NA,
-                       "lm"=NA)
-
-        if (is.null(data)) {
-            return(retval)
-        }
-
-        if (NCOL(data) == 1) {
-            return(retval)
-        }
-
-        bData <- bData[!is.na(bData[, "benchmark"]), ]
-        bRets <- diff(log(bData))[-1, ]
-        bRets <- bRets[abs(bRets[, 1]) < sd(bRets[, 1]) * 4, ]
-        bRets <- bRets[abs(bRets[, 2]) < sd(bRets[, 2]) * 4, ]
-
-        period <- cbind(xts::apply.weekly(bRets[, "container"], sum), xts::apply.weekly(bRets[, "benchmark"], sum))
-
-        bCorl <- as.numeric(cor(period[, "container"], period[, "benchmark"]))
-        bModel <- summary(lm(period[, "container"] ~ period[, "benchmark"]))
-        coeffs <- bModel$coefficients
-
-        alpha <- paste0(gsub(" ", "", round(coeffs[1, "Estimate"], 4)), " : P(t)=", round(coeffs[1, "Pr(>|t|)"], 2))
-        beta  <- paste0(gsub(" ", "", round(coeffs[2, "Estimate"], 4)), " : P(t)=", round(coeffs[2, "Pr(>|t|)"], 2))
-
-        retval[["correlation"]] <- bCorl
-        retval[["relativeReturn"]] <- -diff(colSums(period))
-        retval[["modelAlpha"]] <- alpha
-        retval[["modelBeta"]] <- beta
-        retval[["lm"]] <- bModel
-
-        return(retval)
-
-    }
-
-    bData <- cbind("container"=xts::as.xts(df[, pxCol], order.by=df[, dtCol]), "benchmark"=benchmark[["xts"]])
-    bAnalysis <- benchmarkAnalysis(bData)
+    
+    ## Remove zero prices:
+    df <- df[df[, pxCol] != 0 | df[, pxCol] != "0", ]
 
     ## XTSify:
     ts <- xts::as.xts(as.numeric(df[, pxCol]), order.by=as.Date(df[, dtCol]))
 
+
+    bAnalysis <- list(
+    "correlation"=NA,
+    "relativeReturn"=NA,
+    "modelAlpha"=NA,
+    "modelAlphaSign"=NA,
+    "modelBeta"=NA,
+    "modelBetaSign"=NA,
+    "lm"=NA,
+    "treynor"=NA
+    )
+    if(!is.null(benchmark)) {
+    
+    bData <- cbind("container"=ts, "benchmark"=benchmark[["xts"]], "riskfree"=rfts)
+    #data.frame(date=as.Date(zoo::index(ts)),container=ts) %>%
+    #  left_join(data.frame(date=as.Date(zoo::index(benchmark[["xts"]])),benchmark=benchmark[["xts"]]), by="date") %>% 
+    #  left_join(data.frame(date=as.Date(zoo::index(rfts)),riskfree=rfts), by="date")  
+    #bData <- xts::as.xts(bData[, -1], order.by=bData$date)
+    bAnalysis <- benchmarkAnalysis(bData)
+    
+    }
+    
     ## Compute returns:
     rets <- diff(log(ts))
 
@@ -1160,7 +1212,7 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
     downsideDev <- as.numeric(PerformanceAnalytics::DownsideDeviation(rets, MAR = 0))
 
     ## Compute the average recovery:
-    avgRecovery <- PerformanceAnalytics::AverageRecovery(rets)
+    avgRecovery <- as.numeric(PerformanceAnalytics::AverageRecovery(rets))
 
     ## Compute the average drawdown:
     avgDrawdown <- as.numeric(PerformanceAnalytics::AverageDrawdown(rets))
@@ -1198,7 +1250,7 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
 
     ## Construct data frame and return:
     retval <- data.frame("Period: Return"=retPeriod,
-                         "Period: Volalitiy"=stdevPeriod,
+                         "Period: Volatility"=stdevPeriod,
                          "Period: Downside Deviation"=downsideDev * sqrt(NROW(rets)),
                          "Period: Sharpe (STDEV)"=retPeriod / stdevPeriod,
                          "Period: Sharpe (VaR)"=retPeriod / (abs(var)*sqrt(NROW(rets))),
@@ -1240,10 +1292,13 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
                          "Benchmark Relative Return"=bAnalysis[["relativeReturn"]],
                          "Benchmark Correlation"=bAnalysis[["correlation"]],
                          "Benchmark Model Alpha"=bAnalysis[["modelAlpha"]],
+                         "Benchmark Model Alpha (PT)"=bAnalysis[["modelAlphaSign"]],
                          "Benchmark Model Beta"=bAnalysis[["modelBeta"]],
+                         "Benchmark Model Beta (PT)"=bAnalysis[["modelBetaSign"]],
+                         "Benchmark Treynor Ratio"=bAnalysis[["treynor"]],
                          check.names=FALSE,
                          stringsAsFactors=FALSE,
-                         row.names=NULL)
+                         row.names=NULL) 
 
     return(retval)
 
@@ -1474,3 +1529,65 @@ returnOutliers <- function(xtsReturns, factor) {
     ## Return:
     outliers
 }
+
+##' Returns list of regression df and associated ts df for one factor lms only
+##'
+##' This is a description.
+##'
+##' @param y the df containing the lhs time series to be regressed
+##' @param x the df containing the rhs times series
+##' @param rgColname the column name of the time series value, defaults to close
+##' @param tsColname the column name of the time series date value, defaults to date
+##' @param minobs the min #obs to run a regression, defaults to 30
+##' @param roll the rolling avg lag to apply, defaults to 5 days
+##' @param stdev the # of st.devs to use when trimming outliers, defaults to 3
+##' @return A list with model alpha/beta info and associated filtered time series dfs.
+##' @export
+regressions <- function(y,x,tsColname="date",rgColname="close",minobs=30,roll=5,stdev=3) {
+
+    y <- y %>%
+      rename("close"=rgColname, "date"=tsColname)
+      
+    x <- x %>% 
+       rename("closed"=rgColname, "date"=tsColname)
+
+    dat <- y %>%
+      left_join(x,by="date") %>%
+      fill(symbol.y,.direction="downup")  %>% 
+      arrange(date)  %>% 
+      mutate(returns_f=c(NA,diff(log(close))),returns_b=c(NA,diff(log(closed)))) %>%  
+      mutate(returns_f=ifelse(abs(returns_f)>sd(returns_f,na.rm=TRUE) * stdev,0,returns_f), returns_b=ifelse(abs(returns_b)>sd(returns_b,na.rm=TRUE) * stdev,0,returns_b)) %>% #trimming
+      mutate(sma_f=zoo::rollapply(returns_f,roll,mean,align='right',fill=NA), sma_b=zoo::rollapply(returns_b,roll,mean,align='right',fill=NA))  %>%  #smoothing
+      slice(roll:nrow(.)) 
+    
+    #return(dat)
+    if(NROW(dat)>=minobs) {
+    dat <- dat  %>% 
+      mutate(sma_b=if_else(row_number()==1,0,sma_b))  %>% 
+      fill(sma_b,.direction="down")  %>% 
+      mutate(sma_f_indx=if_else(row_number()==1,1,sma_f),sma_b_indx=if_else(row_number()==1,1,sma_b))  %>% 
+      mutate(sma_f_indx=cumsum(sma_f_indx),sma_b_indx=cumsum(sma_b_indx)) #indexing
+
+    coeffs <- summary(lm(dat$sma_f_indx ~ dat$sma_b_indx))$coefficients
+    if(length(coeffs[,"Estimate"])==2) {
+    
+    alpha <- coeffs[1, "Estimate"]
+    alpha_p <- coeffs[1, "Pr(>|t|)"]
+    beta <- coeffs[2, "Estimate"]
+    beta_p <- coeffs[2, "Pr(>|t|)"]
+    
+    ## return std err and r2 next time
+
+    df <- data.frame(alpha=alpha,alpha_p=alpha_p,beta=beta,beta_p=beta_p)  %>%  
+          mutate_all(~round(.,4))
+
+    return(
+      list("regressions"=df,
+           "timeseries"=dat 
+      )
+    )
+    }
+
+    }
+
+  }

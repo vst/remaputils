@@ -10,7 +10,8 @@ computeReturnStats(
   dtCol,
   method = "discrete",
   returnOnly = FALSE,
-  benchmark = NULL
+  benchmark = NULL,
+  rfts = NULL
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ computeReturnStats(
 \item{returnOnly}{Should only the Total Return be calculated?}
 
 \item{benchmark}{The benchmark symbol. Defaul NULL.}
+
+\item{rfts}{The the risk free time series. Defaults NULL.}
 }
 \value{
 A data frame with the return statistics.

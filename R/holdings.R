@@ -647,7 +647,8 @@ getPrintableHoldings <- function(portfolio=NA,
     }
 
     ## Get the flat holdings:
-    holdings <- getFlatHoldings(consolidation[["holdings"]], charLimit=charLimit)
+    holdings <- getFlatHoldings(consolidation[["holdings"]], charLimit=charLimit) %>%
+      mutate_at(.vars=c("Value","Exposure"),numerize)
 
     ## Check if we have any holdings:
     noHoldings <- all(apply(holdings, MARGIN=1, function(x) all(is.na(x))))

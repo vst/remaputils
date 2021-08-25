@@ -1026,66 +1026,70 @@ getSlicedOhlcs <- function(symbols, session, date, periods, excludeWeekends=TRUE
 ##' @export
 benchmarkAnalysis <- function(data, minobs=30) {
 
-        retval <- list("correlation"=NA,
-                       "relativeReturn"=NA,
-                       "modelAlpha"=NA,
-                       "modelAlphaSign"=NA,
-                       "modelBeta"=NA,
-                       "modelBetaSign"=NA,
-                       "lm"=NA,
-                       "treynor"=NA)
-        
-        data <- data[!is.na(data[, "benchmark"]), ]
-              
-        if (is.null(data)||NCOL(data) == 1||NROW(data)<minobs) {
-            return(retval)
-        }
+    retval <- list("correlation"=NA,
+                   "relativeReturn"=NA,
+                   "modelAlpha"=NA,
+                   "modelAlphaSign"=NA,
+                   "modelBeta"=NA,
+                   "modelBetaSign"=NA,
+                   "lm"=NA,
+                   "treynor"=NA)
 
-        bRets <- diff(log(data))[-1, ]
-        #bRets <- bRets[abs(bRets[, 1]) < sd(bRets[, 1]) * 4, ] #need to add control for nrow == 0 
-        #bRets <- bRets[abs(bRets[, 2]) < sd(bRets[, 2]) * 4, ]
+    data <- data[!is.na(data[, "benchmark"]), ]
 
-        period <- cbind(xts::apply.weekly(bRets[, "container"], sum), xts::apply.weekly(bRets[, "benchmark"], sum))
 
-        bCorl <- as.numeric(cor(period[, "container"], period[, "benchmark"]))
-        bModel <- summary(lm(period[, "container"] ~ period[, "benchmark"]))
-        coeffs <- bModel$coefficients
-        
-        alpha <- NA
-        alphaPT <- NA
-        beta  <- NA
-        betaPT <- NA
-        
-        if(length(coeffs[, "Estimate"])>1) {
+    if (is.null(data)||NCOL(data) == 1||NROW(data)<minobs) {
+        return(retval)
+    }
+
+    bRets <- diff(log(data))[-1, ]
+    ##bRets <- bRets[abs(bRets[, 1]) < sd(bRets[, 1]) * 4, ] #need to add control for nrow == 0
+    ##bRets <- bRets[abs(bRets[, 2]) < sd(bRets[, 2]) * 4, ]
+
+    if(sum(bRets$container)==0||sum(bRets$benchmark)==0) {
+        return(retval)
+    }
+
+    period <- cbind(xts::apply.weekly(bRets[, "container"], sum), xts::apply.weekly(bRets[, "benchmark"], sum))
+
+    bCorl <- as.numeric(cor(period[, "container"], period[, "benchmark"]))
+    bModel <- summary(lm(period[, "container"] ~ period[, "benchmark"]))
+    coeffs <- bModel$coefficients
+
+    alpha <- NA
+    alphaPT <- NA
+    beta  <- NA
+    betaPT <- NA
+
+    if(length(coeffs[, "Estimate"])>1) {
 
         alpha <- round(coeffs[1, "Estimate"], 4)#paste0(gsub(" ", "", round(coeffs[1, "Estimate"], 4)), " : P(t)=", round(coeffs[1, "Pr(>|t|)"], 2))
         alphaPT <- round(coeffs[1, "Pr(>|t|)"], 2)
         beta  <- round(coeffs[2, "Estimate"], 4)#paste0(gsub(" ", "", round(coeffs[2, "Estimate"], 4)), " : P(t)=", round(coeffs[2, "Pr(>|t|)"], 2))
         betaPT <- round(coeffs[2, "Pr(>|t|)"], 2)
-        }
-        
-        treynor <- NA
-        
-        if(!is.null(data[,"riskfree"])&&!is.na(beta)) {
-        retPf <- as.numeric(tail(as.numeric(data[,"container"]), 1) / head(as.numeric(data[,"container"]), 1) - 1)
-        retRf <- as.numeric(tail(as.numeric(data[,"riskfree"]), 1) / head(as.numeric(data[,"riskfree"]), 1) - 1)
-        
-        treynor <- (retPf-retRf) / coeffs[2, "Estimate"]
-        }
-        
-        retval[["correlation"]] <- bCorl
-        retval[["relativeReturn"]] <- -diff(colSums(period))
-        retval[["modelAlpha"]] <- alpha
-        retval[["modelAlphaSign"]] <- alphaPT
-        retval[["modelBeta"]] <- beta
-        retval[["modelBetaSign"]] <- betaPT
-        retval[["lm"]] <- bModel
-        retval[["treynor"]] <- treynor
-
-        return(retval)
-
     }
 
+    treynor <- NA
+
+    if(!is.null(data[,"riskfree"])&&!is.na(beta)) {
+        retPf <- as.numeric(tail(as.numeric(data[,"container"]), 1) / head(as.numeric(data[,"container"]), 1) - 1)
+        retRf <- as.numeric(tail(as.numeric(data[,"riskfree"]), 1) / head(as.numeric(data[,"riskfree"]), 1) - 1)
+
+        treynor <- (retPf-retRf) / coeffs[2, "Estimate"]
+    }
+
+    retval[["correlation"]] <- bCorl
+    retval[["relativeReturn"]] <- -diff(colSums(period))
+    retval[["modelAlpha"]] <- alpha
+    retval[["modelAlphaSign"]] <- alphaPT
+    retval[["modelBeta"]] <- beta
+    retval[["modelBetaSign"]] <- betaPT
+    retval[["lm"]] <- bModel
+    retval[["treynor"]] <- treynor
+
+    return(retval)
+
+}
 
 
 ##' Provides the return statistics for a data frame with price and date column
@@ -1111,7 +1115,7 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
                          "Period: Sharpe (ES)"=NA,
                          "Period: Calmar Ratio"=NA,
                          "Period: Sortino Ratio"=NA,
-                         "Period: Sterling Ratio"=NA,                       
+                         "Period: Sterling Ratio"=NA,
                          "Period: Value-At-Risk"=NA,
                          "Period: Expected Shortfall"=NA,
                          "Annual: Return"=NA,
@@ -1152,14 +1156,14 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
                          "Benchmark Treynor Ratio"=NA,
                          check.names=FALSE,
                          stringsAsFactors=FALSE,
-                         row.names=NULL) 
+                         row.names=NULL)
 
 
     ## If empty df, return NA's:
     if (is.null(df) | NROW(df) == 0) {
         return(retval)
     }
-    
+
     ## Remove zero prices:
     df <- df[df[, pxCol] != 0 | df[, pxCol] != "0", ]
 
@@ -1177,17 +1181,18 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
     "lm"=NA,
     "treynor"=NA
     )
+
     if(!is.null(benchmark)) {
-    
-    bData <- cbind("container"=ts, "benchmark"=benchmark[["xts"]], "riskfree"=rfts)
-    #data.frame(date=as.Date(zoo::index(ts)),container=ts) %>%
-    #  left_join(data.frame(date=as.Date(zoo::index(benchmark[["xts"]])),benchmark=benchmark[["xts"]]), by="date") %>% 
-    #  left_join(data.frame(date=as.Date(zoo::index(rfts)),riskfree=rfts), by="date")  
-    #bData <- xts::as.xts(bData[, -1], order.by=bData$date)
-    bAnalysis <- benchmarkAnalysis(bData)
-    
+
+        bData <- cbind("container"=ts, "benchmark"=benchmark[["xts"]], "riskfree"=safeNull(rfts))
+        ## data.frame(date=as.Date(zoo::index(ts)),container=ts) %>%
+        ## left_join(data.frame(date=as.Date(zoo::index(benchmark[["xts"]])),benchmark=benchmark[["xts"]]), by="date") %>%
+        ## left_join(data.frame(date=as.Date(zoo::index(rfts)),riskfree=rfts), by="date")
+        ## bData <- xts::as.xts(bData[, -1], order.by=bData$date)
+        bAnalysis <- benchmarkAnalysis(bData)
+
     }
-    
+
     ## Compute returns:
     rets <- diff(log(ts))
 
@@ -1298,7 +1303,7 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
                          "Benchmark Treynor Ratio"=bAnalysis[["treynor"]],
                          check.names=FALSE,
                          stringsAsFactors=FALSE,
-                         row.names=NULL) 
+                         row.names=NULL)
 
     return(retval)
 
@@ -1547,43 +1552,43 @@ regressions <- function(y,x,tsColname="date",rgColname="close",minobs=30,roll=5,
 
     y <- y %>%
       rename("close"=rgColname, "date"=tsColname)
-      
-    x <- x %>% 
+
+    x <- x %>%
        rename("closed"=rgColname, "date"=tsColname)
 
     dat <- y %>%
       left_join(x,by="date") %>%
-      fill(symbol.y,.direction="downup")  %>% 
-      arrange(date)  %>% 
-      mutate(returns_f=c(NA,diff(log(close))),returns_b=c(NA,diff(log(closed)))) %>%  
+      fill(symbol.y,.direction="downup")  %>%
+      arrange(date)  %>%
+      mutate(returns_f=c(NA,diff(log(close))),returns_b=c(NA,diff(log(closed)))) %>%
       mutate(returns_f=ifelse(abs(returns_f)>sd(returns_f,na.rm=TRUE) * stdev,0,returns_f), returns_b=ifelse(abs(returns_b)>sd(returns_b,na.rm=TRUE) * stdev,0,returns_b)) %>% #trimming
       mutate(sma_f=zoo::rollapply(returns_f,roll,mean,align='right',fill=NA), sma_b=zoo::rollapply(returns_b,roll,mean,align='right',fill=NA))  %>%  #smoothing
-      slice(roll:nrow(.)) 
-    
+      slice(roll:nrow(.))
+
     #return(dat)
     if(NROW(dat)>=minobs) {
-    dat <- dat  %>% 
-      mutate(sma_b=if_else(row_number()==1,0,sma_b))  %>% 
-      fill(sma_b,.direction="down")  %>% 
-      mutate(sma_f_indx=if_else(row_number()==1,1,sma_f),sma_b_indx=if_else(row_number()==1,1,sma_b))  %>% 
+    dat <- dat  %>%
+      mutate(sma_b=if_else(row_number()==1,0,sma_b))  %>%
+      fill(sma_b,.direction="down")  %>%
+      mutate(sma_f_indx=if_else(row_number()==1,1,sma_f),sma_b_indx=if_else(row_number()==1,1,sma_b))  %>%
       mutate(sma_f_indx=cumsum(sma_f_indx),sma_b_indx=cumsum(sma_b_indx)) #indexing
 
     coeffs <- summary(lm(dat$sma_f_indx ~ dat$sma_b_indx))$coefficients
     if(length(coeffs[,"Estimate"])==2) {
-    
+
     alpha <- coeffs[1, "Estimate"]
     alpha_p <- coeffs[1, "Pr(>|t|)"]
     beta <- coeffs[2, "Estimate"]
     beta_p <- coeffs[2, "Pr(>|t|)"]
-    
+
     ## return std err and r2 next time
 
-    df <- data.frame(alpha=alpha,alpha_p=alpha_p,beta=beta,beta_p=beta_p)  %>%  
+    df <- data.frame(alpha=alpha,alpha_p=alpha_p,beta=beta,beta_p=beta_p)  %>%
           mutate_all(~round(.,4))
 
     return(
       list("regressions"=df,
-           "timeseries"=dat 
+           "timeseries"=dat
       )
     )
     }

@@ -17,9 +17,9 @@ getPreviousNAV <- function(portfolio, date, ccy, period, external, session, ince
 
     ## Get the previous date:
     previousDate <- max(dateOfPeriod(period, date), inception)
-    
+
     result <- list("value"=NA,"date"=previousDate)
-                   
+
 
     ## If external is true, get previuos NAV from external table:
     if (external) {
@@ -75,7 +75,7 @@ getPreviousNAV <- function(portfolio, date, ccy, period, external, session, ince
     if (!external | is.na(result[["value"]])) {
         ## Get the asset evolution (pconsolidation)
         assEvl <- getAssetEvolution(portfolio, date, "2", session)
-        
+
 
             return(valueOfNearestDate(targetDate=previousDate,
                                       data=assEvl,
@@ -414,37 +414,48 @@ beanbagNAVTable <- function (x, inception, pxinfo, investments=NULL, useIntYtd=F
 ##' @export
 getBenchmark <- function(portfolio, start, end, session, rfSymbol="iShares 1-3 Year Treasury Bond ETF") {
 
-        benchmarkID <- getDBObject("portfolios", session, addParams=list("id"=portfolio))[, "benchmark"]
-        benchmarkSymbol <- ifelse(is.na(benchmarkID), NA, getResource("ohlcs", params=list("id"=benchmarkID), session=session)[["results"]][[1]][["symbol"]])
-        benchmarkName <- ifelse(is.na(benchmarkID), NA, getResource("resources", params=list("symbol"=benchmarkSymbol), session=session)[["results"]][[1]][["name"]])
+    benchmarkID <- getDBObject("portfolios", session, addParams=list("id"=portfolio))[, "benchmark"]
+    benchmarkSymbol <- ifelse(is.na(benchmarkID), NA, getResource("ohlcs", params=list("id"=benchmarkID), session=session)[["results"]][[1]][["symbol"]])
+    benchmarkName <- benchmarkSymbol
+    benchmarkResource <- ifelse(is.na(benchmarkID), NA, getResource("resources", params=list("symbol"=benchmarkSymbol), session=session)[["results"]])
 
-        ## Initialize the query parameters:
-        params <- list("benchmarks"=benchmarkID,
-                       "start"=start,
-                       "end"=end,
-                       "frequency"="daily")
-
-        if (is.na(benchmarkID)) {
-            benchmark <- NULL
-            benchmarkFlat <- NULL
-            rf <- NULL
-        } else {
-            benchmark <- getResource("performance", params=params, session=session)
-            benchmarkFlat <- flattenPerformance(benchmark, "benchmarks", end, start, periodicity="M", window="Y")
-            rf <- getOhlcObsForSymbol("session"=session, "symbol"=rfSymbol, lte=end, lookBack=numerize(end-start))
+    if(!is.na(benchmarkResource)) {
+        if(!is.null(benchmarkResource[[1]])) {
+            benchmarkName <- benchmarkResource[[1]][["name"]]
         }
+    }
+    ## Initialize the query parameters:
+    params <- list("benchmarks"=benchmarkID,
+                   "start"=start,
+                   "end"=end,
+                   "frequency"="daily")
 
-        return(list(
+    if (is.na(benchmarkID)) {
+        benchmark <- NULL
+        benchmarkFlat <- NULL
+        rf <- NULL
+    } else {
+        benchmark <- getResource("performance", params=params, session=session)
+        benchmarkFlat <- flattenPerformance(benchmark, "benchmarks", end, start, periodicity="M", window="Y")
+        rf <- getOhlcObsForSymbol("session"=session, "symbol"=rfSymbol, lte=end, lookBack=numerize(end-start))
+    }
+
+    if(NROW(rf)==0) {
+        rf <- NULL
+    }
+
+    return(list(
         "benchmarkID"=benchmarkID,
         "benchmarkSymbol"=benchmarkSymbol,
         "benchmarkName"=benchmarkName,
         "benchmark"=benchmark,
         "benchmarkFlat"=benchmarkFlat,
-        "riskFree"= rf          
-        )
-        )
+        "riskFree"= rf
+    )
+    )
 
-    }
+}
+
 
 
 ##' Gets and prepares the performance information for a portfolio.
@@ -472,39 +483,38 @@ getPerformance <- function(portfolio, start, end, freq="daily", session, period=
         end <- dateOfPeriod(paste0(substr(period, 1, 2), as.numeric(substr(period, 3, 3)) - 1))
     }
 
-    
     if(is.null(benchMark)) {
-    
-    benchmark <- getBenchmark(portfolio, start, end, session)[["benchmarkFlat"]]
 
-    ## Construct the params:
-    params <- list("portfolios"=portfolio,
-                   "start"=start,
-                   "end"=end,
-                   "frequency"=freq)
+        benchmark <- getBenchmark(portfolio, start, end, session)[["benchmarkFlat"]]
 
-    print(paste0("Retrieving performance data for portfolio: ", portfolio))
+        ## Construct the params:
+        params <- list("portfolios"=portfolio,
+                       "start"=start,
+                       "end"=end,
+                       "frequency"=freq)
 
-    ## Get the asset evolves:
-    performance <- rdecaf::getResource("performance", params=params, session=session)
+        print(paste0("Retrieving performance data for portfolio: ", portfolio))
+
+        ## Get the asset evolves:
+        performance <- rdecaf::getResource("performance", params=params, session=session)
 
     }
-    
-    else {
-    
-    benchmark <- NULL
-    
-    ## Construct the params:
-    params <- list("benchmarks"=benchMark$benchmarkID,
-                   "start"=start,
-                   "end"=end,
-                   "frequency"=freq)
-    
-    print(paste0("Retrieving performance data for benchmark: ", benchMark$benchmarkID))
 
-    ## Get the asset evolves:
-    performance <- getResource("performance", params=params, session=session)
-     
+    else {
+
+        benchmark <- NULL
+
+        ## Construct the params:
+        params <- list("benchmarks"=benchMark$benchmarkID,
+                       "start"=start,
+                       "end"=end,
+                       "frequency"=freq)
+
+        print(paste0("Retrieving performance data for benchmark: ", benchMark$benchmarkID))
+
+        ## Get the asset evolves:
+        performance <- getResource("performance", params=params, session=session)
+
     }
 
     auxfun <- function() {
@@ -536,52 +546,57 @@ getPerformance <- function(portfolio, start, end, freq="daily", session, period=
     series <- sapply(performance[["indexed"]][["data"]], function(x) ifelse(is.null(x[[1]]), NA, x[[1]]))
     series[1] <- ifelse(is.na(series[1]), 1, series[1])
     series <- zoo::na.locf(series, fromLast=FALSE)
-    
-        ## Get the performance index series:
+
+    ## Get the performance index series:
     series <- xts::as.xts(series,
                           order.by=as.Date(unlist(performance[["indexed"]][["index"]])))
 
     ## Compute the extra statistics:
     stats <- NULL
-    
+
     if (is.null(benchMark)) {
-    rfTs <- rF
-    if (!is.null(rF)) {
-    rf <- rF %>%
-      dplyr::filter(date>=start&date<=end) 
-    rfTs <- xts::as.xts(rf$close, order.by=rf$date) 
+
+        rfTs <- rF
+
+        if (!is.null(rF)) {
+            rf <- rF %>%
+                dplyr::filter(date>=start&date<=end)
+            rfTs <- xts::as.xts(rf$close, order.by=rf$date)
+        }
+
+        xstats <- computeReturnStats(data.frame("price"=series, "date"=as.Date(unlist(performance[["indexed"]][["index"]]))),
+                                     "price",
+                                     "date",
+                                     method="discrete",
+                                     returnOnly=FALSE,
+                                     benchmark=benchmark,
+                                     rfts=rfTs)
+
+        stats <- performance[["statistics"]][["univariate"]][["portfolios"]][[1]][["stats"]]
+
+        stats <- lapply(1:length(stats), function(i) {
+            stats[[i]]$stats <- lapply(stats[[i]]$stats, function(x) ifelse(is.null(x), NA, x))
+            stats[[i]]
+        })
+
+        ## Get the stats:
+        stats <- t(safeRbind(lapply(stats, function(x) do.call(cbind, x[["stats"]]))))
+
+        ## Add the colnames:
+        colnames(stats) <- sapply(performance[["statistics"]][["univariate"]][["portfolios"]][[1]][["stats"]], function(x) x[["label"]])
+
+        stats <- stats[, !colnames(stats) == "CST"]
     }
-    xstats <- computeReturnStats(data.frame("price"=series, "date"=as.Date(unlist(performance[["indexed"]][["index"]]))),
-                                 "price",
-                                 "date",
-                                 method="discrete",
-                                 returnOnly=FALSE,
-                                 benchmark=benchmark,
-                                 rfts=rfTs)
 
-    stats <- performance[["statistics"]][["univariate"]][["portfolios"]][[1]][["stats"]]
-
-    stats <- lapply(1:length(stats), function(i) {
-        stats[[i]]$stats <- lapply(stats[[i]]$stats, function(x) ifelse(is.null(x), NA, x))
-        stats[[i]]
-    })
-
-    ## Get the stats:
-    stats <- t(safeRbind(lapply(stats, function(x) do.call(cbind, x[["stats"]]))))
-
-    ## Add the colnames:
-    colnames(stats) <- sapply(performance[["statistics"]][["univariate"]][["portfolios"]][[1]][["stats"]], function(x) x[["label"]])
-
-    stats <- stats[, !colnames(stats) == "CST"]
-    }
     else {
-    xstats <- computeReturnStats(data.frame("price"=series, "date"=as.Date(unlist(performance[["indexed"]][["index"]]))),
-                                 "price",
-                                 "date",
-                                 method="discrete",
-                                 returnOnly=FALSE,
-                                 benchmark=benchmark)
+        xstats <- computeReturnStats(data.frame("price"=series, "date"=as.Date(unlist(performance[["indexed"]][["index"]]))),
+                                     "price",
+                                     "date",
+                                     method="discrete",
+                                     returnOnly=FALSE,
+                                     benchmark=benchmark)
     }
+
     ## Return:
     list("series"=series,
          "stats"=stats,
@@ -859,7 +874,7 @@ getAssetEvolution <- function(portfolio, date, years="2", session, ...) {
     xdates <- sapply(pCons, function(x) x[["date"]])
 
     ## If currency of container is not provided, assume one of the pCons currencies as reference:
-    
+
     if (is.null(ccy)) {
         ccy <- xccys[[1]]
     }

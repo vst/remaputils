@@ -1034,9 +1034,10 @@ benchmarkAnalysis <- function(data, minobs=30) {
                        "modelBetaSign"=NA,
                        "lm"=NA,
                        "treynor"=NA)
-        
-        data <- data[!is.na(data[, "benchmark"]), ]
-              
+                       
+        data <- data[!is.na(data[, "container"]), ]  
+        data <- data[!is.na(data[, "benchmark"]), ]             
+ 
         if (is.null(data)||NCOL(data) == 1||NROW(data)<minobs) {
             return(retval)
         }
@@ -1044,6 +1045,10 @@ benchmarkAnalysis <- function(data, minobs=30) {
         bRets <- diff(log(data))[-1, ]
         #bRets <- bRets[abs(bRets[, 1]) < sd(bRets[, 1]) * 4, ] #need to add control for nrow == 0 
         #bRets <- bRets[abs(bRets[, 2]) < sd(bRets[, 2]) * 4, ]
+        
+        if(sum(bRets$container)==0||sum(bRets$benchmark)==0) {
+           return(retval)
+        }
 
         period <- cbind(xts::apply.weekly(bRets[, "container"], sum), xts::apply.weekly(bRets[, "benchmark"], sum))
 
@@ -1066,7 +1071,7 @@ benchmarkAnalysis <- function(data, minobs=30) {
         
         treynor <- NA
         
-        if(!is.null(data[,"riskfree"])&&!is.na(beta)) {
+        if(!any(is.na(data[,"riskfree"]))&&!is.na(beta)) {
         retPf <- as.numeric(tail(as.numeric(data[,"container"]), 1) / head(as.numeric(data[,"container"]), 1) - 1)
         retRf <- as.numeric(tail(as.numeric(data[,"riskfree"]), 1) / head(as.numeric(data[,"riskfree"]), 1) - 1)
         
@@ -1101,7 +1106,7 @@ benchmarkAnalysis <- function(data, minobs=30) {
 ##' @param rfts The the risk free time series. Defaults NULL.
 ##' @return A data frame with the return statistics.
 ##' @export
-computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=FALSE, benchmark=NULL, rfts=NULL) {
+computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=FALSE, benchmark=NULL, rfts=NA) {
 
     retval <- data.frame("Period: Return"=NA,
                          "Period: Volatility"=NA,
@@ -1159,6 +1164,7 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
     if (is.null(df) | NROW(df) == 0) {
         return(retval)
     }
+    
     
     ## Remove zero prices:
     df <- df[df[, pxCol] != 0 | df[, pxCol] != "0", ]

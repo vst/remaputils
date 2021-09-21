@@ -416,8 +416,13 @@ getBenchmark <- function(portfolio, start, end, session, rfSymbol="iShares 1-3 Y
 
         benchmarkID <- getDBObject("portfolios", session, addParams=list("id"=portfolio))[, "benchmark"]
         benchmarkSymbol <- ifelse(is.na(benchmarkID), NA, getResource("ohlcs", params=list("id"=benchmarkID), session=session)[["results"]][[1]][["symbol"]])
-        benchmarkName <- ifelse(is.na(benchmarkID), NA, getResource("resources", params=list("symbol"=benchmarkSymbol), session=session)[["results"]][[1]][["name"]])
-
+        benchmarkName <- benchmarkSymbol 
+        benchmarkResource <- ifelse(is.na(benchmarkID), NA, getResource("resources", params=list("symbol"=benchmarkSymbol), session=session)[["results"]])
+        if(!is.na(benchmarkResource)) {
+        if(!is.null(benchmarkResource[[1]])) {
+            benchmarkName <- benchmarkResource[[1]][["name"]]
+        }
+        }
         ## Initialize the query parameters:
         params <- list("benchmarks"=benchmarkID,
                        "start"=start,
@@ -432,6 +437,10 @@ getBenchmark <- function(portfolio, start, end, session, rfSymbol="iShares 1-3 Y
             benchmark <- getResource("performance", params=params, session=session)
             benchmarkFlat <- flattenPerformance(benchmark, "benchmarks", end, start, periodicity="M", window="Y")
             rf <- getOhlcObsForSymbol("session"=session, "symbol"=rfSymbol, lte=end, lookBack=numerize(end-start))
+        }
+        
+        if(NROW(rf)==0) {
+        rf <- NULL
         }
 
         return(list(
@@ -472,7 +481,7 @@ getPerformance <- function(portfolio, start, end, freq="daily", session, period=
         end <- dateOfPeriod(paste0(substr(period, 1, 2), as.numeric(substr(period, 3, 3)) - 1))
     }
 
-    
+
     if(is.null(benchMark)) {
     
     benchmark <- getBenchmark(portfolio, start, end, session)[["benchmarkFlat"]]
@@ -537,7 +546,7 @@ getPerformance <- function(portfolio, start, end, freq="daily", session, period=
     series[1] <- ifelse(is.na(series[1]), 1, series[1])
     series <- zoo::na.locf(series, fromLast=FALSE)
     
-        ## Get the performance index series:
+    ## Get the performance index series:
     series <- xts::as.xts(series,
                           order.by=as.Date(unlist(performance[["indexed"]][["index"]])))
 

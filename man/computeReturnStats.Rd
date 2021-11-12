@@ -11,7 +11,7 @@ computeReturnStats(
   method = "discrete",
   returnOnly = FALSE,
   benchmark = NULL,
-  rfts = NULL
+  rfts = NA
 )
 }
 \arguments{

@@ -434,119 +434,103 @@ detectTransfers <- function(portfolio,
                             fpKeywords=list("stype"="reversal","remarks"="fee"),
                             transferMin=.01,
                             session) {
+  
+  ## Print some stuff:
+  print(sprintf("Going for portfolio %s", portfolio))
 
-    ## Print some stuff:
-    print(sprintf("Going for portfolio %s", portfolio))
+  ## Get trades:
+  trades <- getDBObject("trades",session, addParams=list(accmain__portfolio=portfolio))
+  
+  
+  
+  ## Short Circuit
+  if (NROW(trades)==0) {
+    return(NULL)
+  }
+  
+  trades <- trades %>%
+    select(accmain_name, accmain, id, commitment, resmain_ctype, ctype, stype, remarks, qtymain,
+           pxcost, pxmain, resmain_stype, resmain_symbol, resmain_type, starts_with("tag")) %>%
+    mutate_at(c("qtymain","pxcost","pxmain","id","accmain","ctype"),as.numeric) %>% 
+    mutate(commitment=as.Date(commitment)) %>%
+    mutate_at(vars(-commitment,-qtymain,-pxcost,-pxmain,-id,-accmain,-ctype),as.character) %>%
+    mutate(isTransfer=FALSE,
+           isSuspect=FALSE,
+           isFirstTransfer=FALSE) %>% 
+    rename(account=accmain)
 
+  
+  trades <- do.call("getPortNameByAccount",list(trades,session))
+  
+  ## Get the cash trades:
+  cashTrades <- trades %>%
+    dplyr::filter(resmain_ctype=="CCY")
+  
+  ## Short Circuit
+  if(NROW(cashTrades)==0) {
+    return(NULL)
+  }
+  
+  ## Move this part outside function ##
+  ## Get the non-cash inflows/outflows
+  othrFlow <- trades %>%
+    dplyr::filter(resmain_ctype!="CCY",ctype==20)
+  
+  ## get reference ccy
+  refCCY <- trades %>% select(rccy) %>% unique() %>% .[[1]]
+  
+  ## get first premium
+  fPremium <- getInitialPremium(trades)
+  
+  ## Get transactions
+  trans <- getDBObject("quants",session, addParams=list(account__portfolio=portfolio, refccy=refCCY)) %>%
+    mutate(trid=as.numeric(id)-1) %>% 
+    select(trid, trade, refamt, commitment, type) %>%
+    rename(id=trade, valamt=refamt)
+  
+  ## Get transaction details for value amount for non-cash flows
+  othrFlowTrans <- othrFlow %>%
+    select(id) %>%
+    inner_join(trans, by="id") %>%
+    mutate(flag=1,valamt=round(if_else(type=="Outflow",as.numeric(valamt),-1*as.numeric(valamt)))) %>%
+    select(flag, valamt, commitment, trid)
+ 
+  ## Map to back to cash flows to remove true negatives
+  cf<- cashTrades %>%
+    mutate(valamt=round(as.numeric(qtymain))) %>%
+    left_join(othrFlowTrans,by=c("valamt","commitment","id"="trid")) %>%
+    mutate(isTransfer=if_else(ctype==30,TRUE,FALSE),
+           isSuspect=TRUE
+    ) %>%
+    mutate(isSuspect=if_else(is.na(flag),isSuspect,FALSE),
+           isSuspect=if_else(abs(qtymain)<transferMin*fPremium[["premium"]], FALSE, isSuspect),
+           ## isTransferSus=if_else(abs(qtymain)<transferMin*fPremium[["premium"]],FALSE,isTransfer),
+           isFirstTransfer=if_else(valamt==round(fPremium[["premium"]]) & commitment==fPremium[["date"]],TRUE,FALSE)
+    ) %>%
+    select(-flag)
+  
+  ##for(i in 1:length(fpKeywords)) {
+  ## cashFlowMapd <- cashFlowMapd %>%
+  ##   mutate(isSuspect=ifelse(grepl(tolower(paste(fpKeywords[[i]],collapse="|")),tolower(!!sym(names(fpKeywords)[[i]]))),FALSE,isSuspect))
+  ##}
+  
+  
+  flag <- lapply(seq_along(fpKeywords), 
+         function (i) {
+         t <- grepl(tolower(paste(fpKeywords[[i]],collapse="|")),tolower(cf[,names(fpKeywords)[[i]]]))
+         }
+         ) %>%  
+    as.data.frame() %>% 
+    rowSums()
+  
+  cf[as.logical(flag),"isSuspect"] <- FALSE
 
-    ## Get trades:
-    trades <- getDBObject("trades",session, addParams=list(accmain__portfolio=portfolio))
-
-    ## Append the columns:
-    trades <- trades %>%
-        mutate(isTransfer=FALSE,
-               isSuspect=FALSE,
-               isFirstTransfer=FALSE)
-
-    ## Short Circuit
-    if (NROW(trades)==0) {
-        return(NULL)
-    }
-
-    trades <- trades %>%
-        select(accmain_name, accmain, id, commitment, resmain_ctype, ctype, stype, remarks, qtymain,
-               pxcost, pxmain, resmain_stype, resmain_symbol, resmain_type, starts_with("tag"), isTransfer, isSuspect, isFirstTransfer) %>%
-        mutate(qtymain=as.numeric(qtymain),commitment=as.Date(commitment)) %>%
-        rename(account=accmain)
-
-
-    trades <- do.call("getPortNameByAccount",list(trades,session))
-
-    ## Get the cash trades:
-    cashTrades <- trades %>%
-        dplyr::filter(resmain_ctype=="CCY")
-
-    ## Short Circuit
-    if(NROW(cashTrades)==0) {
-        return(NULL)
-    }
-
-    ## Move this part outside function ##
-    ## Get the non-cash inflows/outflows
-    othrFlow <- trades %>%
-        dplyr::filter(resmain_ctype!="CCY",ctype==20)
-
-    ## get reference ccy
-    refCCY <- trades %>% select(rccy) %>% unique() %>% .[[1]]
-
-    ## get first premium
-    fPremium <- getInitialPremium(trades)
-
-    ## Get transactions
-    trans <- getDBObject("quants",session, addParams=list(account__portfolio=portfolio, refccy=refCCY))%>%
-        select(trade, refamt, commitment, type) %>%
-        rename(id=trade, valamt=refamt)
-
-    ## Get transaction details for value amount for non-cash flows
-    othrFlowTrans <- othrFlow %>%
-        select(id) %>%
-        inner_join(trans, by="id") %>%
-        mutate(flag=1,valamt=round(if_else(type=="Outflow",as.numeric(valamt),-1*as.numeric(valamt)))) %>%
-        select(flag, valamt, commitment)
-
-    ## ## Short Circuit
-    ## if(NROW(cashTrades)==0) {
-    ##     return(NULL)
-    ## }
-
-    ## Move this part outside function ##
-    ## Get the non-cash inflows/outflows
-    othrFlow <- trades %>%
-        dplyr::filter(resmain_ctype!="CCY",ctype==20)
-
-    ## get reference ccy
-    refCCY <- trades %>% select(rccy) %>% unique() %>% .[[1]]
-
-    ## get first premium
-    fPremium <- getInitialPremium(trades)
-
-    ## Get transactions
-    trans <- getDBObject("quants",session, addParams=list(account__portfolio=portfolio, refccy=refCCY))%>%
-        select(trade, refamt, commitment, type) %>%
-        rename(id=trade, valamt=refamt)
-
-    ## Get transaction details for value amount for non-cash flows
-    othrFlowTrans <- othrFlow %>%
-        select(id) %>%
-        inner_join(trans, by="id") %>%
-        mutate(flag=1,valamt=round(if_else(type=="Outflow",as.numeric(valamt),-1*as.numeric(valamt)))) %>%
-        select(flag, valamt, commitment)
-
-    ## Map to back to cash flows to remove true negatives
-    cashFlowMapd <- cashTrades %>%
-        mutate(valamt=round(as.numeric(qtymain))) %>%
-        left_join(othrFlowTrans,by=c("valamt","commitment")) %>%
-        mutate(isTransfer=if_else(ctype==30,TRUE,FALSE),
-               isSuspect=TRUE
-               ) %>%
-        mutate(isSuspect=if_else(is.na(flag),isSuspect,FALSE),
-               isSuspect=if_else(abs(qtymain)<transferMin*fPremium[["premium"]], FALSE, isSuspect),
-               ## isTransferSus=if_else(abs(qtymain)<transferMin*fPremium[["premium"]],FALSE,isTransfer),
-               isFirstTransfer=if_else(valamt==round(fPremium[["premium"]]) & commitment==fPremium[["date"]],TRUE,FALSE)
-               ) %>%
-        select(-flag)
-
-    for(i in 1:length(fpKeywords)) {
-        cashFlowMapd <- cashFlowMapd %>%
-            mutate(isSuspect=ifelse(grepl(tolower(paste(fpKeywords[[i]],collapse="|")),tolower(!!sym(names(fpKeywords)[[i]]))),FALSE,isSuspect))
-    }
-
-    cashFlowMapd <- cashFlowMapd %>%
-        mutate(isTransfer=if_else(is.na(isTransfer), FALSE, isTransfer),
-               isSuspect=if_else(is.na(isSuspect), FALSE, isSuspect),
-               isFirstTransfer=if_else(is.na(isFirstTransfer), FALSE, isFirstTransfer)) %>%
-        select(!contains(c("isTransfer", "isSuspect", "isFirstTransfer")), isTransfer, isSuspect, isFirstTransfer)
-
-    return(cashFlowMapd)
-
+  
+  cashFlowMapd <- cf %>%
+    mutate_if(is.logical,function(x) ifelse(is.na(x),FALSE,x)) %>%
+    ## mutate_at(c("isTransfer", "isSuspect", "isFirstTransfer"),function(x) ifelse(is.na(x),FALSE,x)) %>% 
+    select(!contains(c("isTransfer", "isSuspect", "isFirstTransfer")), isTransfer, isSuspect, isFirstTransfer)
+  
+  return(cashFlowMapd)
+  
 }

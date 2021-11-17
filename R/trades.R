@@ -400,7 +400,7 @@ getInitialPremium <- function(data) {
 
 
   prem <- data %>%
-    dplyr::filter(ctype==30)  %>%
+    ##dplyr::filter(ctype==30)  %>%
     group_by(commitment) %>%
     summarise(value=sum(as.numeric(qtymain))) %>%
     dplyr::filter(value>0) %>%
@@ -408,7 +408,7 @@ getInitialPremium <- function(data) {
     slice(1:1)
 
   if(NROW(prem)==0) {
-    return(list("premium"=NA,"date"=as.Date(NA)))
+    return(list("premium"=0,"date"=as.Date(NA)))
   }
 
   return(
@@ -432,14 +432,14 @@ getInitialPremium <- function(data) {
 ##' @export
 detectTransfers <- function(portfolio,
                             fpKeywords=list("stype"="reversal","remarks"="fee"),
-                            transferMin=.01,
+                            transferMin=.035,
                             session) {
   
   ## Print some stuff:
   print(sprintf("Going for portfolio %s", portfolio))
-
+  
   ## Get trades:
-  trades <- getDBObject("trades",session, addParams=list(accmain__portfolio=portfolio))
+  trades <- getDBObject("trades",session, addParams=list(accmain__portfolio=portfolio,nojournal="True"))
   
   
   
@@ -458,9 +458,11 @@ detectTransfers <- function(portfolio,
            isSuspect=FALSE,
            isFirstTransfer=FALSE) %>% 
     rename(account=accmain)
-
+  
   
   trades <- do.call("getPortNameByAccount",list(trades,session))
+  
+  print(unique(trades$portfolioName))
   
   ## Get the cash trades:
   cashTrades <- trades %>%
@@ -468,8 +470,14 @@ detectTransfers <- function(portfolio,
   
   ## Short Circuit
   if(NROW(cashTrades)==0) {
+    print("No Cash Trades")
     return(NULL)
   }
+  
+  ## get first premium
+  fPremium <- getInitialPremium(cashTrades)
+  
+  print(paste("First Premium:",fPremium[["premium"]])) 
   
   ## Move this part outside function ##
   ## Get the non-cash inflows/outflows
@@ -477,37 +485,52 @@ detectTransfers <- function(portfolio,
     dplyr::filter(resmain_ctype!="CCY",ctype==20)
   
   ## get reference ccy
-  refCCY <- trades %>% select(rccy) %>% unique() %>% .[[1]]
-  
-  ## get first premium
-  fPremium <- getInitialPremium(trades)
+  ## refCCY <- trades %>% select(rccy) %>% unique() %>% .[[1]]
   
   ## Get transactions
-  trans <- getDBObject("quants",session, addParams=list(account__portfolio=portfolio, refccy=refCCY)) %>%
-    mutate(trid=as.numeric(id)-1) %>% 
-    select(trid, trade, refamt, commitment, type) %>%
+  trans <- getDBObject("quants",session, addParams=list(account__portfolio=portfolio, refccy=unique(trades$rccy))) %>%
+    select(trade, refamt, commitment, type, symbol) %>%
     rename(id=trade, valamt=refamt)
   
   ## Get transaction details for value amount for non-cash flows
   othrFlowTrans <- othrFlow %>%
     select(id) %>%
     inner_join(trans, by="id") %>%
-    mutate(flag=1,valamt=round(if_else(type=="Outflow",as.numeric(valamt),-1*as.numeric(valamt)))) %>%
-    select(flag, valamt, commitment, trid)
- 
+    mutate(inout=1,valamt=round(if_else(type=="Outflow",as.numeric(valamt),-1*as.numeric(valamt))),ctype=20) %>%
+    select(inout, valamt, commitment, symbol, ctype)
+  
+  
+  ## Get non-cash trades that can be joined by remark as extra layer e.g. 151556
+  othrFlowTrade <- othrFlow %>% ## get rid of reversals
+    anti_join(othrFlow %>% dplyr::filter(abs(qtymain)>0) %>% mutate(qtymain=-1*qtymain), by=c("qtymain","pxcost","pxmain","commitment","remarks","resmain_ctype","resmain_stype","resmain_symbol")) %>%
+    dplyr::filter(!is.na(remarks)) %>% 
+    dplyr::filter(trimws(remarks)!="") %>% 
+    group_by(commitment,remarks) %>% 
+    summarise(qtymain=sum(qtymain)) %>% 
+    ungroup() %>% 
+    mutate(revsign=if_else(qtymain<=0,0,1),rmrk=1,ctype=20) %>% 
+    select(-qtymain)
+  
   ## Map to back to cash flows to remove true negatives
   cf<- cashTrades %>%
-    mutate(valamt=round(as.numeric(qtymain))) %>%
-    left_join(othrFlowTrans,by=c("valamt","commitment","id"="trid")) %>%
-    mutate(isTransfer=if_else(ctype==30,TRUE,FALSE),
-           isSuspect=TRUE
-    ) %>%
-    mutate(isSuspect=if_else(is.na(flag),isSuspect,FALSE),
-           isSuspect=if_else(abs(qtymain)<transferMin*fPremium[["premium"]], FALSE, isSuspect),
+    mutate(valamt=round(qtymain),isTransfer=if_else(ctype==30,TRUE,FALSE),isSuspect=TRUE,revsign=if_else(qtymain>0,1,0)) %>%
+    left_join(othrFlowTrans,by=c("valamt","commitment","resmain_symbol"="symbol","ctype")) %>%
+    left_join(othrFlowTrade,by=c("commitment","remarks","revsign","ctype")) %>%
+    mutate(isSuspect=if_else(is.na(inout)&is.na(rmrk)&abs(qtymain)>=transferMin*fPremium[["premium"]],isSuspect,FALSE),
            ## isTransferSus=if_else(abs(qtymain)<transferMin*fPremium[["premium"]],FALSE,isTransfer),
            isFirstTransfer=if_else(valamt==round(fPremium[["premium"]]) & commitment==fPremium[["date"]],TRUE,FALSE)
     ) %>%
-    select(-flag)
+    select(-inout,-rmrk,-revsign)
+  
+  
+  if(NROW(cf)!=NROW(cashTrades)) {
+    print("Record discrepancy identified, halting process.")
+    return(NULL)
+  }
+  
+  ##browser()
+  ##dupes <- cf %>% group_by(id) %>% mutate(n=n()) %>% arrange(desc(n))
+  
   
   ##for(i in 1:length(fpKeywords)) {
   ## cashFlowMapd <- cashFlowMapd %>%
@@ -516,21 +539,23 @@ detectTransfers <- function(portfolio,
   
   
   flag <- lapply(seq_along(fpKeywords), 
-         function (i) {
-         t <- grepl(tolower(paste(fpKeywords[[i]],collapse="|")),tolower(cf[,names(fpKeywords)[[i]]]))
-         }
-         ) %>%  
+                 function (i) {
+                   t <- grepl(tolower(paste(fpKeywords[[i]],collapse="|")),tolower(cf[,names(fpKeywords)[[i]]]))
+                 }
+  ) %>%  
     as.data.frame() %>% 
     rowSums()
   
   cf[as.logical(flag),"isSuspect"] <- FALSE
-
+  
   
   cashFlowMapd <- cf %>%
-    mutate_if(is.logical,function(x) ifelse(is.na(x),FALSE,x)) %>%
+    mutate_if(is.logical,function(x) ifelse(is.na(x),FALSE,x)) %>% 
+    mutate(initialPremium=fPremium[["premium"]],initialPremiumDate=fPremium[["date"]]) %>%
     ## mutate_at(c("isTransfer", "isSuspect", "isFirstTransfer"),function(x) ifelse(is.na(x),FALSE,x)) %>% 
     select(!contains(c("isTransfer", "isSuspect", "isFirstTransfer")), isTransfer, isSuspect, isFirstTransfer)
   
   return(cashFlowMapd)
   
 }
+

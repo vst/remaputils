@@ -7,7 +7,7 @@
 detectTransfers(
   portfolio,
   fpKeywords = list(stype = "reversal", remarks = "fee"),
-  transferMin = 0.01,
+  transferMin = 0.035,
   session
 )
 }

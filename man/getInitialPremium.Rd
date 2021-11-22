@@ -4,10 +4,12 @@
 \alias{getInitialPremium}
 \title{A function to get initial premium date and value for a trades data frame.}
 \usage{
-getInitialPremium(data)
+getInitialPremium(data, minval = 1000)
 }
 \arguments{
 \item{data}{a trades data frame}
+
+\item{minval}{a numeric value floor to exclude records below this threshold}
 }
 \value{
 A list

@@ -406,18 +406,23 @@ getInitialPremium <- function(data,minval=1000) {
   
   prem <- prem %>% 
     group_by(commitment) %>% 
-    summarise(value=sum(as.numeric(valamt))) %>% 
-    dplyr::filter(value>=minval) %>% 
-    arrange(commitment) %>% 
-    slice(1:1) 
+    mutate(value=sum(as.numeric(valamt))) %>% 
+    ungroup() %>% 
+    dplyr::filter(value>=minval) %>%
+    ##arrange(commitment) %>% 
+    ##slice(1:1) 
+    ##rowwise() %>% 
+    dplyr::filter(commitment==min(commitment))
   
+
   if(NROW(prem)==0) {
-    return(list("premium"=0,"date"=as.Date(NA)))
+    return(list("premium"=0,"date"=as.Date(NA),"data"=NULL))
   }
   
   return(
-    list("premium"=prem$value,
-         "date"=prem$commitment
+    list("premium"=unique(prem$value),
+         "date"=unique(prem$commitment),
+         "data"=prem %>% select(id) %>% mutate(isInitialPremiumSuspect=TRUE)
          )
     )
   
@@ -460,6 +465,12 @@ detectTransfers <- function(portfolio,
   
   trades <- do.call("getPortNameByAccount",list(trades,session))
   
+  ## Short Circuit
+  if(NROW(trades)==0) {
+    print("No Trades")
+    return(NULL)
+  }
+  
   print(unique(trades$portfolioName))
   
   ## Get transactions
@@ -483,7 +494,7 @@ detectTransfers <- function(portfolio,
   ## Short Circuit
   if(NROW(cashTrades)==0) {
     print("No Cash Trades")
-    return(NULL)
+    ##return(NULL)
   }
   
   ## get first premium
@@ -518,26 +529,50 @@ detectTransfers <- function(portfolio,
     mutate(revsign=if_else(qtymain<=0,1,0),rmrk=1,ctype=20) %>% 
     select(-qtymain)
   
+  
   ## Map to back to cash flows to remove true negatives
-  cf<- cashTrades %>% ##[cashTrades$id==14247,] %>%
+  cf1<- trades %>% 
+    dplyr::filter(id %in% fPremium[["data"]]$id) %>% 
+    bind_rows(cashTrades) %>% ##[cashTrades$id==14247,] %>%
+    unique() 
+  cf <- cf1 %>% 
     mutate(valamt=round(valamt),isTransfer=if_else(ctype==30,TRUE,FALSE),isSuspect=TRUE,revsign=if_else(qtymain>0,1,0)) %>%
     left_join(othrFlowTrans,by=c("valamt","commitment","resmain_symbol"="symbol","ctype")) %>%
     left_join(othrFlowTrade,by=c("commitment","remarks","revsign","ctype")) %>%
-    mutate(isSuspect=if_else(is.na(inout)&is.na(rmrk)&abs(qtymain)>=transferMin*fPremium[["premium"]],isSuspect,FALSE),
+    left_join(fPremium[["data"]],by="id") %>% 
+    mutate(isSuspect=if_else(is.na(inout)&is.na(rmrk)&abs(valamt)>=transferMin*fPremium[["premium"]],isSuspect,FALSE),
            ## isTransferSus=if_else(abs(qtymain)<transferMin*fPremium[["premium"]],FALSE,isTransfer),
-           isInitialPremiumSuspect=if_else(valamt==round(fPremium[["premium"]]) & commitment==fPremium[["date"]],TRUE,FALSE)
+           isInitialPremiumSuspect=if_else(##aggvalamt==round(fPremium[["premium"]]) & commitment==fPremium[["date"]],TRUE,FALSE
+             id %in% fPremium[["data"]]$id,TRUE,FALSE
+             ),
+           misclassified=if_else(isInitialPremiumSuspect & resmain_ctype!="CCY",TRUE,FALSE)
+           
     ) %>%
     select(-inout,-rmrk,-revsign)
   
+  if(NROW(cf)!=NROW(cf1)) {
+    ##print("Record discrepancy identified, halt process.")
+    ##return(NULL)
+    stop("Record discrepancy identified, halt process.")
+  }
   
-  if(NROW(cf)!=NROW(cashTrades)) {
-    print("Record discrepancy identified, halting process.")
-    return(NULL)
+  ##if(sum(cf$isInitialPremiumSuspect,na.rm=TRUE)==0) {
+  ##
+  ##cf <- cf %>% 
+  ##  bind_rows(trades %>% dplyr::filter(id %in% fPremium[["data"]]$id) %>% mutate(valamt=round(valamt),isTransfer=if_else(ctype==30,TRUE,FALSE),isSuspect=TRUE,isInitialPremiumSuspect=TRUE,misclassified=TRUE))
+  ##  
+  ##print("Missclassification Suspect")
+  ##}
+  
+  if(sum(cf$isInitialPremiumSuspect,na.rm=TRUE)==0) {
+    ##print("Initial premium record(s) missing, halt process.")
+    ##return(NULL)
+    stop("Initial premium record(s) missing, halt process.")
   }
   
   ##dupes <- cf %>% group_by(id) %>% mutate(n=n()) %>% arrange(desc(n))
   
-  
+  ## ADD THIS BACK
   for(i in 1:length(fpKeywords)) {
    cf <- cf %>%
      mutate(isSuspect=ifelse(grepl(tolower(paste(fpKeywords[[i]],collapse="|")),tolower(!!sym(names(fpKeywords)[[i]]))),FALSE,isSuspect))
@@ -559,7 +594,7 @@ detectTransfers <- function(portfolio,
     mutate_if(is.logical,function(x) ifelse(is.na(x),FALSE,x)) %>% 
     mutate(initialPremium=fPremium[["premium"]],initialPremiumDate=fPremium[["date"]]) %>%
     ## mutate_at(c("isTransfer", "isSuspect", "isFirstTransfer"),function(x) ifelse(is.na(x),FALSE,x)) %>% 
-    select(!contains(c("isInitialPremiumSuspect", "isTransfer", "isSuspect")), isInitialPremiumSuspect, isTransfer, isSuspect)
+    select(!contains(c("isInitialPremiumSuspect", "isTransfer", "isSuspect","misclassified")), isInitialPremiumSuspect, isTransfer, isSuspect,misclassified)
   
   return(cashFlowMapd)
   

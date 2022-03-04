@@ -592,6 +592,10 @@ relativePerformancePlot <- function(performance, primCol, secdCol, portfolioLabe
         yrVal <- 0
     }
 
+    if (length(yrIdx) == 1 & length(yrVal) == 2) {
+        yrVal <- tail(yrVal, 1)
+    }
+
     yearlyRets[yrIdx, 2] <- yrVal
 
     ## Add 0 to the top:
@@ -609,8 +613,13 @@ relativePerformancePlot <- function(performance, primCol, secdCol, portfolioLabe
     ## Get the years:
     years <- substr(dates, 1, 4)
 
+    if (diff(as.numeric(years))[1] == 1 & sum(diff(as.numeric(years))) == 1) {
+        years <- years[-1]
+    }
+
     ## Shift the yearly returns to the middle of each yearly time window:
     yearlyRets <- do.call(rbind, lapply(unique(years), function(x) {
+
         medDate <- median(dates[years == x])
         yrRets <- yearlyRets[years == x, ]
 
@@ -620,6 +629,11 @@ relativePerformancePlot <- function(performance, primCol, secdCol, portfolioLabe
 
         rplIdx <- which(as.character(zoo::index(yrRets)) == as.character(medDate))
         rplVal <- as.numeric(yrRets[yrRets[,1] != 0, ])
+
+        if (length(rplVal) == 0) {
+            rplVal <- 0
+        }
+
         yrRets[, 1] <- 0
         yrRets[, 2] <- 0
         yrRets[rplIdx, ] <- rplVal

@@ -7,9 +7,27 @@
 ##' @param fld The column name of the data-frame which has the corresponding instrument id.
 ##' @param ccy The column name for the currency of the instrument.
 ##' @param figiApi The api key of the openFigi account.
+##' @param ignoreFld A vector of strings for column names in data frame to be ignore. Default=NULL.
+##' @param ignoreKey A vector of strings that ignoreFld should search for to ignore. Default=NULL.
 ##' @return Returns the original data-frame with figi information appended.
 ##' @export
-figiWrapper <- function(data, idType="ID_ISIN", fld="isin", ccy="ccymain", figiApi) {
+figiWrapper <- function(data, idType="ID_ISIN", fld="isin", ccy="ccymain", figiApi, ignoreFld=NULL, ignoreKey=NULL) {
+
+    ## Are there rows which should be ignored?
+    if (!is.null(ignoreFld)) {
+
+        ## Filter the data:
+        filteredData <- excludeRowsWithKeys(data, ignoreFld, ignoreKey)
+
+        ## Separate the ignored rows:
+        appendData <- data[is.na(match(data[, "INSTRUMENTCODE"], filteredData[, "INSTRUMENTCODE"])), ]
+
+        ##:
+        data <- filteredData
+
+    } else {
+        appendData <- NULL
+    }
 
     ## Get the NA resources:
     naResources <- is.na(safeColumn(data, "resmain"))
@@ -50,6 +68,18 @@ figiWrapper <- function(data, idType="ID_ISIN", fld="isin", ccy="ccymain", figiA
         data[dataIdx, "currency"] <- figiResult[figiIdx, "currency"]
 
     }
+
+    ## Get the extra columns from figi process:
+    appendCols <- colnames(data)[is.na(match(colnames(data), colnames(appendData)))]
+    ## appendCols <- colnames(data)[is.na(match(colnames(data), colnames(data)))]
+
+    if (length(appendCols) > 0) {
+        ## Append missing columns:
+        appendData[, appendCols] <- NA
+    }
+
+    ## Append ignored rows:
+    data <- rbind(data, appendData)
 
     ## Done, return:
     data

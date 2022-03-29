@@ -1033,23 +1033,40 @@ benchmarkAnalysis <- function(data, minobs=30) {
                        "modelBeta"=NA,
                        "modelBetaSign"=NA,
                        "lm"=NA,
-                       "treynor"=NA)
+                       "treynor"=NA,
+                       "return"=NA,
+                       "volatility"=NA)
                        
-        data <- data[!is.na(data[, "container"]), ]  
-        data <- data[!is.na(data[, "benchmark"]), ]             
- 
-        if (is.null(data)||NCOL(data) == 1||NROW(data)<minobs) {
+        data1 <- data[!is.na(data[, "container"]), ]  
+        data1 <- data1[!is.na(data1[, "benchmark"]), ]             
+
+        if (is.null(data1)||NCOL(data1) == 1||NROW(data1)<minobs) {
             return(retval)
         }
+        
+        retPf <- as.numeric(tail(as.numeric(data[,"container"]), 1) / head(as.numeric(data[,"container"]), 1) - 1)
+        bRet <-  as.numeric(tail(as.numeric(data[!is.na(data$benchmark),]$benchmark), 1) / head(as.numeric(data[!is.na(data$benchmark),]$benchmark), 1) - 1)
 
-        bRets <- diff(log(data))[-1, ]
+        data <- treatPriceSeries(data[!is.na(data$benchmark),], "date", "benchmark", quantile=.998, surpressPlot=TRUE) 
+
+        bRets <- data %>%
+          mutate_if(is.numeric, function(x) c(NA,{diff(log(x))})) %>%
+          slice(2:NROW(.)) 
+        
         #bRets <- bRets[abs(bRets[, 1]) < sd(bRets[, 1]) * 4, ] #need to add control for nrow == 0 
         #bRets <- bRets[abs(bRets[, 2]) < sd(bRets[, 2]) * 4, ]
         
         if(sum(bRets$container)==0||sum(bRets$benchmark)==0) {
            return(retval)
         }
-
+        
+        bRets <- cbind(
+          container=xts::as.xts(bRets$container, order.by=bRets$date),
+          benchmark=xts::as.xts(bRets$benchmark, order.by=bRets$date)
+          )
+          
+        bVol <-  as.numeric(PerformanceAnalytics::StdDev(bRets$benchmark)) * sqrt(length(bRets$benchmark))
+        
         period <- cbind(xts::apply.weekly(bRets[, "container"], sum), xts::apply.weekly(bRets[, "benchmark"], sum))
 
         bCorl <- as.numeric(cor(period[, "container"], period[, "benchmark"]))
@@ -1072,20 +1089,20 @@ benchmarkAnalysis <- function(data, minobs=30) {
         treynor <- NA
         
         if(!any(is.na(data[,"riskfree"]))&&!is.na(beta)) {
-        retPf <- as.numeric(tail(as.numeric(data[,"container"]), 1) / head(as.numeric(data[,"container"]), 1) - 1)
         retRf <- as.numeric(tail(as.numeric(data[,"riskfree"]), 1) / head(as.numeric(data[,"riskfree"]), 1) - 1)
-        
         treynor <- (retPf-retRf) / coeffs[2, "Estimate"]
         }
         
         retval[["correlation"]] <- bCorl
-        retval[["relativeReturn"]] <- -diff(colSums(period))
+        retval[["relativeReturn"]] <- safeNull(retPf-bRet)##-diff(colSums(period))
         retval[["modelAlpha"]] <- alpha
         retval[["modelAlphaSign"]] <- alphaPT
         retval[["modelBeta"]] <- beta
         retval[["modelBetaSign"]] <- betaPT
         retval[["lm"]] <- bModel
         retval[["treynor"]] <- treynor
+        retval[["return"]] <- bRet
+        retval[["volatility"]] <- bVol
 
         return(retval)
 
@@ -1103,10 +1120,11 @@ benchmarkAnalysis <- function(data, minobs=30) {
 ##' @param method The return calcuation method:'discrete', 'log'
 ##' @param returnOnly Should only the Total Return be calculated?
 ##' @param benchmark The benchmark symbol. Defaul NULL.
-##' @param rfts The the risk free time series. Defaults NULL.
+##' @param rfts The the risk free time series. Defaults NA.
+##' @param smoothQ outlier trimming via treatpriceseries fn quantile. Defaults 1 (no trimming).
 ##' @return A data frame with the return statistics.
 ##' @export
-computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=FALSE, benchmark=NULL, rfts=NA) {
+computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=FALSE, benchmark=NULL, rfts=NULL, smoothQ=1) {
 
     retval <- data.frame("Period: Return"=NA,
                          "Period: Volatility"=NA,
@@ -1148,6 +1166,8 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
                          "Kurtosis"=NA,
                          "Quantile Ratio"=NA,
                          "Avg. Losing Month"=NA,
+                         "Benchmark Return"=NA,
+                         "Benchmark Volatility"=NA,
                          "Benchmark Relative Return"=NA,
                          "Benchmark Correlation"=NA,
                          "Benchmark Model Alpha"=NA,
@@ -1165,37 +1185,25 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
         return(retval)
     }
     
-    
     ## Remove zero prices:
-    df <- df[df[, pxCol] != 0 | df[, pxCol] != "0", ]
+    ##df <- df[df[, pxCol] != 0 | df[, pxCol] != "0", ]
+    ##df <- treatPriceSeries(df, dtCol, pxCol, quantile=smoothQ, surpressPlot=TRUE) 
 
     ## XTSify:
     ts <- xts::as.xts(as.numeric(df[, pxCol]), order.by=as.Date(df[, dtCol]))
-
-
-    bAnalysis <- list(
-    "correlation"=NA,
-    "relativeReturn"=NA,
-    "modelAlpha"=NA,
-    "modelAlphaSign"=NA,
-    "modelBeta"=NA,
-    "modelBetaSign"=NA,
-    "lm"=NA,
-    "treynor"=NA
-    )
-    if(!is.null(benchmark)) {
     
-    bData <- cbind("container"=ts, "benchmark"=benchmark[["xts"]], "riskfree"=rfts)
-    #data.frame(date=as.Date(zoo::index(ts)),container=ts) %>%
-    #  left_join(data.frame(date=as.Date(zoo::index(benchmark[["xts"]])),benchmark=benchmark[["xts"]]), by="date") %>% 
-    #  left_join(data.frame(date=as.Date(zoo::index(rfts)),riskfree=rfts), by="date")  
-    #bData <- xts::as.xts(bData[, -1], order.by=bData$date)
+    bData <- data.frame(container=ts,date=zoo::index(ts)) %>%
+      left_join(data.frame(benchmark=as.numeric(safeNull(benchmark)),date=as.Date(safeNull(zoo::index(benchmark)),origin="1970-01-01")),by="date") %>%
+      left_join(data.frame(riskfree=as.numeric(safeNull(rfts)),date=as.Date(safeNull(zoo::index(rfts)),origin="1970-01-01")),by="date") 
     bAnalysis <- benchmarkAnalysis(bData)
     
-    }
-    
     ## Compute returns:
+    if(!is.null(df$ret)) {
+    rets <- xts::as.xts(df$ret, order.by=as.Date(df[, dtCol]))
+    }
+    else {
     rets <- diff(log(ts))
+    }
 
     ## Compute annualized return:
     retsAnnual <- as.numeric(PerformanceAnalytics::Return.annualized(rets, geometric=FALSE))
@@ -1207,7 +1215,7 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
         retval[, "Daily: Return"] <- as.numeric(mean(na.omit(rets)))
         return(retval)
     }
-
+    
     ## Compute standard deviation:
     stdev <- as.numeric(PerformanceAnalytics::StdDev(rets))
 
@@ -1226,12 +1234,6 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
     ## Compute the maximum drawdown:
     maxDrawdown <- as.numeric(PerformanceAnalytics::maxDrawdown(rets))
 
-    ## Compute the VaR:
-    var <- -as.numeric(abs(PerformanceAnalytics::VaR(rets)))
-
-    ## Comput the Expected Shortfall
-    es <- -as.numeric(abs(PerformanceAnalytics::ES(rets)))
-
     ## Compute the skewness:
     skew <- as.numeric(PerformanceAnalytics::skewness(rets))
 
@@ -1244,6 +1246,7 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
     ## Compute Average Losing Month:
     monthlyRets <- xts::apply.monthly(rets, sum)
     avgLosingMonth <- mean(as.numeric(monthlyRets[monthlyRets < 0]))
+    avgLosingMonth <- if_else(is.finite(avgLosingMonth),avgLosingMonth,as.numeric(NA))
 
     ## Get the period return:
     retPeriod <- as.numeric(tail(as.numeric(ts), 1) / head(as.numeric(ts), 1) - 1)
@@ -1254,6 +1257,24 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
     ## Get the daily return:
     retsDaily <- as.numeric(mean(na.omit(rets)))
 
+
+    df <- treatPriceSeries(df, dtCol, pxCol, quantile=smoothQ, surpressPlot=TRUE) 
+    ts <- xts::as.xts(as.numeric(df[, pxCol]), order.by=as.Date(df[, dtCol]))
+    rets <- diff(log(ts))
+    ##if(abs(sum(rets,na.rm=TRUE))>0) {
+    rets <- rets[abs(rets)<=abs(median(rets,na.rm=TRUE))+sd(rets,na.rm=TRUE)*4]
+    ##}
+    ##if(!is.null(df$symbol) && df$symbol=="XD0253306019") {browser()}
+    ##if(length(rets[rets==-0.00224928387813375])>0) {browser()}
+
+    ## Compute the VaR:
+    var <- -as.numeric(abs(PerformanceAnalytics::VaR(rets)))
+    var <- if_else(is.finite(var),var,as.numeric(NA))
+
+    ## Comput the Expected Shortfall
+    es <- -as.numeric(abs(PerformanceAnalytics::ES(rets)))
+    es <- if_else(is.finite(es),es,as.numeric(NA))
+    
     ## Construct data frame and return:
     retval <- data.frame("Period: Return"=retPeriod,
                          "Period: Volatility"=stdevPeriod,
@@ -1295,6 +1316,8 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
                          "Kurtosis"=kurt,
                          "Quantile Ratio"=quantileRatio,
                          "Avg. Losing Month"=-abs(avgLosingMonth),
+                         "Benchmark Return"=bAnalysis[["return"]],
+                         "Benchmark Volatility"=bAnalysis[["volatility"]],
                          "Benchmark Relative Return"=bAnalysis[["relativeReturn"]],
                          "Benchmark Correlation"=bAnalysis[["correlation"]],
                          "Benchmark Model Alpha"=bAnalysis[["modelAlpha"]],
@@ -1368,7 +1391,7 @@ getAssetReturns <- function(date,
     }
 
     ## Get the returns:
-    returnStats <- lapply(slicedOhlcs, function(s) do.call(rbind, lapply(s, function(y) computeReturnStats(y, "close", "date", method="discrete", returnOnly=returnOnly))))
+    returnStats <- lapply(slicedOhlcs, function(s) do.call(rbind, lapply(s, function(y)  computeReturnStats(y, "close", "date", method="discrete", returnOnly=returnOnly))))
 
     ## ## Get the unique FX pairs:
     pairs <- as.character(paste0(resources[, "ccymain"], ccy))

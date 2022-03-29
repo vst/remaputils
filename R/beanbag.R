@@ -410,11 +410,18 @@ beanbagNAVTable <- function (x, inception, pxinfo, investments=NULL, useIntYtd=F
 ##' @param end  The desired end date.
 ##' @param session The rdecaf session.
 ##' @param rfSymbol the risk free series, defaults to SHY.
+##' @param id the benchmark ID, defaults to NA.
+##' @param per the periodicity, defaults to M.
+##' @param win the window, defaults to Y.
 ##' @return A list containing all applicable benchmark info.
 ##' @export
-getBenchmark <- function(portfolio, start, end, session, rfSymbol="iShares 1-3 Year Treasury Bond ETF") {
+getBenchmark <- function(portfolio, start, end, session, rfSymbol=NA##"iShares 1-3 Year Treasury Bond ETF"
+,id=NA
+,per="M"
+,win="Y"
+) {
 
-        benchmarkID <- getDBObject("portfolios", session, addParams=list("id"=portfolio))[, "benchmark"]
+        benchmarkID <- if_else(is.na(id),as.numeric(getDBObject("portfolios", session, addParams=list("id"=portfolio))[, "benchmark"]),as.numeric(id))
         benchmarkSymbol <- ifelse(is.na(benchmarkID), NA, getResource("ohlcs", params=list("id"=benchmarkID), session=session)[["results"]][[1]][["symbol"]])
         benchmarkName <- benchmarkSymbol 
         benchmarkResource <- ifelse(is.na(benchmarkID), NA, getResource("resources", params=list("symbol"=benchmarkSymbol), session=session)[["results"]])
@@ -432,15 +439,9 @@ getBenchmark <- function(portfolio, start, end, session, rfSymbol="iShares 1-3 Y
         if (is.na(benchmarkID)) {
             benchmark <- NULL
             benchmarkFlat <- NULL
-            rf <- NULL
         } else {
             benchmark <- getResource("performance", params=params, session=session)
-            benchmarkFlat <- flattenPerformance(benchmark, "benchmarks", end, start, periodicity="M", window="Y")
-            rf <- getOhlcObsForSymbol("session"=session, "symbol"=rfSymbol, lte=end, lookBack=numerize(end-start))
-        }
-        
-        if(NROW(rf)==0) {
-        rf <- NULL
+            benchmarkFlat <- flattenPerformance(benchmark, "benchmarks", end, start, periodicity=per, window=win)
         }
 
         return(list(
@@ -448,13 +449,49 @@ getBenchmark <- function(portfolio, start, end, session, rfSymbol="iShares 1-3 Y
         "benchmarkSymbol"=benchmarkSymbol,
         "benchmarkName"=benchmarkName,
         "benchmark"=benchmark,
-        "benchmarkFlat"=benchmarkFlat,
-        "riskFree"= rf          
+        "benchmarkFlat"=benchmarkFlat
         )
         )
 
     }
 
+
+##' Gets the riskfree elements for a portfolio.
+##'
+##' This is a description.
+##'
+##' @param rfSymbol the risk free series, defaults to NULL.
+##' @param start The desired start date.
+##' @param end  The desired end date.
+##' @param session The rdecaf session.
+##' @return a time series containing risk free rate.
+##' @export
+getRf <- function(rfSymbol=NULL,start,end,session) {
+
+if(is.null(rfSymbol)) {return(NULL)}
+
+if(class(rfSymbol)=="numeric") {
+  rf <- data.frame(close=rep(rfSymbol,numerize(end-start)+1),date=seq(start,end,1))
+}
+else{
+  rf <- getOhlcObsForSymbol("session"=session, "symbol"=rfSymbol, lte=end, lookBack=numerize(end-start))
+  if(NROW(rf)==0) {
+  rf <- data.frame(close=rep(0,numerize(end-start)+1),date=seq(start,end,1))
+  }
+  else {
+  rf <- rf %>%
+    right_join(data.frame(date=seq(start,end,1)), by="date") %>%
+    fill(close,.direction="downup")
+  }
+}
+
+rf <- rf %>% 
+  mutate(indx=c(NA,diff(log(close)))) %>%
+  mutate(close=cumsum(if_else(row_number()==1,1,indx)))
+  
+return(xts::as.xts(rf$close, order.by=rf$date))
+
+}
 
 ##' Gets and prepares the performance information for a portfolio.
 ##'
@@ -467,7 +504,7 @@ getBenchmark <- function(portfolio, start, end, session, rfSymbol="iShares 1-3 Y
 ##' @param session The rdecaf session.
 ##' @param period The period memnonic. Default is Y-0.
 ##' @param benchMark a list containing the elements from getBenchmark above. Defaults to NULL.
-##' @param rF the risk free date. Defaults to NULL.
+##' @param rF the risk free data. Defaults to NULL.
 ##' @return A list with the indexed cumulative return series and performance stats.
 ##' @export
 getPerformance <- function(portfolio, start, end, freq="daily", session, period="Y-0", benchMark=NULL, rF=NULL) {
@@ -481,42 +518,24 @@ getPerformance <- function(portfolio, start, end, freq="daily", session, period=
         end <- dateOfPeriod(paste0(substr(period, 1, 2), as.numeric(substr(period, 3, 3)) - 1))
     }
 
-
-    if(is.null(benchMark)) {
     
-    benchmark <- getBenchmark(portfolio, start, end, session)[["benchmarkFlat"]]
 
     ## Construct the params:
     params <- list("portfolios"=portfolio,
                    "start"=start,
                    "end"=end,
                    "frequency"=freq)
+                   
+
 
     print(paste0("Retrieving performance data for portfolio: ", portfolio))
 
     ## Get the asset evolves:
     performance <- rdecaf::getResource("performance", params=params, session=session)
 
-    }
-    
-    else {
-    
-    benchmark <- NULL
-    
-    ## Construct the params:
-    params <- list("benchmarks"=benchMark$benchmarkID,
-                   "start"=start,
-                   "end"=end,
-                   "frequency"=freq)
-    
-    print(paste0("Retrieving performance data for benchmark: ", benchMark$benchmarkID))
+    series <- NA
 
-    ## Get the asset evolves:
-    performance <- getResource("performance", params=params, session=session)
-     
-    }
-
-    auxfun <- function() {
+    ##stats <- function() {
         retval <- data.frame("MTD"=rep(NA, 4),
                              "YTD"=rep(NA, 4),
                              "Y1"=rep(NA, 4),
@@ -525,49 +544,34 @@ getPerformance <- function(portfolio, start, end, freq="daily", session, period=
         cYear <- as.numeric(substr(Sys.Date(), 1, 4))
         colnames(retval) <- c("MTD", "YTD", as.character(cYear-1), as.character(cYear-2), as.character(cYear-3))
         rownames(retval) <- c("return", "maxddown", "stdev", "sharpe")
-        return(retval)
-    }
-
-    if (length(performance[["returns"]][["index"]]) == 0) {
-
-        xstats <- computeReturnStats(NULL,
+        ##return(retval)
+    ##}
+    stats <- retval
+    
+    xstats <- computeReturnStats(NULL,
                                      "price",
                                      "date",
                                      method="discrete",
                                      returnOnly=FALSE,
-                                     benchmark=benchmark)
+                                     benchmark=NULL)
 
-        return(list("series"=NA,
-                    "stats"=auxfun(),
+    if (length(performance[["returns"]][["index"]]) == 0) {
+
+        return(list("series"=series,
+                    "stats"=stats,
                     "xstats"=xstats))
     }
+    
 
-    series <- sapply(performance[["indexed"]][["data"]], function(x) ifelse(is.null(x[[1]]), NA, x[[1]]))
+    series <- unlist(performance[["indexed"]][["data"]])##sapply(performance[["indexed"]][["data"]], function(x) ifelse(is.null(x[[1]]), NA, x[[1]]))
     series[1] <- ifelse(is.na(series[1]), 1, series[1])
     series <- zoo::na.locf(series, fromLast=FALSE)
     
     ## Get the performance index series:
     series <- xts::as.xts(series,
                           order.by=as.Date(unlist(performance[["indexed"]][["index"]])))
-
-    ## Compute the extra statistics:
-    stats <- NULL
-    
-    if (is.null(benchMark)) {
-    rfTs <- rF
-    if (!is.null(rF)) {
-    rf <- rF %>%
-      dplyr::filter(date>=start&date<=end) 
-    rfTs <- xts::as.xts(rf$close, order.by=rf$date) 
-    }
-    xstats <- computeReturnStats(data.frame("price"=series, "date"=as.Date(unlist(performance[["indexed"]][["index"]]))),
-                                 "price",
-                                 "date",
-                                 method="discrete",
-                                 returnOnly=FALSE,
-                                 benchmark=benchmark,
-                                 rfts=rfTs)
-
+                          
+                          
     stats <- performance[["statistics"]][["univariate"]][["portfolios"]][[1]][["stats"]]
 
     stats <- lapply(1:length(stats), function(i) {
@@ -581,16 +585,19 @@ getPerformance <- function(portfolio, start, end, freq="daily", session, period=
     ## Add the colnames:
     colnames(stats) <- sapply(performance[["statistics"]][["univariate"]][["portfolios"]][[1]][["stats"]], function(x) x[["label"]])
 
-    stats <- stats[, !colnames(stats) == "CST"]
-    }
-    else {
-    xstats <- computeReturnStats(data.frame("price"=series, "date"=as.Date(unlist(performance[["indexed"]][["index"]]))),
+    stats <- stats[, !colnames(stats) == "CST"]          
+
+
+    ## Compute the extra statistics
+             
+    xstats <- computeReturnStats(data.frame("price"=series, "date"=zoo::index(series),"ret"=unlist(performance[["returns"]][["data"]])),##as.Date(unlist(performance[["indexed"]][["index"]]))),
                                  "price",
                                  "date",
                                  method="discrete",
                                  returnOnly=FALSE,
-                                 benchmark=benchmark)
-    }
+                                 benchmark=benchMark,
+                                 rfts=safeNull(rF))
+
     ## Return:
     list("series"=series,
          "stats"=stats,

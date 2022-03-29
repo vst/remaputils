@@ -522,7 +522,6 @@ assetPerformanceWrapper <- function(portfolio,
         resources <- getResourcesByStock(getStocks(portfolio[, "id"], session, zero=zero, date=date, c="portfolio"), session, getUnderlying=FALSE)
     }
 
-
     ## Get the asset returns:
     assetReturns <- getAssetReturns("date"=date,
                                     "ccy"=portfolio[, "rccy"],

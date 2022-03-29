@@ -9,7 +9,10 @@ getBenchmark(
   start,
   end,
   session,
-  rfSymbol = "iShares 1-3 Year Treasury Bond ETF"
+  rfSymbol = NA,
+  id = NA,
+  per = "M",
+  win = "Y"
 )
 }
 \arguments{
@@ -22,6 +25,12 @@ getBenchmark(
 \item{session}{The rdecaf session.}
 
 \item{rfSymbol}{the risk free series, defaults to SHY.}
+
+\item{id}{the benchmark ID, defaults to NA.}
+
+\item{per}{the periodicity, defaults to M.}
+
+\item{win}{the window, defaults to Y.}
 }
 \value{
 A list containing all applicable benchmark info.

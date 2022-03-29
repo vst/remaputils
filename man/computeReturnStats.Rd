@@ -11,7 +11,8 @@ computeReturnStats(
   method = "discrete",
   returnOnly = FALSE,
   benchmark = NULL,
-  rfts = NA
+  rfts = NULL,
+  smoothQ = 1
 )
 }
 \arguments{
@@ -27,7 +28,9 @@ computeReturnStats(
 
 \item{benchmark}{The benchmark symbol. Defaul NULL.}
 
-\item{rfts}{The the risk free time series. Defaults NULL.}
+\item{rfts}{The the risk free time series. Defaults NA.}
+
+\item{smoothQ}{outlier trimming via treatpriceseries fn quantile. Defaults 1 (no trimming).}
 }
 \value{
 A data frame with the return statistics.

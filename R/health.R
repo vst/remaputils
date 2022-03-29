@@ -127,46 +127,57 @@ ohlcHealthWrapper <- function(asof=Sys.Date(), ohlccodes=NULL, underlying=FALSE,
 ##' @return A data-frame with state of ohlc series.
 ##' @export
 ohlcHealth <- function(ohlc, asof=Sys.Date(), lookBack=5) {
-  
-  ## Convert close to numeric:
+
+  ## Convert close to numeric, date to date:
   ohlc[, "close"] <- as.numeric(ohlc[, "close"])
-  
+
+  ohlc[, "date"] <- as.Date(ohlc[, "date"])
+
   ## N days condition:
   ndays <- NROW(ohlc) ==  0 | all(is.na(ohlc[, "close"]))
-  
+
   ## Full time series to find gaps
   anygaps <- FALSE
   gapDate <- NA %>% as.Date()
-  gaps <- data.frame(date=seq.Date(from=min(ohlc$date),to=max(ohlc$date),by="day")) %>% 
-    left_join(ohlc,by="date") %>% 
-    mutate(flag=ifelse(is.na(close),1,0),week=paste(lubridate::year(date),lubridate::week(date))) %>% 
-    group_by(week) %>% 
-    mutate(gaps=sum(flag)) %>% 
-    dplyr::filter(flag==1&gaps>4) %>% 
-    ungroup() %>% 
-    arrange(date) %>% 
-    select(date) %>% 
-    slice(1:1) 
-  if(NROW(gaps)>0) {
+  gaps <- data.frame()
+  flagDate <- data.frame()
+
+  if(!all(is.na(ohlc$date))) {
+  gaps <- data.frame(date=seq.Date(from=min(ohlc$date,na.rm=TRUE),to=max(ohlc$date,na.rm=TRUE),by="day")) %>%
+    left_join(ohlc,by="date") %>%
+    mutate(flag=ifelse(is.na(close),1,0),week=paste(lubridate::year(date),lubridate::week(date))) %>%
+    group_by(week) %>%
+    mutate(gaps=sum(flag))
+
+  flagDate <- gaps  %>%
+    dplyr::filter(flag==1&gaps>4) %>%
+    ungroup() %>%
+    arrange(date) %>%
+    slice(1:1)
+  }
+  if(NROW(flagDate)>0) {
   anygaps <- TRUE
-  gapDate <- gaps %>% 
+  gapDate <- gaps %>%
+    dplyr::filter(!is.na(id),date<flagDate$date)  %>%
+    arrange(desc(date))  %>%
+    slice(1:1)  %>%
     .[[1]]
   }
-    
+
   ## Prepare the data frame:
   result <- data.frame("Symbol"=ohlc[1, "symbol"],
                        "No PX in N days"=as.logical(ifelse(ndays, TRUE, all(asof - ohlc[, "date"] > lookBack))),
                        "No PX at all"=as.logical(ndays),
                        "No PX change"=as.logical(ifelse(ndays, TRUE, all(diff(ohlc[, "close"]) == 0))),
-                       "Last PX update"=max(as.Date(ohlc[, "date"])),
+                       "Last PX update"=max(as.Date(ohlc[, "date"]),na.rm=TRUE),
                        "Any PX gaps"=anygaps,
                        "First gap date"=gapDate,
                        check.names = FALSE,
                        stringsAsFactors = FALSE)
-  
+
   ## Done, return:
   result
-  
+
 }
 
 

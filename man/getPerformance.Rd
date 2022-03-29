@@ -30,7 +30,7 @@ getPerformance(
 
 \item{benchMark}{a list containing the elements from getBenchmark above. Defaults to NULL.}
 
-\item{rF}{the risk free date. Defaults to NULL.}
+\item{rF}{the risk free data. Defaults to NULL.}
 }
 \value{
 A list with the indexed cumulative return series and performance stats.

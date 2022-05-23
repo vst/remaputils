@@ -22,6 +22,10 @@ figiWrapper <- function(data, idType="ID_ISIN", fld="isin", ccy="ccymain", figiA
         ## Separate the ignored rows:
         appendData <- data[is.na(match(data[, "INSTRUMENTCODE"], filteredData[, "INSTRUMENTCODE"])), ]
 
+        if (NROW(appendData) == 0) {
+            appendData <- NULL
+        }
+
         ##:
         data <- filteredData
 
@@ -73,7 +77,7 @@ figiWrapper <- function(data, idType="ID_ISIN", fld="isin", ccy="ccymain", figiA
     appendCols <- colnames(data)[is.na(match(colnames(data), colnames(appendData)))]
     ## appendCols <- colnames(data)[is.na(match(colnames(data), colnames(data)))]
 
-    if (length(appendCols) > 0) {
+    if (length(appendCols) > 0 & !is.null(appendData)) {
         ## Append missing columns:
         appendData[, appendCols] <- NA
     }

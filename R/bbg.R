@@ -1,4 +1,4 @@
-\##' R wrapper around bdlhs.
+##' R wrapper around bdlhs.
 ##'
 ##' @param host Remote SFTP server hostname.
 ##' @param port Remote SFTP server port.

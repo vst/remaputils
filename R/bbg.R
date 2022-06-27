@@ -1,4 +1,4 @@
-##' R wrapper around bdlhs.
+\##' R wrapper around bdlhs.
 ##'
 ##' @param host Remote SFTP server hostname.
 ##' @param port Remote SFTP server port.
@@ -495,6 +495,7 @@ treatBBGResultsPrice <- function(result, reqData, noCents=TRUE) {
 
         ## Get all pairs:
         allPairs <- reqData[["fx"]][["allPairs"]]
+        allPairs <- allPairs[!apply(allPairs, 1, function(x) any(is.na(x))), ]
 
         ## Extract obs to list by date:
         obsByDate <- extractToList(obs, "date")

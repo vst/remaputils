@@ -1541,6 +1541,11 @@ dateOfPeriod <- function(memnonic="D-0", date=Sys.Date()){
     ## Get the period dates
     series <- periodDates(period, date=date)
 
+    ## Remove the date in the series for the weekly query:
+    if (period == "W") {
+        series <- series[series != date]
+    }
+
     ## Apply lag and return:
     series[length(series) - lag]
 

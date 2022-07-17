@@ -1748,7 +1748,7 @@ pushOhlc <- function(symbol, close, date, session) {
         ends <- batches[["endingIdx"]][i]
 
         ## Get the payload:
-        payload <- toJSON(ohlcObs[strt:ends,], auto_unbox=TRUE, na = c("null"))
+        payload <- toJSON(ohlcObs[strt:ends,], auto_unbox=TRUE, na = c("null"), digits=10)
 
         print(paste0("Posting prices ", strt, ":", ends, " of ", NROW(ohlcObs)))
 

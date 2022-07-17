@@ -1088,8 +1088,8 @@ benchmarkAnalysis <- function(data, minobs=30) {
         
         treynor <- NA
         
-        if(!any(is.na(data[,"riskfree"]))&&!is.na(beta)) {
-        retRf <- as.numeric(tail(as.numeric(data[,"riskfree"]), 1) / head(as.numeric(data[,"riskfree"]), 1) - 1)
+        if(!is.na(beta)) {
+        retRf <- max(as.numeric(tail(as.numeric(data[,"riskfree"]), 1) / head(as.numeric(data[,"riskfree"]), 1) - 1),0,na.rm=TRUE)
         treynor <- (retPf-retRf) / coeffs[2, "Estimate"]
         }
         
@@ -1192,9 +1192,16 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
     ## XTSify:
     ts <- xts::as.xts(as.numeric(df[, pxCol]), order.by=as.Date(df[, dtCol]))
     
+    if(is.null(rfts)|all(is.na(rfts))) {
+    rfts <- xts::as.xts(as.numeric(rep(1,length(ts))), order.by=as.Date(df[, dtCol]))
+    }
+    
+    retsRf <- diff(log(rfts))
+        
     bData <- data.frame(container=ts,date=zoo::index(ts)) %>%
       left_join(data.frame(benchmark=as.numeric(safeNull(benchmark)),date=as.Date(safeNull(zoo::index(benchmark)),origin="1970-01-01")),by="date") %>%
       left_join(data.frame(riskfree=as.numeric(safeNull(rfts)),date=as.Date(safeNull(zoo::index(rfts)),origin="1970-01-01")),by="date") 
+      
     bAnalysis <- benchmarkAnalysis(bData)
     
     ## Compute returns:
@@ -1207,6 +1214,7 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
 
     ## Compute annualized return:
     retsAnnual <- as.numeric(PerformanceAnalytics::Return.annualized(rets, geometric=FALSE))
+    retsRfAnnual <- as.numeric(PerformanceAnalytics::Return.annualized(retsRf, geometric=FALSE))
 
     ## If there are a few observations, return only Total Return:
     if (NROW(df) < 7 | returnOnly) {
@@ -1250,13 +1258,14 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
 
     ## Get the period return:
     retPeriod <- as.numeric(tail(as.numeric(ts), 1) / head(as.numeric(ts), 1) - 1)
+    retRfPeriod <- as.numeric(tail(as.numeric(rfts), 1) / head(as.numeric(rfts), 1) - 1)
 
     ## Get the period standard deviation:
     stdevPeriod <- as.numeric(stdev) * sqrt(NROW(rets))
 
     ## Get the daily return:
     retsDaily <- as.numeric(mean(na.omit(rets)))
-
+    retsRfDaily <- as.numeric(mean(na.omit(retsRf)))
 
     df <- treatPriceSeries(df, dtCol, pxCol, quantile=smoothQ, surpressPlot=TRUE) 
     ts <- xts::as.xts(as.numeric(df[, pxCol]), order.by=as.Date(df[, dtCol]))
@@ -1268,44 +1277,44 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
     ##if(length(rets[rets==-0.00224928387813375])>0) {browser()}
 
     ## Compute the VaR:
-    var <- -as.numeric(abs(PerformanceAnalytics::VaR(rets)))
+    var <- as.numeric(PerformanceAnalytics::VaR(rets))
     var <- if_else(is.finite(var),var,as.numeric(NA))
 
     ## Comput the Expected Shortfall
-    es <- -as.numeric(abs(PerformanceAnalytics::ES(rets)))
+    es <- as.numeric(PerformanceAnalytics::ES(rets))
     es <- if_else(is.finite(es),es,as.numeric(NA))
     
     ## Construct data frame and return:
     retval <- data.frame("Period: Return"=retPeriod,
                          "Period: Volatility"=stdevPeriod,
                          "Period: Downside Deviation"=downsideDev * sqrt(NROW(rets)),
-                         "Period: Sharpe (STDEV)"=retPeriod / stdevPeriod,
-                         "Period: Sharpe (VaR)"=retPeriod / (abs(var)*sqrt(NROW(rets))),
-                         "Period: Sharpe (ES)"=retPeriod / (abs(es)*sqrt(NROW(rets))),
+                         "Period: Sharpe (STDEV)"= (retPeriod-retRfPeriod) / stdevPeriod,
+                         "Period: Sharpe (VaR)"=(retPeriod-retRfPeriod) / (abs(var)*sqrt(NROW(rets))),
+                         "Period: Sharpe (ES)"=(retPeriod-retRfPeriod) / (abs(es)*sqrt(NROW(rets))),
                          "Period: Calmar Ratio"=retPeriod / maxDrawdown,
-                         "Period: Sortino Ratio"=retPeriod / (downsideDev*sqrt(NROW(rets))),
+                         "Period: Sortino Ratio"=(retPeriod-retRfPeriod) / (downsideDev*sqrt(NROW(rets))),
                          "Period: Sterling Ratio"=retPeriod / avgDrawdown,
                          "Period: Value-At-Risk"=var*sqrt(NROW(rets)),
                          "Period: Expected Shortfall"=es*sqrt(NROW(rets)),
                          "Annual: Return"=retsAnnual,
                          "Annual: Volatility"=stdevAnnual,
                          "Annual: Downside Deviation"=downsideDev * sqrt(252),
-                         "Annual: Sharpe (STDEV)"=retsAnnual / stdevAnnual,
-                         "Annual: Sharpe (VaR)"=retsAnnual / (abs(var)*sqrt(252)),
-                         "Annual: Sharpe (ES)"=retsAnnual / (abs(es)*sqrt(252)),
+                         "Annual: Sharpe (STDEV)"=(retsAnnual-retsRfAnnual) / stdevAnnual,
+                         "Annual: Sharpe (VaR)"=(retsAnnual-retsRfAnnual) / (abs(var)*sqrt(252)),
+                         "Annual: Sharpe (ES)"=(retsAnnual-retsRfAnnual) / (abs(es)*sqrt(252)),
                          "Annual: Calmar Ratio"=retsAnnual / maxDrawdown,
-                         "Annual: Sortino Ratio"=retsAnnual / (downsideDev*sqrt(252)),
+                         "Annual: Sortino Ratio"=(retsAnnual-retsRfAnnual) / (downsideDev*sqrt(252)),
                          "Annual: Sterling Ratio"=retsAnnual / avgDrawdown,
                          "Annual: Value-At-Risk"=var*sqrt(252),
                          "Annual: Expected Shortfall"=es*sqrt(252),
                          "Daily: Return"=retsDaily,
                          "Daily: Volatility"=stdev,
                          "Daily: Downside Deviation"=downsideDev,
-                         "Daily: Sharpe (STDEV)"=retsDaily / stdev,
-                         "Daily: Sharpe (VaR)"=retsDaily / abs(var),
-                         "Daily: Sharpe (ES)"=retsDaily / abs(es),
+                         "Daily: Sharpe (STDEV)"=(retsDaily-retsRfDaily) / stdev,
+                         "Daily: Sharpe (VaR)"=(retsDaily-retsRfDaily) / abs(var),
+                         "Daily: Sharpe (ES)"=(retsDaily-retsRfDaily) / abs(es),
                          "Daily: Calmar Ratio"=retsDaily / maxDrawdown,
-                         "Daily: Sortino Ratio"=retsDaily / downsideDev,
+                         "Daily: Sortino Ratio"=(retsDaily-retsRfDaily) / downsideDev,
                          "Daily: Sterling Ratio"=retsDaily / avgDrawdown,
                          "Daily: Value-At-Risk"=var,
                          "Daily: Expected Shortfall"=es,
@@ -1331,6 +1340,184 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
 
     return(retval)
 
+}
+
+
+##' Wrappper that runs getPerformance historically for portfolio and benchmark when available 
+##'
+##' This is the description
+##'
+##' @param portfolio the portfolio ID.
+##' @param date the asofdate.
+##' @param session The rdecaf session.
+##' @param the symbol indicating what to use as risk free rate
+##' @return A list with return statistics.
+##' @export
+advancedStatsHistory <- function(portfolio, date, session, rfs=NULL) {
+
+
+    rawPerformance <- rdecaf::getResource("performance", params=list("portfolios"=portfolio, "start"=dateOfPeriod("Y-3"), "end"=dateOfPeriod("Y-0",date)), session=session)
+
+
+    yearsWithPerformance <- unique(substr(as.Date(safeNull(unlist(rawPerformance[["indexed"]][["index"]]))), 1,4))
+    yearsWithPerformance <- yearsWithPerformance[yearsWithPerformance != substr(date, 1,4)]
+
+    if (length(yearsWithPerformance) == 0|is.na(yearsWithPerformance)) {
+
+
+        return(NULL)
+
+
+    }
+
+    ends <- paste0(yearsWithPerformance, "-12-31")
+    starts <- paste0(as.numeric(yearsWithPerformance)-1, "-12-31")
+    
+    ## Get the performance:
+
+    performanceHist <- lapply(1:length(ends), function(i) {
+
+            
+    rf <- getRf(rfSymbol=rfs,start= as.Date(starts[i]),end=as.Date(ends[i]),session=session)
+    
+    benchmark <- getBenchmark(portfolio, as.Date(starts[i]), as.Date(ends[i]), session=session)$benchmarkFlat[["xts"]]
+
+        getPerformance(portfolio, as.Date(starts[i]), as.Date(ends[i]), "daily", session, benchMark=benchmark, rF=rf)
+    })
+
+
+    
+    names(performanceHist) <- ends
+
+    return(performanceHist)
+
+}
+
+##' Provides the keystatistics given the input of the getPerformanceV2 output and an as-of-date
+##'
+##' This is the description
+##'
+##' @param performance list of output from function referenced above.
+##' @param date the asofdate.
+##' @return A list with return statistics.
+##' @export
+keyStats <- function(performance, date) {
+    
+
+    statRows <- c("Abs Return", "Return Alpha", "Sharpe Ratio", "Std Deviation", "Max Drawdown")
+
+    if (is.null(performance[["container"]])) {
+
+    return(
+      list(
+        "keyStats"=data.frame(label=as.character(lubridate::year(date)),
+          return=NA,
+          stddev=NA,
+          sharpe=NA,
+          maxddown=NA
+          )
+        ,
+        "daily"=NULL,
+        "monthly"=NULL
+      )
+    )
+
+
+    }
+
+    ## Get the inception year of the container:
+    startYear   <- lubridate::year(head(zoo::index(performance[["container"]][["xts"]]), 1))
+
+    ## Get the current year of the report:
+    currentYear <- lubridate::year(date)
+
+    ## If the relative performance object is missing, i.e no benchmark, use container itself as relative:
+    if (is.null(performance[["relative" ]][["periodStats"]][["currentWindowStats"]]["sum", ])) {
+        relative <- performance[["container"]][["periodStats"]][["currentWindowStats"]]["sum", ]
+    } else {
+        relative <- performance[["relative"]][["periodStats"]][["currentWindowStats"]]["sum", ]
+    }
+
+    ## Initialise the monthly table:
+    monthly <- performance[["container"]][["periodStats"]][["currentWindowStats"]]["sum", ]  %>% 
+                 pivot_longer(1:NCOL(.),names_to="month",values_to=c("container"))  %>% 
+                 inner_join(relative %>% pivot_longer(1:NCOL(relative),names_to="month",values_to=c("relative")),by="month")  %>% 
+                 mutate(month=as.Date(month))  %>% 
+                 mutate_at(-1,numerize)
+    ## add max drawdown
+    DDs <- as.data.frame(performance[["container"]][["returns"]])  %>% 
+      mutate(month=sapply(as.Date(row.names(.)), function(x) lubridate::ceiling_date(x,"month")-1)  %>% as.Date("1970-01-01"))  %>% 
+      group_by(month)  %>% 
+      summarise(maxDD=PerformanceAnalytics::maxDrawdown(raw))
+
+    monthly <- monthly  %>% 
+      inner_join(DDs,by='month')
+
+    ## Get the container stats:
+    containerStats <- performance[["container"]][["stats"]]
+
+    ## Exclude non-numeric date labels:
+    containerStats <- containerStats[!is.na(suppressWarnings(as.numeric(as.character(containerStats[, "label"])))), ]
+
+    ## Order the date labels:
+    containerStats <- containerStats[order(as.numeric(containerStats[, "label"])), ]
+
+    ## Exclude date labels
+    containerStats <- containerStats[as.numeric(containerStats[, "label"]) >= startYear & as.numeric(containerStats[, "label"]) < currentYear, ]
+
+    ## If container stats nrow is 0, initialise data frame:
+    if (NROW(containerStats) == 0) {
+        containerStats <- initDF(colnames(containerStats))
+    }
+
+    ## Get the relative stats:
+    retsC <- as.data.frame(performance[["container"]][["returns"]]) %>% mutate(date=as.Date(row.names(.)))  %>% select(date,raw)
+    retsB <- NULL
+
+    if(any(names(performance)=="benchmark")) {
+    if(!is.null(performance[["benchmark"]])) {
+    retsB <- as.data.frame(performance[["benchmark"]][["returns"]]) %>% mutate(date=as.Date(row.names(.)))  %>% select(date,raw)
+    }
+    }
+    retsAll <- retsC  %>% mutate(Returns="Portfolio")  %>% rename(Portfolio=raw) 
+    #Get full set of daily returns
+    if(!(is.null(retsB))) {
+    rets <- retsAll  %>% 
+      left_join(retsB  %>% mutate(Returns="Benchmark"), by="date")
+    if(NROW(rets)>0) {
+    colnames(rets) <- c("date","Portfolio","Returns","Benchmark","ReturnsBenchmark") 
+    retsAll <- rets %>% dplyr::filter(Returns=="Portfolio")  %>%  select(c(1:3))  %>% 
+      bind_rows(rets %>% dplyr::filter(ReturnsBenchmark=="Benchmark")  %>% select(date,Benchmark,ReturnsBenchmark)  %>% rename(Returns=ReturnsBenchmark, Portfolio=Benchmark))  %>% 
+      group_by(Returns)
+    }
+    }
+    ## Done, return:
+    return(list(
+        "keyStats"=containerStats,
+        "daily"=retsAll,
+        "monthly"=monthly
+    )
+        )
+
+}
+
+
+##' Simplifies the compute returns stats advanced stats into the key metrics for the period in simple df format
+##'
+##' This is the description
+##'
+##' @param df the complex computereturnstats data frame input.
+##' @param suffix the suffix string to provide the row names, e.g. benchmark.
+##' @return A simplified data frame containing return, volatility and sharpe metrics.
+##' @export
+sumStats <- function(df,suffix="") {
+    dfSs <- df   %>% 
+      dplyr::filter(str_detect(rownames(.),"Period"))  %>% 
+      dplyr::filter(rownames(.) %in% paste("Period:",c("Return","Volatility","Sharpe (STDEV)"))) %>% 
+      mutate_all(numerize)
+    row.names(dfSs) <- c("Return","Volatility","Sharpe")
+    row.names(dfSs) <- paste0(row.names(dfSs),suffix)
+    return(dfSs)
 }
 
 

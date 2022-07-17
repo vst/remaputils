@@ -681,7 +681,8 @@ getPrintableHoldings <- function(portfolio=NA,
 
     addCols <- enrichedHoldings[["addCols"]]
 
-    enrichedHoldings <- enrichedHoldings[["holdings"]]
+    enrichedHoldings <- enrichedHoldings[["holdings"]] %>%
+      dplyr::mutate(Exposure=if_else(is.na(Exposure),0,Exposure))
 
     ## Get the ordered holdings:
     orderedHoldings <- getOrderedHoldings(enrichedHoldings, toplevel=toplevel, sublevels=sublevel, customTop=customTop, args)

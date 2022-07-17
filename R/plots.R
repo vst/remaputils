@@ -760,3 +760,133 @@ relativePerformancePlot <- function(performance, primCol, secdCol, portfolioLabe
            cex=1)
 
 }
+
+
+##' This function plots a linear regression plot.
+##' It assumes there is an x value that explains a y value (e.g. benchmark values).
+##'
+##' This is the description
+##'
+##' @param df the data frame containing the x and y values.
+##' @param xval the x value as a string.
+##' @param yval the y value as a string.
+##' @param col the color of the ponts (usually gradient using centeredColorScale fn).
+##' @param scol the smoothing shade color, defaults to grey.
+##' @param ttl the title given to the plot as a string.
+##' @return A LM plot.
+##' @export
+smoothPlot <- function(df,xval,yval,col,scol="#444341",ttl) {
+    ggplot(df,aes(x=!!sym(xval),y=!!sym(yval)))  +
+      geom_point(color=col) +
+      geom_smooth(method="lm",color=scol,linetype="dashed") +
+      theme_classic() +
+      labs(title=ttl) +
+      theme(text = element_text(size = 6))
+ }
+
+
+##' This function generates distribution and QQ plots.
+##' It assumes there is an x value that explains a y value (e.g. benchmark values).
+##'
+##' This is the description
+##'
+##' @param df the data frame containing the x and y values.
+##' @param yval the y value as a string.
+##' @param cval the categorical color value as a string that segments returns.
+##' @param pcol the color of one of the sets of returns.
+##' @param ncol the color of the other.
+##' @param ttl the title given to the distribution plot.
+##' @param ttl2 the title given to the QQ plot.
+##' @return A list containing two comparative plots.
+##' @export
+distPlots <- function(df,yval,cval,pcol="#2C3E50",ncol="#B15928",ttl,ttl2) {
+
+    dplot <- ggplot(df,aes(y=!!sym(yval),color=!!sym(cval),fill=!!sym(cval)))  +
+     geom_freqpoly(position="dodge") +
+     theme_classic() +
+     scale_color_manual(values=c(pcol,ncol)) +
+     labs(title=ttl,subtitle=paste(min(df$date),max(df$date),sep=" to "), x="",y="",fill="") +
+     coord_flip() +
+     theme(axis.text.y=element_blank(),axis.ticks.y=element_blank(),axis.title=element_blank())
+
+    qplot <- ggplot(df,aes(sample=!!sym(yval),color=!!sym(cval)))  +
+     stat_qq() +
+     stat_qq_line() +
+     theme_classic() +
+     scale_color_manual(values=c(pcol,ncol)) +
+     labs(title=ttl2,subtitle=paste(min(df$date),max(df$date),sep=" to "), x="Theoretical Return Quartiles",y="Returns")
+
+     return(list("dPlot"=dplot,"qPlot"=qplot))
+}
+
+
+##' This function generates a returns plots given a series.
+##'
+##' This is the description
+##'
+##' @param series a series of returns, e.g. weekly.
+##' @param ttl the title given to the plot.
+##' @return A bar plot with gradient color for positive and negative returns.
+##' @export
+barRet <- function(series,ttl="Weekly Returns") {
+    values <- as.numeric(series[, 1])
+    date   <- zoo::index(series)
+
+    if (length(values) < 2) {
+        values <- xts::as.xts(0, order.by=as.Date(date))
+    }  else {
+        values <- xts::apply.weekly(zoo::as.zoo(diff(log(values)), order.by=as.Date(date)), sum)
+    }
+
+    values <- values[!is.na(values)&is.finite(values)]
+    date   <- zoo::index(values)
+    origDate <- date
+    values <- as.numeric(values)
+
+    if (length(values) < 2) {
+        values <- rep(0, 2)
+        date   <- c(origDate, origDate)
+    }
+
+    fcol <- centeredColorScale(values)$col
+
+    date <- as.Date(date)
+
+    plot <- ggplot(data.frame("values"=as.numeric(values), "date"=date, stringsAsFactors=FALSE),aes(x=date,y=values))  +
+      geom_bar(stat="identity",position="identity",fill=fcol) +
+      theme_classic() +
+      labs(title=ttl,x="",y='') +
+      scale_x_date(breaks=seq(min(date), max(date), length.out=10),
+        labels=format(as.Date(date[seq(1, length(date), length.out=10)]), "%b %d, %y")) +
+      scale_y_continuous(breaks=seq(min(values), max(values), length.out=10),
+        labels=percentify(seq(min(values), max(values), length.out=10))
+        ) +
+      theme(axis.text.x = element_text(angle = 90, size=15), axis.text.y = element_text(size=15), plot.margin = margin(r = 1.5,unit="cm"),plot.title = element_text(size=20))
+
+    return(plot)
+}
+
+
+##' This function generates a PnL bar chart given a numerical y value (e.g. drawdown) and categorical x value (e.g. month).
+##'
+##' This is the description
+##'
+##' @param df the data frame containing the x and y values.
+##' @param xval the x value as a string.
+##' @param yval the y value as a string.
+##' @param fillval the column to use to fill the color of the bars.
+##' @param title the title given to the entire plot.
+##' @param xtitle the title given to the x axis.
+##' @param just the value for the justification of the labels, has a default.
+##' @param size the value for the size of the labels, has a default.
+##' @return A bar plot.
+##' @export
+barPnl <- function(df,xval,yval,fillval,title,xtitle,just=-.1,size=3) {
+    ggplot(df,aes(x=!!sym(xval),y=!!sym(yval)))  +
+      geom_bar(stat="identity",fill=fillval) +
+      theme_classic() +
+      labs(title=title,x=xtitle,y='') +
+      geom_text(aes(label=percentify(!!sym(yval))),vjust=just,size=size)
+    }
+
+

@@ -460,7 +460,7 @@ getBenchmark <- function(portfolio, start, end, session, rfSymbol=NA##"iShares 1
 ##'
 ##' This is a description.
 ##'
-##' @param rfSymbol the risk free series, defaults to NULL.
+##' @param rfSymbol the risk free series, defaults to NULL. Constant or symbol.
 ##' @param start The desired start date.
 ##' @param end  The desired end date.
 ##' @param session The rdecaf session.
@@ -470,8 +470,12 @@ getRf <- function(rfSymbol=NULL,start,end,session) {
 
 if(is.null(rfSymbol)) {return(NULL)}
 
+start <- as.Date(start)
+end <- as.Date(end)
+
 if(class(rfSymbol)=="numeric") {
-  rf <- data.frame(close=rep(rfSymbol,numerize(end-start)+1),date=seq(start,end,1))
+  close <- seq(1,1+rfSymbol,length.out=numerize(end-start)+1)
+  rf <- data.frame(close=close,date=seq(start,end,1)) ##make sure dates and values are consistent.
 }
 else{
   rf <- getOhlcObsForSymbol("session"=session, "symbol"=rfSymbol, lte=end, lookBack=numerize(end-start))
@@ -483,12 +487,12 @@ else{
     right_join(data.frame(date=seq(start,end,1)), by="date") %>%
     fill(close,.direction="downup")
   }
-}
-
+  
 rf <- rf %>% 
   mutate(indx=c(NA,diff(log(close)))) %>%
   mutate(close=cumsum(if_else(row_number()==1,1,indx)))
-  
+}
+ 
 return(xts::as.xts(rf$close, order.by=rf$date))
 
 }

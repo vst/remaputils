@@ -473,27 +473,46 @@ if(is.null(rfSymbol)) {return(NULL)}
 start <- as.Date(start)
 end <- as.Date(end)
 
-if(class(rfSymbol)=="numeric") {
+if(str_detect(as.character(rfSymbol),"\\.")
+##class(rfSymbol)=="numeric"
+) {
   close <- seq(1,1+rfSymbol,length.out=numerize(end-start)+1)
   rf <- data.frame(close=close,date=seq(start,end,1)) ##make sure dates and values are consistent.
 }
+
 else{
-  rf <- getOhlcObsForSymbol("session"=session, "symbol"=rfSymbol, lte=end, lookBack=numerize(end-start))
-  if(NROW(rf)==0) {
-  rf <- data.frame(close=rep(0,numerize(end-start)+1),date=seq(start,end,1))
-  }
-  else {
-  rf <- rf %>%
-    right_join(data.frame(date=seq(start,end,1)), by="date") %>%
-    fill(close,.direction="downup")
+
+  params <- list("benchmarks"=rfSymbol,
+               "start"=start,
+               "end"=end,
+               "frequency"="daily")
+               
+  rf <- safeTry(try(getResource("performance", params=params, session=session)))
+               
+  ##rf <- getOhlcObsForSymbol("session"=session, "symbol"=rfSymbol, lte=end, lookBack=numerize(end-start))
+  if(
+  all(is.na(rf))
+  ##NROW(rf)==0
+  ) {
+  return(NULL)
+  ##rf <- data.frame(close=rep(0,numerize(end-start)+1),date=seq(start,end,1))
   }
   
-rf <- rf %>% 
-  mutate(indx=c(NA,diff(log(close)))) %>%
-  mutate(close=cumsum(if_else(row_number()==1,1,indx)))
+  ##rf <- rf %>%
+    ##right_join(data.frame(date=seq(start,end,1)), by="date") %>%
+    ##arrange(date) ##%>% 
+    ##fill(close,.direction="down")
+   
+  ##rf <- rf %>% 
+  ##  mutate(indx=c(NA,diff(log(close)))) %>%
+  ##  mutate(close=cumsum(if_else(row_number()==1,1,indx)))
+  
+  rf <- data.frame(date=as.Date(unlist(rf$indexed$index)),close=as.numeric(unlist(rf$indexed$data)))
+
 }
  
 return(xts::as.xts(rf$close, order.by=rf$date))
+
 
 }
 

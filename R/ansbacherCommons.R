@@ -6,7 +6,9 @@
 ##' @export
 ansbacherSecTypeMapper <- function() {
     ## Columns to be selected:
-    list("100"=list("ctype"="CCY",
+    list("100"=list("ctype"="ZCPN",
+                    "stype"="T-Bill"),
+         "LIQ"=list("ctype"="CCY",
                     "stype"=NA),
          "110"=list("ctype"="DEPO",
                     "stype"="Short-Term"),

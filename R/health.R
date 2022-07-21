@@ -147,7 +147,8 @@ ohlcHealth <- function(ohlc, asof=Sys.Date(), lookBack=5) {
     left_join(ohlc,by="date") %>%
     mutate(flag=ifelse(is.na(close),1,0),week=paste(lubridate::year(date),lubridate::week(date))) %>%
     group_by(week) %>%
-    mutate(gaps=sum(flag))
+    mutate(gaps=sum(flag)) %>% 
+    ungroup()
 
   flagDate <- gaps  %>%
     dplyr::filter(flag==1&gaps>4) %>%

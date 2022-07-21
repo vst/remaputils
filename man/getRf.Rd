@@ -7,7 +7,7 @@
 getRf(rfSymbol = NULL, start, end, session)
 }
 \arguments{
-\item{rfSymbol}{the risk free series, defaults to NULL.}
+\item{rfSymbol}{the risk free series, defaults to NULL. Constant or symbol.}
 
 \item{start}{The desired start date.}
 

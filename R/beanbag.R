@@ -460,7 +460,7 @@ getBenchmark <- function(portfolio, start, end, session, rfSymbol=NA##"iShares 1
 ##'
 ##' This is a description.
 ##'
-##' @param rfSymbol the risk free series, defaults to NULL. Constant or symbol.
+##' @param rfSymbol the risk free rate, denoted by a named (code or value) list containing the value (constant decimal or ohlc series id).
 ##' @param start The desired start date.
 ##' @param end  The desired end date.
 ##' @param session The rdecaf session.
@@ -468,21 +468,22 @@ getBenchmark <- function(portfolio, start, end, session, rfSymbol=NA##"iShares 1
 ##' @export
 getRf <- function(rfSymbol=NULL,start,end,session) {
 
-if(is.null(rfSymbol)) {return(NULL)}
+if(is.null(rfSymbol)|class(rfSymbol)!="list") {return(NULL)}
 
 start <- as.Date(start)
 end <- as.Date(end)
+rfV <- unlist(rfSymbol)
 
-if(str_detect(as.character(rfSymbol),"\\.")
-##class(rfSymbol)=="numeric"
-) {
-  close <- seq(1,1+rfSymbol,length.out=numerize(end-start)+1)
+if(names(rfSymbol)=="value") 
+{
+  close <- seq(1,1+rfV,length.out=numerize(end-start)+1)
   rf <- data.frame(close=close,date=seq(start,end,1)) ##make sure dates and values are consistent.
 }
 
-else{
+if(names(rfSymbol)=="code") 
+{
 
-  params <- list("benchmarks"=rfSymbol,
+  params <- list("benchmarks"=rfV,
                "start"=start,
                "end"=end,
                "frequency"="daily")

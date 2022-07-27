@@ -1350,7 +1350,7 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
 ##' @param portfolio the portfolio ID.
 ##' @param date the asofdate.
 ##' @param session The rdecaf session.
-##' @param rfs the symbol indicating what to use as risk free rate.
+##' @param rfs the named list indicating what to query for the risk free rate.
 ##' @return A list with return statistics.
 ##' @export
 advancedStatsHistory <- function(portfolio, date, session, rfs=NULL) {

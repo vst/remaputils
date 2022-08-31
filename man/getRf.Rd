@@ -7,7 +7,7 @@
 getRf(rfSymbol = NULL, start, end, session)
 }
 \arguments{
-\item{rfSymbol}{the risk free series, defaults to NULL. Constant or symbol.}
+\item{rfSymbol}{the risk free rate, denoted by a named (code or value) list containing the value (constant decimal or ohlc series id).}
 
 \item{start}{The desired start date.}
 

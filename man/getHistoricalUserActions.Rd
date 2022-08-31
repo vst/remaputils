@@ -18,6 +18,8 @@ getHistoricalUserActions(
 
 \item{endpoint}{The endpoint to investigate, i.e "trades", "quants".}
 
+\item{sample}{The pagesize row length.}
+
 \item{exclCols}{The columns to exclude.}
 
 \item{exclKeys}{The keys to exclude from exclCols.}

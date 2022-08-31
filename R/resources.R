@@ -301,6 +301,9 @@ createShareResource <- function(df, session){
 
     ## Create the payload:
     payload <- toJSON(apply(dfx, MARGIN=1, as.list), auto_unbox=TRUE)
+    if(NROW(df)==1) {
+      payload <- toJSON(dfx, auto_unbox=TRUE)
+    }
 
     ## Post the resource:
     postResource("resources", "imports", payload=payload, session=session)

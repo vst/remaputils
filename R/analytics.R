@@ -453,6 +453,7 @@ getUsageMetrics <- function(userActions, tokenSession) {
 ##'
 ##' @param session The rdecaf session.
 ##' @param endpoint The endpoint to investigate, i.e "trades", "quants".
+##' @param sample The pagesize row length.
 ##' @param exclCols The columns to exclude.
 ##' @param exclKeys The keys to exclude from exclCols.
 ##' @param asof Addtional query parameters to be passed to params.
@@ -536,6 +537,7 @@ getHistoricalUserActions <- function(session, endpoint, sample=1000, exclCols=NU
 ##' This function computes the automation rate for users.
 ##'
 ##' @param userActions The data frame with the use actions.
+##' @param includeAUTO a logical parameter.
 ##' @return A table with the automation rate.
 ##' @export
 ##'

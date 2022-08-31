@@ -8,6 +8,8 @@ computeAutomationRate(userActions, includeAUTO = TRUE)
 }
 \arguments{
 \item{userActions}{The data frame with the use actions.}
+
+\item{includeAUTO}{a logical parameter.}
 }
 \value{
 A table with the automation rate.

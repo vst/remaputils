@@ -13,7 +13,7 @@ advancedStatsHistory(portfolio, date, session, rfs = NULL)
 
 \item{session}{The rdecaf session.}
 
-\item{the}{symbol indicating what to use as risk free rate}
+\item{rfs}{the named list indicating what to query for the risk free rate.}
 }
 \value{
 A list with return statistics.

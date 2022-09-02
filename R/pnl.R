@@ -546,11 +546,12 @@ computePnL <- function(quantContext) {
 ##'
 ##' This is the description
 ##'
+##' @param apiURL the npl endpoint API URL string.
 ##' @param params a list of additional parameters.
 ##' @param session the decaf session.
 ##' @return A list with the pnl ledger data.
 ##' @export
-bare_get <- function (params=list(), session=NULL) {
+bare_get <- function (apiURL="/apis/function/valuation-reports/eventsreport", params=list(), session=NULL) {
   
   ## Get or create a session:
   if (is.null(session)) {
@@ -562,7 +563,7 @@ bare_get <- function (params=list(), session=NULL) {
   
   ## Add paths ensuring that path seperator is not duplicated and a
   ## trailing path seperator is added:
-  url$path <- c(sub("/$", "", gsub("//", "/", ...)), "/")
+  url$path <- c(sub("/$", "", gsub("//", "/", apiURL)), "/")
   
   ## Add params:
   url$query <- params
@@ -1041,7 +1042,7 @@ dat <- data.frame(
 ##' This is the description
 ##'
 ##' @param pnlst the pnl list of data elements from the above.
-##' @param res the df containing the asset class elements to overwrite faulty data.
+##' @param res the df containing the asset class elements to overwrite faulty data from getStocksAndAssets.
 ##' @return A list containing the the granular ledger info from the above and a summarized one liner position data frame of pnl agg info.
 ##' @export
 wrapEvents <- function(pnlst,res) {
@@ -1079,5 +1080,103 @@ wrapEvents <- function(pnlst,res) {
   )
   
 }
+
+##' Compiler fn that returns all elements to construct basic pnl report.
+##'
+##' This is the description
+##'
+##' @param portfolio the decaf portfolio id.
+##' @param since the start date for the pnl calculation.
+##' @param until the end date for the pnl calculation.
+##' @param currency the desired currency for the computations.
+##' @param session the decaf session.
+##' @param res the df containing the asset class elements to overwrite faulty data from getStocksAndAssets.
+##' @param cashS the string to identify cash instrument types.
+##' @param transfS the string(s) to identify transfer trade types.
+##' @param depoS the string to identify deposit instrument types.
+##' @param apiURL the npl endpoint API URL string.
+##' @return A list containing the the granular ledger info  and a summarized one liner position data frame of pnl agg info corrected.
+##' @export
+pnlReport <- function(portfolio, since, until, currency, session, res, cashS="CCY", transfS="transfer|investment", depoS="DEPO",apiURL="/apis/function/valuation-reports/eventsreport") {
+  
+  ## Get the endpoint data:
+  events_report <- bare_get(apiURL,
+                            params = list(portfolio=portfolio,
+                                          since=since,
+                                          until=until,
+                                          currency=currency,
+                                          format = "json"),
+                            session=session)
+  
+  
+  l <- events_report[["ledgers"]] 
+  
+  if(length(l)==0) {return(NULL)}
+  
+  pnl <- wrapEvents(pnlst=l,res=res)
+  
+  cash <- data.frame() %>% 
+    bind_rows(lapply(pnl$granular, function(x) {
+      if(x$artifact$type==cashS) {
+        return(x$ledger)
+      }
+      return(NULL)
+    }
+    )
+    )
+  
+  transfer <- 0
+  
+  if(NROW(cash)>0) {
+
+    transfers <- cash %>% 
+      dplyr::filter(!is.na(quantType)&str_detect(quantType,transfS)) 
+    
+    if(NROW(transfers)>0) {
+      
+      transfer <- sum(transfers$sign*transfers$valRef)
+      
+    }
+    
+    depo <- data.frame() %>% 
+      bind_rows(lapply(pnl$granular, function(x) {
+        if(x$artifact$type==depoS) {
+          return(x$summary)
+        }
+        return(NULL)
+      }
+      )
+      )
+    
+    if(NROW(depo)>0) {
+      depo <- depo %>% 
+        dplyr::filter(endingQty==0) %>% 
+        select(symbol,investment) %>% 
+        dplyr::mutate(currency=currency) %>% 
+        left_join(cash %>% select(date,valRef,currency),by=c("investment"="valRef","currency")) %>% 
+        group_by(investment) %>% 
+        dplyr::filter(date==max(date)) %>% 
+        left_join(cash %>% select(date,valRef,currency),by=c("date","currency")) %>% 
+        dplyr::filter(valRef<.05*investment) %>% 
+        dplyr::filter(valRef==min(valRef)) %>%
+        ungroup()
+      
+      smry <-  pnl$aggSummary %>% 
+        left_join(depo %>% select(symbol,valRef) %>% dplyr::rename(vRef=valRef),by="symbol") %>% 
+        dplyr::mutate(pnl=if_else(is.na(vRef),pnl,vRef),capGainsRealized=if_else(is.na(vRef),capGainsRealized,vRef)) %>% 
+        dplyr::mutate(return=pnl/investment) %>% 
+        select(-vRef)
+      
+      pnl[["aggSummary"]] <- smry
+    }
+  }
+  
+  
+  pnl$transfer <- transfer
+  
+  return(pnl)
+}
+
+
 
 

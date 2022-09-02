@@ -4,9 +4,15 @@
 \alias{bare_get}
 \title{Gets the pnl endpoint from decaf.}
 \usage{
-bare_get(params = list(), session = NULL)
+bare_get(
+  apiURL = "/apis/function/valuation-reports/eventsreport",
+  params = list(),
+  session = NULL
+)
 }
 \arguments{
+\item{apiURL}{the npl endpoint API URL string.}
+
 \item{params}{a list of additional parameters.}
 
 \item{session}{the decaf session.}

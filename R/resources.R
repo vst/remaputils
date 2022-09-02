@@ -268,6 +268,9 @@ createZCPNResource <- function(df, session){
 
     ## Create the payload:
     payload <- toJSON(apply(dfx, MARGIN=1, as.list), auto_unbox=TRUE, digits=10)
+    if(NROW(df)==1) {
+      payload <- toJSON(dfx, auto_unbox=TRUE)
+    }
 
     ## Post the resource:
     postResource("resources", "imports", payload=payload, session=session)
@@ -329,6 +332,9 @@ createCashResource <- function(df, session){
 
     ## Create the payload:
     payload <- toJSON(apply(dfx, MARGIN=1, as.list), auto_unbox=TRUE)
+    if(NROW(df)==1) {
+      payload <- toJSON(dfx, auto_unbox=TRUE)
+    }
 
     ## Post the resource:
     postResource("resources", "imports", payload=payload, session=session)
@@ -360,6 +366,9 @@ createLoanDepoResource <- function(df, session){
 
     ## Create the payload:
     payload <- toJSON(apply(dfx, MARGIN=1, as.list), auto_unbox=TRUE, digits=10)
+    if(NROW(df)==1) {
+      payload <- toJSON(dfx, auto_unbox=TRUE)
+    }
 
     ## Post the resource:
     postResource("resources", "imports", payload=payload, session=session)
@@ -391,6 +400,9 @@ createOtherResource <- function(df, session){
 
     ## Create the payload:
     payload <- toJSON(apply(dfx, MARGIN=1, as.list), auto_unbox=TRUE)
+    if(NROW(df)==1) {
+      payload <- toJSON(dfx, auto_unbox=TRUE)
+    }
 
     ## Post the resource:
     postResource("resources", "imports", payload=payload, session=session)
@@ -459,6 +471,9 @@ createFXFutureResource <- function(df, session){
 
     ## Create the payload:
     payload <- toJSON(apply(dfx, MARGIN=1, as.list), auto_unbox=TRUE, digits=10)
+    if(NROW(df)==1) {
+      payload <- toJSON(dfx, auto_unbox=TRUE)
+    }
 
     ## Post the resource:
     postResource("resources", "imports", payload=payload, session=session)
@@ -490,7 +505,10 @@ createSpResource <- function(df, session){
 
     ## Create the payload:
     payload <- toJSON(apply(dfx, MARGIN=1, as.list), auto_unbox=TRUE)
-
+    if(NROW(df)==1) {
+      payload <- toJSON(dfx, auto_unbox=TRUE)
+    }
+    
     ## Post the resource:
     postResource("resources", "imports", payload=payload, session=session)
 }
@@ -578,6 +596,9 @@ createFutureResource <- function(df, session){
 
     ## Create the payload:
     payload <- toJSON(dfx, auto_unbox=TRUE, na="null", digits=10)
+    if(NROW(df)==1) {
+      payload <- toJSON(dfx, auto_unbox=TRUE)
+    }
 
     ## Post the resource:
     postResource("resources", "imports", payload=payload, session=session)
@@ -609,6 +630,9 @@ createCFDResource <- function(df, session){
 
     ## Create the payload:
     payload <- toJSON(dfx, auto_unbox=TRUE, na="null", digits=10)
+     if(NROW(df)==1) {
+      payload <- toJSON(dfx, auto_unbox=TRUE)
+    }
 
     ## Post the resource:
     postResource("resources", "imports", payload=payload, session=session)
@@ -680,6 +704,9 @@ createBondResource <- function(df, session) {
 
     ## Create the payload:
     payload <- toJSON(apply(dfx, MARGIN=1, as.list), auto_unbox=TRUE, digits=10)
+    if(NROW(df)==1) {
+      payload <- toJSON(dfx, auto_unbox=TRUE)
+    }
 
     ## Post the resource:
     postResource("resources", "imports", payload=payload, session=session)

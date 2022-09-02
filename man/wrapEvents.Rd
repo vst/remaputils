@@ -9,7 +9,7 @@ wrapEvents(pnlst, res)
 \arguments{
 \item{pnlst}{the pnl list of data elements from the above.}
 
-\item{res}{the df containing the asset class elements to overwrite faulty data.}
+\item{res}{the df containing the asset class elements to overwrite faulty data from getStocksAndAssets.}
 }
 \value{
 A list containing the the granular ledger info from the above and a summarized one liner position data frame of pnl agg info.

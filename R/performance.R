@@ -465,7 +465,13 @@ positionPnLWrapper <- function(holdings, holdingsParams, resources, ccy, date, s
     ## Compute PnLs:
     ytdPnL <- computePnL(ytdContext)
 
-    ytdPnL <- ytdPnL[!sapply(ytdPnL, function(x) is.null(x$PnLs))]
+    ytdPnL1 <- ytdPnL[!sapply(ytdPnL, function(x) is.null(x$PnLs))]
+
+    if(length(ytdPnL1)==0) {
+        return(ytdPnL)
+    }
+
+    ytdPnL <- ytdPnL1
 
     ytdPnL <- lapply(1:length(ytdPnL), function(i) {
         totalPnL <- ytdPnL[[i]][["Totals"]][, "Total"]

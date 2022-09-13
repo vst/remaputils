@@ -297,12 +297,12 @@ contextualizeQuants <- function(pnlPreemble, dateBeg, dateEnd) {
                                    NA)
 
         ## If position type is Share and any quant types have options, get rid of the options:
-        if (extPosBeg[i, "Type"] == "Share" & any(safeCondition(quT, "resCtype", "OPT"))) {
+        if (!is.na(extPosBeg[i, "Type"]) == "Share" & any(safeCondition(quT, "resCtype", "OPT"))) {
             quT <- quT[!safeCondition(quT, "resCtype", "OPT"), ]
         }
 
         ## If position type is Option and any quant types have shares, get rid of the shares:
-        if (extPosBeg[i, "Type"] == "Option Contract" & any(safeCondition(quT, "resCtype", "SHRE"))) {
+        if (!is.na(extPosBeg[i, "Type"]) == "Option Contract" & any(safeCondition(quT, "resCtype", "SHRE"))) {
             quT <- quT[!safeCondition(quT, "resCtype", "SHRE"), ]
         }
 
@@ -336,7 +336,6 @@ contextualizeQuants <- function(pnlPreemble, dateBeg, dateEnd) {
     retval
 
 }
-
 
 ##' Extends the positions data frame from getFlatholdings with opened/closed quants in between position dates.
 ##'
@@ -426,7 +425,9 @@ computePnL <- function(quantContext) {
 
         story <- story[story[, "type"] != "PnL", ]
 
-        if (all(story[, "qQty"] == "0")) {
+        story <- story[!str_detect(story$type,"Transfer|Investment"), ]
+
+        if (all(is.na(story$qQty)|story[, "qQty"] == "0")) {
             return(list("PnLs"=NULL,
                         "Totals"=NULL))
         }
@@ -527,12 +528,14 @@ computePnL <- function(quantContext) {
         total <- unrlsd + realsd + income + tofees
 
         story <- list("PnLs"=story,
-                      "Totals"=data.frame("Unrealised"=unrlsd,
-                                          "Realised"=realsd,
-                                          "Income"=income,
-                                          "Fees"=tofees,
-                                          "Total"=total,
-                                          "ROI"=total / story[tail(which(isInv), 1), "PNL::CumInv"]))
+                      "Totals"=data.frame("Unrealised"=safeNull(unrlsd),
+                                          "Realised"=safeNull(realsd),
+                                          "Income"=safeNull(income),
+                                          "Fees"=safeNull(tofees),
+                                          "Total"=safeNull(total),
+                                          "ROI"=safeNull(total) / safeNull(story[tail(which(isInv), 1), "PNL::CumInv"])
+                                          )
+                                          )
 
     })
 
@@ -541,7 +544,6 @@ computePnL <- function(quantContext) {
     retval
 
 }
-
 ##' Gets the pnl endpoint from decaf.
 ##'
 ##' This is the description

@@ -128,7 +128,8 @@ stackedBarChartTranspose <- function(df, barColor=NA, labelColor=NA, cex=1) {
     ## X-Axis Labels:
     axis2Labls <- paste0(axis2Index, "%")
 
-    xlim <- c(min(axis2Index), min(max(pct[, 1] * 2), 100))
+    ##xlim <- c(min(axis2Index), min(max(pct[, 1] * 2), 100))
+    xlim <- c(max(min(axis2Index),-100), min(max(pct[, 1] * 2), 100))
 
     ## Plot the stacked bar chart and the legend:
     par(mai = c(0.4, 0.4, 0.4, 0.4))

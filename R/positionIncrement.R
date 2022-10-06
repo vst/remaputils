@@ -40,9 +40,10 @@ resolvePositions <- function(accWisePos, instName, resources, date, ctypes, reco
 ##' @param provider The provider as string.
 ##' @param session The rdecaf session.
 ##' @param ctype The ctype. Default is 20.
+##' @param invert Shall qty/px be inverted if px is negative? Default =TRUE
 ##' @return NULL
 ##' @export
-pushPosDifferences <- function(stocks, provider, session, ctype=20) {
+pushPosDifferences <- function(stocks, provider, session, ctype=20, invert=TRUE) {
 
     ## Set NA QTY's in Decaf to 0:
     stocks[is.na(stocks[, "QTY"]), "QTY"] <- 0

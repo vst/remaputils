@@ -982,6 +982,17 @@ getStocksFromContainerNames <- function(session, containerType, containerNames, 
         ## Get the portfolios:
         container <- as.data.frame(getResource(containerType, params=params, session=session))
 
+
+        if (NROW(container) == 0) {
+            ## Construct the portfolio params:
+            params <- list("page_size"=-1,
+                           "format"="csv",
+                           "name"=paste(containerNames, collapse=","))
+
+            container <- as.data.frame(getResource(containerType, params=params, session=session))
+
+        }
+
     }
 
     if (containerType == "accounts") {

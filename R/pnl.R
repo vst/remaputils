@@ -661,14 +661,17 @@ getStocksAndAssets <- function(session) {
   ac <- getDBObject("assetclasses",session=session) %>% dplyr::select(id,contains("path")) 
   ac$assetClass <- apply(ac[,-1],1, function(x) paste(x[!is.na(x)],collapse="|")) 
   
-  stocks <- data.frame() %>% 
-    bind_rows(
-      lapply(getResource("stocks",session=session), function(s) data.frame(artifact=s$artifact))
-    ) %>% 
-    unique()
+##  stocks <- data.frame() %>% 
+##    bind_rows(
+##      lapply(getResource("stocks",session=session), function(s) data.frame(artifact=s$artifact))
+##    ) %>% 
+##    unique()
   
-  stnA <- getResourcesByStock(stocks=stocks, session=session) %>% 
+  stnA <- ##getResourcesByStock(stocks=stocks, session=session) %>% 
+    getDBObject("resources",session) %>%
     dplyr::select(id,quantity,country,sector,issuer,assetclass) %>% 
+    mutate_if(is.numeric,as.character) %>%
+    ##dplyr::mutate(assetclass=as.character(assetclass)) %>%
     dplyr::left_join(ac %>% select(-contains("path")) %>% mutate_if(is.numeric,as.character),by=c("assetclass"="id")) 
   stnA$assetclass <- NULL
   
@@ -1100,22 +1103,20 @@ wrapEvents <- function(pnlst,res) {
 ##' @return A list containing the the granular ledger info  and a summarized one liner position data frame of pnl agg info corrected.
 ##' @export
 pnlReport <- function(portfolio, since, until, currency, session, res, cashS="CCY", transfS="transfer|investment", depoS="DEPO",apiURL="/apis/function/valuation-reports/eventsreport") {
-  
+ 
   ## Get the endpoint data:
   events_report <- bare_get(apiURL,
                             params = list(portfolio=portfolio,
-                                          since=since,
+                                          since=since$since,
                                           until=until,
                                           currency=currency,
                                           format = "json"),
                             session=session)
   
   
-  l <- events_report[["ledgers"]] 
+  if(length(events_report[["ledgers"]] )==0) {return(NULL)}
   
-  if(length(l)==0) {return(NULL)}
-  
-  pnl <- wrapEvents(pnlst=l,res=res)
+  pnl <- wrapEvents(pnlst=events_report[["ledgers"]],res=res)
   
   cash <- data.frame() %>% 
     bind_rows(lapply(pnl$granular, function(x) {
@@ -1130,9 +1131,9 @@ pnlReport <- function(portfolio, since, until, currency, session, res, cashS="CC
   transfer <- 0
   
   if(NROW(cash)>0) {
-
+    
     transfers <- cash %>% 
-      dplyr::filter(!is.na(quantType)&str_detect(quantType,transfS)) 
+      dplyr::filter(!is.na(quantType)&str_detect(quantType,transfS)&date>since$init) 
     
     if(NROW(transfers)>0) {
       
@@ -1178,7 +1179,6 @@ pnlReport <- function(portfolio, since, until, currency, session, res, cashS="CC
   
   return(pnl)
 }
-
 
 
 

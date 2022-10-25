@@ -4,7 +4,7 @@
 \alias{decafSyncResources}
 \title{This function syncs the resources between source DECAF and target DECAF.}
 \usage{
-decafSyncResources(tSession, sSession, sAccountNames)
+decafSyncResources(tSession, sSession, sAccountNames, overrideTypes = NULL)
 }
 \arguments{
 \item{tSession}{The target session.}
@@ -12,6 +12,8 @@ decafSyncResources(tSession, sSession, sAccountNames)
 \item{sSession}{The source session.}
 
 \item{sAccountNames}{The account names at source.}
+
+\item{overrideTypes}{A vector with strings defining the resource ctypes to be overriden. Default NULL}
 }
 \value{
 The target resources data frame.

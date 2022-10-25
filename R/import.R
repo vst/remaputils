@@ -739,12 +739,13 @@ prepareAccountPayload <- function(accounts, portfolios, institutions, rccy="USD"
 ##' @param tSession The target session.
 ##' @param sSession The source session.
 ##' @param sAccountNames The account names at source.
+##' @param overrideTypes A vector with strings defining the resource ctypes to be overriden. Default NULL
 ##' @return The target resources data frame.
 ##' @export
-decafSyncResources <- function (tSession, sSession, sAccountNames) {
+decafSyncResources <- function (tSession, sSession, sAccountNames, overrideTypes=NULL) {
 
     ## Get the stocks:
-    stocks <- getStocksFromContainerNames(sSession, "accounts", sAccountNames, zero = 1, date=Sys.Date())
+    stocks <- getStocksFromContainerNames(sSession, "accounts", sAccountNames, zero=1, date=Sys.Date())
 
     ## Get the source resources:
     resources <- getResourcesByStock(stocks, sSession)
@@ -818,6 +819,19 @@ decafSyncResources <- function (tSession, sSession, sAccountNames) {
 
     ## Get the NA resources:
     naResources <- is.na(match(resources[, "symbol"], tResources[, "symbol"], incomparables=NA))
+
+    ## If any override types, set those types to na resmain
+    if (!is.null(overrideTypes)) {
+
+        ## Determine the expiry of each instrument:
+        expiry <- as.character(ifelse(isNAorEmpty(resources[, "expiry"]), as.character("2049-01-01"), as.character(resources[, "expiry"])))
+
+        ## Determine which instruments have not expired recently and are of the override ctypes:
+        ovRide <- mCondition(resources, "ctype", overrideTypes) & expiry > (Sys.Date()-30)
+
+        ## Set those instruments na resmain vector to TRUE, i.e pretend they are missing:
+        naResources[ovRide] <- TRUE
+    }
 
     ## If all exist, return:
     if (all(!naResources)) {

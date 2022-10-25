@@ -4,7 +4,7 @@
 \alias{pushPosDifferences}
 \title{This function pushes the positions difference between decaf and provider}
 \usage{
-pushPosDifferences(stocks, provider, session, ctype = 20)
+pushPosDifferences(stocks, provider, session, ctype = 20, invert = TRUE)
 }
 \arguments{
 \item{stocks}{The position comparisons data frame.}
@@ -14,6 +14,8 @@ pushPosDifferences(stocks, provider, session, ctype = 20)
 \item{session}{The rdecaf session.}
 
 \item{ctype}{The ctype. Default is 20.}
+
+\item{invert}{Shall qty/px be inverted if px is negative? Default =TRUE}
 }
 \description{
 This is the description

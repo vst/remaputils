@@ -351,12 +351,12 @@ figiCall <- function(job, apiKey){
         flattenedResult <- try(flatten(httr::content(result), batch), silent=TRUE)
 
         ## Maximum retries for figi:
-        maxTry <- 1
-        trials <- 5
+        maxTry <- 5
+        trials <- 1
 
         ##:
         while (class(flattenedResult) == "try-error" & trials < maxTry) {
-            ## print("Houston, we have some apples!")
+            print("figi failed, retrying!")
             Sys.sleep(5)
             result <- httr::POST(endpoint, config=httr::add_headers("Content-Type"="text/json", "X-OPENFIGI-APIKEY"=apiKey), body=toJSON(batch))
             flattenedResult <- try(flatten(httr::content(result), batch), silent=TRUE)

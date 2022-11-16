@@ -347,14 +347,30 @@ figiCall <- function(job, apiKey){
         ## Get the post result:
         result <- httr::POST(endpoint, config=httr::add_headers("Content-Type"="text/json", "X-OPENFIGI-APIKEY"=apiKey), body=toJSON(batch))
 
-        ## Flatten the result:
-        df <- flatten(httr::content(result), batch)
+        # Flatten the result:
+        flattenedResult <- try(flatten(httr::content(result), batch), silent=TRUE)
+
+        ## Maximum retries for figi:
+        maxTry <- 1
+        trials <- 3
+
+        ##:
+        while (class(flattenedResult) == "try-error" & trials < maxTry) {
+            ## print("Houston, we have some apples!")
+            Sys.sleep(5)
+            result <- httr::POST(endpoint, config=httr::add_headers("Content-Type"="text/json", "X-OPENFIGI-APIKEY"=apiKey), body=toJSON(batch))
+            flattenedResult <- try(flatten(httr::content(result), batch), silent=TRUE)
+            trials <- trials + 1
+        }
 
         ## Append the return value:
-        dfx <- rbind(dfx, df)
+        dfx <- rbind(dfx, flattenedResult)
 
         ## Increment the starting index of the new batch:
         start <- start + 100
+
+        ## Adding sleep:
+        Sys.sleep(3)
     }
 
     ## Return:

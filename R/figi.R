@@ -352,7 +352,7 @@ figiCall <- function(job, apiKey){
 
         ## Maximum retries for figi:
         maxTry <- 1
-        trials <- 3
+        trials <- 5
 
         ##:
         while (class(flattenedResult) == "try-error" & trials < maxTry) {

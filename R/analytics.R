@@ -322,6 +322,8 @@ getAggregateExposure <- function(holdings, keys) {
 
     exposures <- lapply(keys, function(x) {
         holdings[, x] <- ifelse(is.na(holdings[, x]), "NOTAVAILABLE", holdings[, x])
+        holdings[!apply(mgrep(toupper(holdings[, x]), c("N.A", "N/A", "NOTAVAILABLE")), MARGIN=1, function(x) all(x==0)), x] <- "NOTAVAILABLE"
+
         aggs <- aggregate(numerize(if_else(is.na(holdings[, "Exposure"]),0,holdings[, "Exposure"])), list(holdings[, x]), sum)
         aggs <- aggs[order(aggs[, 2], decreasing=TRUE), ]
         colnames(aggs) <- c(x, "Exposure")
@@ -1038,48 +1040,48 @@ benchmarkAnalysis <- function(data, minobs=30) {
                        "treynor"=NA,
                        "return"=NA,
                        "volatility"=NA)
-                       
-        data1 <- data[!is.na(data[, "container"]), ]  
-        data1 <- data1[!is.na(data1[, "benchmark"]), ]             
+
+        data1 <- data[!is.na(data[, "container"]), ]
+        data1 <- data1[!is.na(data1[, "benchmark"]), ]
 
         if (is.null(data1)||NCOL(data1) == 1||NROW(data1)<minobs) {
             return(retval)
         }
-        
+
         retPf <- as.numeric(tail(as.numeric(data[,"container"]), 1) / head(as.numeric(data[,"container"]), 1) - 1)
         bRet <-  as.numeric(tail(as.numeric(data[!is.na(data$benchmark),]$benchmark), 1) / head(as.numeric(data[!is.na(data$benchmark),]$benchmark), 1) - 1)
 
-        data <- treatPriceSeries(data[!is.na(data$benchmark),], "date", "benchmark", quantile=.998, surpressPlot=TRUE) 
+        data <- treatPriceSeries(data[!is.na(data$benchmark),], "date", "benchmark", quantile=.998, surpressPlot=TRUE)
 
         bRets <- data %>%
           mutate_if(is.numeric, function(x) c(NA,{diff(log(x))})) %>%
-          slice(2:NROW(.)) 
-        
-        #bRets <- bRets[abs(bRets[, 1]) < sd(bRets[, 1]) * 4, ] #need to add control for nrow == 0 
+          slice(2:NROW(.))
+
+        #bRets <- bRets[abs(bRets[, 1]) < sd(bRets[, 1]) * 4, ] #need to add control for nrow == 0
         #bRets <- bRets[abs(bRets[, 2]) < sd(bRets[, 2]) * 4, ]
-        
+
         if(sum(bRets$container)==0||sum(bRets$benchmark)==0) {
            return(retval)
         }
-        
+
         bRets <- cbind(
           container=xts::as.xts(bRets$container, order.by=bRets$date),
           benchmark=xts::as.xts(bRets$benchmark, order.by=bRets$date)
           )
-          
+
         bVol <-  as.numeric(PerformanceAnalytics::StdDev(bRets$benchmark)) * sqrt(length(bRets$benchmark))
-        
+
         period <- cbind(xts::apply.weekly(bRets[, "container"], sum), xts::apply.weekly(bRets[, "benchmark"], sum))
 
         bCorl <- as.numeric(cor(period[, "container"], period[, "benchmark"]))
         bModel <- summary(lm(period[, "container"] ~ period[, "benchmark"]))
         coeffs <- bModel$coefficients
-        
+
         alpha <- NA
         alphaPT <- NA
         beta  <- NA
         betaPT <- NA
-        
+
         if(length(coeffs[, "Estimate"])>1) {
 
         alpha <- round(coeffs[1, "Estimate"], 4)#paste0(gsub(" ", "", round(coeffs[1, "Estimate"], 4)), " : P(t)=", round(coeffs[1, "Pr(>|t|)"], 2))
@@ -1087,14 +1089,14 @@ benchmarkAnalysis <- function(data, minobs=30) {
         beta  <- round(coeffs[2, "Estimate"], 4)#paste0(gsub(" ", "", round(coeffs[2, "Estimate"], 4)), " : P(t)=", round(coeffs[2, "Pr(>|t|)"], 2))
         betaPT <- round(coeffs[2, "Pr(>|t|)"], 2)
         }
-        
+
         treynor <- NA
-        
+
         if(!is.na(beta)) {
         retRf <- max(as.numeric(tail(as.numeric(data[,"riskfree"]), 1) / head(as.numeric(data[,"riskfree"]), 1) - 1),0,na.rm=TRUE)
         treynor <- (retPf-retRf) / coeffs[2, "Estimate"]
         }
-        
+
         retval[["correlation"]] <- bCorl
         retval[["relativeReturn"]] <- safeNull(retPf-bRet)##-diff(colSums(period))
         retval[["modelAlpha"]] <- alpha
@@ -1136,7 +1138,7 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
                          "Period: Sharpe (ES)"=NA,
                          "Period: Calmar Ratio"=NA,
                          "Period: Sortino Ratio"=NA,
-                         "Period: Sterling Ratio"=NA,                       
+                         "Period: Sterling Ratio"=NA,
                          "Period: Value-At-Risk"=NA,
                          "Period: Expected Shortfall"=NA,
                          "Annual: Return"=NA,
@@ -1179,33 +1181,33 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
                          "Benchmark Treynor Ratio"=NA,
                          check.names=FALSE,
                          stringsAsFactors=FALSE,
-                         row.names=NULL) 
+                         row.names=NULL)
 
 
     ## If empty df, return NA's:
     if (is.null(df) | NROW(df) == 0) {
         return(retval)
     }
-    
+
     ## Remove zero prices:
     ##df <- df[df[, pxCol] != 0 | df[, pxCol] != "0", ]
-    ##df <- treatPriceSeries(df, dtCol, pxCol, quantile=smoothQ, surpressPlot=TRUE) 
+    ##df <- treatPriceSeries(df, dtCol, pxCol, quantile=smoothQ, surpressPlot=TRUE)
 
     ## XTSify:
     ts <- xts::as.xts(as.numeric(df[, pxCol]), order.by=as.Date(df[, dtCol]))
-    
+
     if(is.null(rfts)|all(is.na(rfts))) {
     rfts <- xts::as.xts(as.numeric(rep(1,length(ts))), order.by=as.Date(df[, dtCol]))
     }
-    
+
     retsRf <- diff(log(rfts))
-        
+
     bData <- data.frame(container=ts,date=zoo::index(ts)) %>%
       left_join(data.frame(benchmark=as.numeric(safeNull(benchmark)),date=as.Date(safeNull(zoo::index(benchmark)),origin="1970-01-01")),by="date") %>%
-      left_join(data.frame(riskfree=as.numeric(safeNull(rfts)),date=as.Date(safeNull(zoo::index(rfts)),origin="1970-01-01")),by="date") 
-      
+      left_join(data.frame(riskfree=as.numeric(safeNull(rfts)),date=as.Date(safeNull(zoo::index(rfts)),origin="1970-01-01")),by="date")
+
     bAnalysis <- benchmarkAnalysis(bData)
-    
+
     ## Compute returns:
     if(!is.null(df$ret)) {
     rets <- xts::as.xts(df$ret, order.by=as.Date(df[, dtCol]))
@@ -1225,7 +1227,7 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
         retval[, "Daily: Return"] <- as.numeric(mean(na.omit(rets)))
         return(retval)
     }
-    
+
     ## Compute standard deviation:
     stdev <- as.numeric(PerformanceAnalytics::StdDev(rets))
 
@@ -1269,7 +1271,7 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
     retsDaily <- as.numeric(mean(na.omit(rets)))
     retsRfDaily <- as.numeric(mean(na.omit(retsRf)))
 
-    df <- treatPriceSeries(df, dtCol, pxCol, quantile=smoothQ, surpressPlot=TRUE) 
+    df <- treatPriceSeries(df, dtCol, pxCol, quantile=smoothQ, surpressPlot=TRUE)
     ts <- xts::as.xts(as.numeric(df[, pxCol]), order.by=as.Date(df[, dtCol]))
     rets <- diff(log(ts))
     ##if(abs(sum(rets,na.rm=TRUE))>0) {
@@ -1285,7 +1287,7 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
     ## Comput the Expected Shortfall
     es <- as.numeric(PerformanceAnalytics::ES(rets))
     es <- if_else(is.finite(es),es,as.numeric(NA))
-    
+
     ## Construct data frame and return:
     retval <- data.frame("Period: Return"=retPeriod,
                          "Period: Volatility"=stdevPeriod,
@@ -1338,14 +1340,14 @@ computeReturnStats <- function(df, pxCol, dtCol, method="discrete", returnOnly=F
                          "Benchmark Treynor Ratio"=bAnalysis[["treynor"]],
                          check.names=FALSE,
                          stringsAsFactors=FALSE,
-                         row.names=NULL) 
+                         row.names=NULL)
 
     return(retval)
 
 }
 
 
-##' Wrappper that runs getPerformance historically for portfolio and benchmark when available 
+##' Wrappper that runs getPerformance historically for portfolio and benchmark when available
 ##'
 ##' This is the description
 ##'
@@ -1374,21 +1376,21 @@ advancedStatsHistory <- function(portfolio, date, session, rfs=NULL) {
 
     ends <- paste0(yearsWithPerformance, "-12-31")
     starts <- paste0(as.numeric(yearsWithPerformance)-1, "-12-31")
-    
+
     ## Get the performance:
 
     performanceHist <- lapply(1:length(ends), function(i) {
 
-            
+
     rf <- getRf(rfSymbol=rfs,start= as.Date(starts[i]),end=as.Date(ends[i]),session=session)
-    
+
     benchmark <- getBenchmark(portfolio, as.Date(starts[i]), as.Date(ends[i]), session=session)$benchmarkFlat[["xts"]]
 
         getPerformance(portfolio, as.Date(starts[i]), as.Date(ends[i]), "daily", session, benchMark=benchmark, rF=rf)
     })
 
 
-    
+
     names(performanceHist) <- ends
 
     return(performanceHist)
@@ -1404,7 +1406,7 @@ advancedStatsHistory <- function(portfolio, date, session, rfs=NULL) {
 ##' @return A list with return statistics.
 ##' @export
 keyStats <- function(performance, date) {
-    
+
 
     statRows <- c("Abs Return", "Return Alpha", "Sharpe Ratio", "Std Deviation", "Max Drawdown")
 
@@ -1441,18 +1443,18 @@ keyStats <- function(performance, date) {
     }
 
     ## Initialise the monthly table:
-    monthly <- performance[["container"]][["periodStats"]][["currentWindowStats"]]["sum", ]  %>% 
-                 pivot_longer(1:NCOL(.),names_to="month",values_to=c("container"))  %>% 
-                 inner_join(relative %>% pivot_longer(1:NCOL(relative),names_to="month",values_to=c("relative")),by="month")  %>% 
-                 mutate(month=as.Date(month))  %>% 
+    monthly <- performance[["container"]][["periodStats"]][["currentWindowStats"]]["sum", ]  %>%
+                 pivot_longer(1:NCOL(.),names_to="month",values_to=c("container"))  %>%
+                 inner_join(relative %>% pivot_longer(1:NCOL(relative),names_to="month",values_to=c("relative")),by="month")  %>%
+                 mutate(month=as.Date(month))  %>%
                  mutate_at(-1,numerize)
     ## add max drawdown
-    DDs <- as.data.frame(performance[["container"]][["returns"]])  %>% 
-      mutate(month=sapply(as.Date(row.names(.)), function(x) lubridate::ceiling_date(x,"month")-1)  %>% as.Date("1970-01-01"))  %>% 
-      group_by(month)  %>% 
+    DDs <- as.data.frame(performance[["container"]][["returns"]])  %>%
+      mutate(month=sapply(as.Date(row.names(.)), function(x) lubridate::ceiling_date(x,"month")-1)  %>% as.Date("1970-01-01"))  %>%
+      group_by(month)  %>%
       summarise(maxDD=PerformanceAnalytics::maxDrawdown(raw))
 
-    monthly <- monthly  %>% 
+    monthly <- monthly  %>%
       inner_join(DDs,by='month')
 
     ## Get the container stats:
@@ -1481,15 +1483,15 @@ keyStats <- function(performance, date) {
     retsB <- as.data.frame(performance[["benchmark"]][["returns"]]) %>% mutate(date=as.Date(row.names(.)))  %>% select(date,raw)
     }
     }
-    retsAll <- retsC  %>% mutate(Returns="Portfolio")  %>% rename(Portfolio=raw) 
+    retsAll <- retsC  %>% mutate(Returns="Portfolio")  %>% rename(Portfolio=raw)
     #Get full set of daily returns
     if(!(is.null(retsB))) {
-    rets <- retsAll  %>% 
+    rets <- retsAll  %>%
       left_join(retsB  %>% mutate(Returns="Benchmark"), by="date")
     if(NROW(rets)>0) {
-    colnames(rets) <- c("date","Portfolio","Returns","Benchmark","ReturnsBenchmark") 
-    retsAll <- rets %>% dplyr::filter(Returns=="Portfolio")  %>%  select(c(1:3))  %>% 
-      bind_rows(rets %>% dplyr::filter(ReturnsBenchmark=="Benchmark")  %>% select(date,Benchmark,ReturnsBenchmark)  %>% rename(Returns=ReturnsBenchmark, Portfolio=Benchmark))  %>% 
+    colnames(rets) <- c("date","Portfolio","Returns","Benchmark","ReturnsBenchmark")
+    retsAll <- rets %>% dplyr::filter(Returns=="Portfolio")  %>%  select(c(1:3))  %>%
+      bind_rows(rets %>% dplyr::filter(ReturnsBenchmark=="Benchmark")  %>% select(date,Benchmark,ReturnsBenchmark)  %>% rename(Returns=ReturnsBenchmark, Portfolio=Benchmark))  %>%
       group_by(Returns)
     }
     }
@@ -1513,9 +1515,9 @@ keyStats <- function(performance, date) {
 ##' @return A simplified data frame containing return, volatility and sharpe metrics.
 ##' @export
 sumStats <- function(df,suffix="") {
-    dfSs <- df   %>% 
-      dplyr::filter(str_detect(rownames(.),"Period"))  %>% 
-      dplyr::filter(rownames(.) %in% paste("Period:",c("Return","Volatility","Sharpe (STDEV)"))) %>% 
+    dfSs <- df   %>%
+      dplyr::filter(str_detect(rownames(.),"Period"))  %>%
+      dplyr::filter(rownames(.) %in% paste("Period:",c("Return","Volatility","Sharpe (STDEV)"))) %>%
       mutate_all(numerize)
     row.names(dfSs) <- c("Return","Volatility","Sharpe")
     row.names(dfSs) <- paste0(row.names(dfSs),suffix)
@@ -1765,43 +1767,43 @@ regressions <- function(y,x,tsColname="date",rgColname="close",minobs=30,roll=5,
 
     y <- y %>%
       rename("close"=rgColname, "date"=tsColname)
-      
-    x <- x %>% 
+
+    x <- x %>%
        rename("closed"=rgColname, "date"=tsColname)
 
     dat <- y %>%
       left_join(x,by="date") %>%
-      fill(symbol.y,.direction="downup")  %>% 
-      arrange(date)  %>% 
-      mutate(returns_f=c(NA,diff(log(close))),returns_b=c(NA,diff(log(closed)))) %>%  
+      fill(symbol.y,.direction="downup")  %>%
+      arrange(date)  %>%
+      mutate(returns_f=c(NA,diff(log(close))),returns_b=c(NA,diff(log(closed)))) %>%
       mutate(returns_f=ifelse(abs(returns_f)>sd(returns_f,na.rm=TRUE) * stdev,0,returns_f), returns_b=ifelse(abs(returns_b)>sd(returns_b,na.rm=TRUE) * stdev,0,returns_b)) %>% #trimming
       mutate(sma_f=zoo::rollapply(returns_f,roll,mean,align='right',fill=NA), sma_b=zoo::rollapply(returns_b,roll,mean,align='right',fill=NA))  %>%  #smoothing
-      slice(roll:nrow(.)) 
-    
+      slice(roll:nrow(.))
+
     #return(dat)
     if(NROW(dat)>=minobs) {
-    dat <- dat  %>% 
-      mutate(sma_b=if_else(row_number()==1,0,sma_b))  %>% 
-      fill(sma_b,.direction="down")  %>% 
-      mutate(sma_f_indx=if_else(row_number()==1,1,sma_f),sma_b_indx=if_else(row_number()==1,1,sma_b))  %>% 
+    dat <- dat  %>%
+      mutate(sma_b=if_else(row_number()==1,0,sma_b))  %>%
+      fill(sma_b,.direction="down")  %>%
+      mutate(sma_f_indx=if_else(row_number()==1,1,sma_f),sma_b_indx=if_else(row_number()==1,1,sma_b))  %>%
       mutate(sma_f_indx=cumsum(sma_f_indx),sma_b_indx=cumsum(sma_b_indx)) #indexing
 
     coeffs <- summary(lm(dat$sma_f_indx ~ dat$sma_b_indx))$coefficients
     if(length(coeffs[,"Estimate"])==2) {
-    
+
     alpha <- coeffs[1, "Estimate"]
     alpha_p <- coeffs[1, "Pr(>|t|)"]
     beta <- coeffs[2, "Estimate"]
     beta_p <- coeffs[2, "Pr(>|t|)"]
-    
+
     ## return std err and r2 next time
 
-    df <- data.frame(alpha=alpha,alpha_p=alpha_p,beta=beta,beta_p=beta_p)  %>%  
+    df <- data.frame(alpha=alpha,alpha_p=alpha_p,beta=beta,beta_p=beta_p)  %>%
           mutate_all(~round(.,4))
 
     return(
       list("regressions"=df,
-           "timeseries"=dat 
+           "timeseries"=dat
       )
     )
     }

@@ -34,6 +34,19 @@ syncPortfolios <- function(sourceSession, targetSession, accounts, teamGUID, exc
     sourcePortfoliosOriginal <- sourcePortfolios
 
     ## Overwrite the team field:
+    if (is.null(teamGUID)) {
+
+        teams <- getDBObject("teams", targetSession)
+
+        if (any(toupper(teams[, "name"]) == "TEMP")) {
+            teamGUID <- teams[toupper(teams[, "name"]) == "TEMP", "guid"]
+        } else {
+            payload <- toJSON(list("teams"=data.frame("name"="TEMP")), auto_unbox=TRUE, na="null", digits=10)
+            response <- pushPayload(payload=payload, endpoint=NULL, session=targetSession, import=FALSE, inbulk=TRUE, params=list(sync="True"))
+            teamGUID <- response[[1]][[1]][[1]][[1]][[2]]
+        }
+    }
+
     sourcePortfolios[, "team"] <- paste0("dcf:team?guid=", teamGUID)
 
     ## Exclude columns from source portfolio frame:
@@ -41,6 +54,7 @@ syncPortfolios <- function(sourceSession, targetSession, accounts, teamGUID, exc
 
         ## Iterate over exclude keys:
         for (excl in exclude) {
+            length(grep(excl, colnames(sourcePortfolios))) != 0 || next
             sourcePortfolios <- sourcePortfolios[, -grep(excl, colnames(sourcePortfolios))]
         }
     }

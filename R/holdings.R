@@ -97,7 +97,7 @@ getConsolidationFromContainerName <- function(containerNames, containerType, ccy
 getEnrichedHoldings <- function(holdings, nav, gav, regions, resources, addTagsBy=NULL, childDefaults=TRUE){
 
     ## Treat the country names:
-    holdings[, "Country"] <- dbRemapCountryTreater(holdings[, "Country"], "countrymaps")
+    ## holdings[, "Country"] <- dbRemapCountryTreater(holdings[, "Country"], "countrymaps")
 
     ## If regions mapper is supplied, append to the data-frame:
     if (!is.null(regions)) {

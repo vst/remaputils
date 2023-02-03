@@ -864,9 +864,10 @@ decafSyncResources <- function (tSession, sSession, sAccountNames, overrideTypes
 ##' @param tSession The source session.
 ##' @param resources The resources data frame at target.
 ##' @param gte The greater than or equal to date for commitment.
+##' @param omitFlag The flag type of record to bypass sync. Default NULL.
 ##' @return NULL.
 ##' @export
-decafSyncTrades <- function(accounts, sSession, tSession, resources, gte) {
+decafSyncTrades <- function(accounts, sSession, tSession, resources, gte, omitFlag=NULL) {
 
     ## Get the account names:
     containerNames <- names(accounts[!substr(names(accounts), 1,1) == "_"])
@@ -879,6 +880,16 @@ decafSyncTrades <- function(accounts, sSession, tSession, resources, gte) {
 
     ## Get the vision trades:
     visionTrades <- visionTrades[["trades"]]
+
+    ## Exclude flagged trades if any.
+    if (!is.null(omitFlag)) {
+        flaggedTrades <- getDBObject("trades", tSession, addParams=list("cflag"=omitFlag))
+    } else {
+        flaggedTrades <- data.frame("guid"=Inf)
+    }
+
+    ## Exclude the falgged trades:
+    visionTrades <- visionTrades[is.na(match(visionTrades[, "guid"], flaggedTrades[, "guid"])), ]
 
     ## If no trades, return NULL:
     if (NROW(visionTrades) == 0) {

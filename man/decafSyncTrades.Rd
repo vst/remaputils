@@ -4,7 +4,7 @@
 \alias{decafSyncTrades}
 \title{This function syncs the trades between source DECAF and target DECAF.}
 \usage{
-decafSyncTrades(accounts, sSession, tSession, resources, gte)
+decafSyncTrades(accounts, sSession, tSession, resources, gte, omitFlag = NULL)
 }
 \arguments{
 \item{accounts}{The accounts list.}
@@ -16,6 +16,8 @@ decafSyncTrades(accounts, sSession, tSession, resources, gte)
 \item{resources}{The resources data frame at target.}
 
 \item{gte}{The greater than or equal to date for commitment.}
+
+\item{omitFlag}{The flag type of record to bypass sync. Default NULL.}
 }
 \value{
 NULL.

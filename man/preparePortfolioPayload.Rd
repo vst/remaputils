@@ -4,7 +4,7 @@
 \alias{preparePortfolioPayload}
 \title{This function prepares the portfolio payload as data frame.}
 \usage{
-preparePortfolioPayload(accounts, teams, rccy = "USD")
+preparePortfolioPayload(accounts, teams, rccy = "USD", session)
 }
 \arguments{
 \item{accounts}{The accounts list.}
@@ -12,6 +12,8 @@ preparePortfolioPayload(accounts, teams, rccy = "USD")
 \item{teams}{The teams data frame.}
 
 \item{rccy}{The fallback value for the portfolios currency.}
+
+\item{session}{The session.}
 }
 \value{
 The portfolio payload as data frame.

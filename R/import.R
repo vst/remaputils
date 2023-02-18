@@ -641,9 +641,10 @@ getObjectIDByName <- function(df, name, naVal=1) {
 ##' @param accounts The accounts list.
 ##' @param teams The teams data frame.
 ##' @param rccy The fallback value for the portfolios currency.
+##' @param session The session.
 ##' @return The portfolio payload as data frame.
 ##' @export
-preparePortfolioPayload <- function(accounts, teams, rccy="USD") {
+preparePortfolioPayload <- function(accounts, teams, rccy="USD", session) {
 
     do.call(rbind, lapply(1:length(accounts), function(i) {
 
@@ -690,9 +691,10 @@ preparePortfolioPayload <- function(accounts, teams, rccy="USD") {
 ##' @param institutions The institutions data frame.
 ##' @param rccy The fallback value for the account currency.
 ##' @param atype The analytical type of account. Default is NA.
+##' @param session The session.
 ##' @return The accounts payload as data frame.
 ##' @export
-prepareAccountPayload <- function(accounts, portfolios, institutions, rccy="USD", atype=NA) {
+prepareAccountPayload <- function(accounts, portfolios, institutions, rccy="USD", atype=NA, session) {
 
     do.call(rbind, lapply(1:length(accounts), function(i) {
 
@@ -2869,7 +2871,7 @@ accountPreembleMethod2 <- function(accounts, sysAccs, custodian, session) {
         naPorts <- is.na(portfolioId)
 
         ##:
-        port <- preparePortfolioPayload(naAccounts[naPorts], getDBObject("teams", session), "USD")
+        port <- preparePortfolioPayload(naAccounts[naPorts], getDBObject("teams", session), "USD", session)
 
         ## Get the portfolio payload:
         payload <- toJSON(list(portfolios=port), auto_unbox=TRUE, na="null", digits=10)
@@ -2882,7 +2884,8 @@ accountPreembleMethod2 <- function(accounts, sysAccs, custodian, session) {
 
     }
 
-    accs <- prepareAccountPayload(naAccounts, portfolioId, getDBObject("institutions", session), rccy="USD", atype=NA)
+    ## Prepare the account payload:
+    accs <- prepareAccountPayload(naAccounts, portfolioId, getDBObject("institutions", session), rccy="USD", atype=NA, session)
 
     ## Get  the account payload:
     payload <- toJSON(list(accounts=accs), auto_unbox=TRUE, na="null", digits=10)

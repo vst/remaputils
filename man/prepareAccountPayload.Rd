@@ -9,7 +9,8 @@ prepareAccountPayload(
   portfolios,
   institutions,
   rccy = "USD",
-  atype = NA
+  atype = NA,
+  session
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ prepareAccountPayload(
 \item{rccy}{The fallback value for the account currency.}
 
 \item{atype}{The analytical type of account. Default is NA.}
+
+\item{session}{The session.}
 }
 \value{
 The accounts payload as data frame.

@@ -823,6 +823,7 @@ decafSyncResources <- function (tSession,
 
     ## Are any of the resources a structured product?
     isSP <- resources[match(figiResult[, "idValue"], resources[, "isin"]), "ctype"] == "SP"
+    isSP[is.na(isSP)] <- FALSE
 
     ## If yes, keep the name from the source (don't use FIGI name)
     if (any(isSP)) {
@@ -1016,7 +1017,9 @@ decafSyncOHLC <- function (sSession,
     ##:
     if (omitExpired) {
         if (is.null(lte)){lte=Sys.Date()}
-        expired <-  as.Date(resources[, "expiry"]) < lte
+
+        expiry <- as.Date(ifelse(isNAorEmpty(resources[, "expiry"]), NA, resources[, "expiry"]))
+        expired <- expiry < lte
         expired[is.na(expired)] <- FALSE
         resources <- resources[!expired, ]
     }

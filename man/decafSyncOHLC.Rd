@@ -10,7 +10,9 @@ decafSyncOHLC(
   resources,
   lte = NULL,
   lookBack = NULL,
-  ohlccodeKey = "~DEBSM"
+  ohlccodeKey = "~DEBSM",
+  omitExpired = TRUE,
+  omitCtypes = c("DEPO", "LOAN")
 )
 }
 \arguments{
@@ -24,7 +26,11 @@ decafSyncOHLC(
 
 \item{lookBack}{The lookback period. Default=NULL.}
 
-\item{ohlccodeKey}{The key for ohlccode to be used as filter.}
+\item{ohlccodeKey}{The key for ohlccode to be used as filter. To bypass, NULL:}
+
+\item{omitExpired}{Ignore resources which have expired. Default TRUE.}
+
+\item{omitCtypes}{The resource ctypes to omit. Default c("DEPO", "LOAN")}
 }
 \value{
 A data frame with ohlc observations.

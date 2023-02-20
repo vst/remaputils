@@ -4,7 +4,7 @@
 \alias{decafPushActions}
 \title{Syncs actions in batches.}
 \usage{
-decafPushActions(actions, session, N = 500)
+decafPushActions(actions, session, N = 500, omitFlag = NULL)
 }
 \arguments{
 \item{actions}{The actions data frame.}
@@ -12,6 +12,8 @@ decafPushActions(actions, session, N = 500)
 \item{session}{The rdecaf session.}
 
 \item{N}{The batch size.}
+
+\item{omitFlag}{The flag number to be ignored. Default NULL}
 }
 \description{
 This is the description

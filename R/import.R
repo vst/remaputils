@@ -221,9 +221,26 @@ decafPushVouchers <- function(vouchers, session, N=500) {
 ##' @param actions The actions data frame.
 ##' @param session The rdecaf session.
 ##' @param N The batch size.
+##' @param omitFlag The flag number to be ignored. Default NULL
 ##' @return NULL
 ##' @export
-decafPushActions <- function(actions, session, N=500) {
+decafPushActions <- function(actions, session, N=500, omitFlag=NULL) {
+
+    ## If no action, return:
+    NROW(actions) != 0 || return(NULL)
+
+    ## Exclude flagged trades if any.
+    if (!is.null(omitFlag)) {
+        flaggedTrades <- getDBObject("trades", session, addParams=list("cflag"=omitFlag))
+    } else {
+        flaggedTrades <- data.frame("guid"=Inf)
+    }
+
+    ## Exclude the falgged trades:
+    actions <- actions[is.na(match(actions[, "guid"], flaggedTrades[, "guid"])), ]
+
+    ## If no action, return:
+    NROW(actions) != 0 || return(NULL)
 
     ## Create batch:
     batches <- createBatches(NROW(actions), N)
@@ -742,9 +759,18 @@ prepareAccountPayload <- function(accounts, portfolios, institutions, rccy="USD"
 ##' @param sSession The source session.
 ##' @param sAccountNames The account names at source.
 ##' @param overrideTypes A vector with strings defining the resource ctypes to be overriden. Default NULL
+##' @param customSymbolFunction Either a function or NULL.
+##' @param tResources The resource data frame at target.
+##' @param matchBy The field to match by.
 ##' @return The target resources data frame.
 ##' @export
-decafSyncResources <- function (tSession, sSession, sAccountNames, overrideTypes=NULL) {
+decafSyncResources <- function (tSession,
+                                sSession,
+                                sAccountNames,
+                                overrideTypes=NULL,
+                                customSymbolFunction=function(x) {paste(x[, "isin"], x[, "ccymain"], "[CUB]")},
+                                tResources=NULL,
+                                matchBy="symbol") {
 
     ## Get the stocks:
     stocks <- getStocksFromContainerNames(sSession, "accounts", sAccountNames, zero=1, date=Sys.Date())
@@ -752,22 +778,42 @@ decafSyncResources <- function (tSession, sSession, sAccountNames, overrideTypes
     ## Get the source resources:
     resources <- getResourcesByStock(stocks, sSession)
 
+    ##:
+    if (is.null(tResources)) {
+        ## Get target resources:
+        tResources <- getSystemResources(tSession)
+    }
+
+    ## Get the NA resources:
+    naResources <- is.na(match(resources[, matchBy], tResources[, matchBy], incomparables=NA))
+
+    ##:
+    naCCY <- resources[, "ctype"] == "CCY" & naResources
+
+    ##:
+    if (any(naCCY)) {
+        naResources[naCCY] <- is.na(match(resources[naCCY, "symbol"], tResources[, "symbol"]))
+    }
+
+    ## Force missing ohlccodes to be synced:
+    matchIdx <- match(resources[, matchBy], tResources[, matchBy])
+    resOhlc <- data.frame(resources[!is.na(matchIdx), ], "ohlccodeT"=tResources[na.omit(matchIdx), "ohlccode"])
+    resOhlc <- resOhlc[isNAorEmpty(resOhlc[, "ohlccodeT"]) & !isNAorEmpty(resOhlc[, "ohlccode"]), ]
+    resOhlc[, "ohlccodeT"] <- NULL
+    naResources[which(!is.na(match(resources[, "guid"], resOhlc[, "guid"])))] <- TRUE
+
+    ## If all exist, return:
+    if (all(!naResources)) {
+        return(tResources)
+    }
+
+    ## Get the resources:
+    resources <- resources[naResources, ]
+
     ## Set fields to NULL:
     for (fld in c("created", "creator", "updated", "updater", "incomplete", "tags")) {
         resources[, fld] <- NULL
     }
-
-    ## ## Get underlying resources sync:
-    ## if (any(resources[, "is_underlying"])) {
-
-    ##     underlyings <- list(artifacts = resources[resources[,"is_underlying"], ])
-
-    ##     payload <- toJSON(underlyings, auto_unbox = TRUE, na = "null",
-    ##                       digits = 10)
-    ##     response <- pushPayload(payload = payload, endpoint = NULL,
-    ##                             session = tSession, import = FALSE, inbulk = TRUE,
-    ##                             params = list(sync = "True"))
-    ## }
 
     ## Has isin?
     hasISIN <- !isNAorEmpty(resources[, "isin"])
@@ -784,7 +830,6 @@ decafSyncResources <- function (tSession, sSession, sAccountNames, overrideTypes
         figiResult[isSP, "name"] <- names[isSP]
     }
 
-
     ## Match the figi result identifier with the records identifier:
     matchIdx <- match(paste0(resources[, "isin"], resources[, "ccymain"]), paste0(figiResult[, "idValue"], figiResult[, "currency"]))
 
@@ -798,7 +843,12 @@ decafSyncResources <- function (tSession, sSession, sAccountNames, overrideTypes
     resources[!is.na(matchIdx), "ticker"] <- figiResult[matchIdx[!is.na(matchIdx)], "symbol"]
 
     ##  Construct the ISIN symbols:
-    resources[hasISIN, "symbol"] <- paste(resources[hasISIN, "isin"], resources[hasISIN, "ccymain"], "[CUB]")
+    resources[hasISIN, "originalSymbol"] <- resources[hasISIN, "symbol"]
+
+    ## Run the custom symbol function:
+    if (!is.null(customSymbolFunction)) {
+        resources[hasISIN, "symbol"] <- sapply(which(hasISIN), function(row) customSymbolFunction(resources[row, ]))
+    }
 
     ## Is Loan or Deposit:
     isLoanDepo <- resources[, "ctype"] == "DEPO" | resources[, "ctype"] == "LOAN"
@@ -816,12 +866,6 @@ decafSyncResources <- function (tSession, sSession, sAccountNames, overrideTypes
     ## Set NA quantities to 1:
     resources[is.na(resources[, "quantity"]), "quantity"] <- 1
 
-    ## Get fcci resources:
-    tResources <- getSystemResources(tSession)
-
-    ## Get the NA resources:
-    naResources <- is.na(match(resources[, "symbol"], tResources[, "symbol"], incomparables=NA))
-
     ## If any override types, set those types to na resmain
     if (!is.null(overrideTypes)) {
 
@@ -835,13 +879,7 @@ decafSyncResources <- function (tSession, sSession, sAccountNames, overrideTypes
         naResources[ovRide] <- TRUE
     }
 
-    ## If all exist, return:
-    if (all(!naResources)) {
-        return(tResources)
-    }
-
-    ## Get the resources:
-    resources <- resources[naResources, ]
+    ## resources <- resources[isIsin(resources[, "isin"]), ]
 
     ## Set assetclass to NA:
     resources[, "assetclass"] <- NA
@@ -954,7 +992,9 @@ decafSyncTrades <- function(accounts, sSession, tSession, resources, gte, omitFl
 ##' @param resources The resources data frame at target.
 ##' @param lte The less than or equal to date for ohlc observations. Default=NULL
 ##' @param lookBack The lookback period. Default=NULL.
-##' @param ohlccodeKey The key for ohlccode to be used as filter.
+##' @param ohlccodeKey The key for ohlccode to be used as filter. To bypass, NULL:
+##' @param omitExpired Ignore resources which have expired. Default TRUE.
+##' @param omitCtypes The resource ctypes to omit. Default c("DEPO", "LOAN")
 ##' @return A data frame with ohlc observations.
 ##' @export
 decafSyncOHLC <- function (sSession,
@@ -962,13 +1002,36 @@ decafSyncOHLC <- function (sSession,
                            resources,
                            lte=NULL,
                            lookBack=NULL,
-                           ohlccodeKey="~DEBSM") {
+                           ohlccodeKey="~DEBSM",
+                           omitExpired=TRUE,
+                           omitCtypes=c("DEPO", "LOAN")) {
+
+
+    ## Exclude  ctypes:
+    resources <- resources[!resources[, "ctype"] %in% omitCtypes, ]
+
+    ## Shortcircuit:
+    NROW(resources) != 0 || return(NULL)
+
+    ##:
+    if (omitExpired) {
+        if (is.null(lte)){lte=Sys.Date()}
+        expired <-  as.Date(resources[, "expiry"]) < lte
+        expired[is.na(expired)] <- FALSE
+        resources <- resources[!expired, ]
+    }
+
+    ## Shortcircuit:
+    NROW(resources) != 0 || return(NULL)
 
     ## Get the ohlc codes from resources:
-    ohlccodes <- resources[, "ohlccode"]
+    ohlccodes <- as.character(ifelse(isNAorEmpty(resources[, "ohlccode"]), resources[, "symbol"], resources[, "ohlccode"]))
 
-    ## Get ohlc codes with ~DEBSM:
-    ohlccodes <- ohlccodes[safeGrep(ohlccodes, ohlccodeKey) == "1"]
+    ##:
+    if (!is.null(ohlccodeKey)) {
+        ## Get ohlc codes with ~DEBSM:
+        ohlccodes <- ohlccodes[safeGrep(ohlccodes, ohlccodeKey) == "1"]
+    }
 
     ## Get the ohlc observations for ohlc codes:
     ohlcObsList <- lapply(ohlccodes, function(sym) getOhlcObsForSymbol(sSession, sym, lte, lookBack))
@@ -983,7 +1046,8 @@ decafSyncOHLC <- function (sSession,
     dates <- do.call(c, lapply(ohlcObsList, function(x) as.character(x[,"date"])))
 
     ## Make data frame:
-    ohlcObs <- safeRbind(ohlcObsList)
+    ## ohlcObs <- safeRbind(ohlcObsList)
+    ohlcObs <- do.call(rbind, ohlcObsList)
 
     ## Append dates:
     ohlcObs[, "date"] <- dates

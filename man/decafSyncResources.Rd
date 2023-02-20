@@ -4,7 +4,16 @@
 \alias{decafSyncResources}
 \title{This function syncs the resources between source DECAF and target DECAF.}
 \usage{
-decafSyncResources(tSession, sSession, sAccountNames, overrideTypes = NULL)
+decafSyncResources(
+  tSession,
+  sSession,
+  sAccountNames,
+  overrideTypes = NULL,
+  customSymbolFunction = function(x) {     paste(x[, "isin"], x[, "ccymain"], "[CUB]")
+    },
+  tResources = NULL,
+  matchBy = "symbol"
+)
 }
 \arguments{
 \item{tSession}{The target session.}
@@ -14,6 +23,12 @@ decafSyncResources(tSession, sSession, sAccountNames, overrideTypes = NULL)
 \item{sAccountNames}{The account names at source.}
 
 \item{overrideTypes}{A vector with strings defining the resource ctypes to be overriden. Default NULL}
+
+\item{customSymbolFunction}{Either a function or NULL.}
+
+\item{tResources}{The resource data frame at target.}
+
+\item{matchBy}{The field to match by.}
 }
 \value{
 The target resources data frame.

@@ -12,7 +12,8 @@ decafSyncResources(
   customSymbolFunction = function(x) {     paste(x[, "isin"], x[, "ccymain"], "[CUB]")
     },
   tResources = NULL,
-  matchBy = "symbol"
+  matchBy = "symbol",
+  override = FALSE
 )
 }
 \arguments{
@@ -29,6 +30,8 @@ decafSyncResources(
 \item{tResources}{The resource data frame at target.}
 
 \item{matchBy}{The field to match by.}
+
+\item{override}{Shall the resources be overidden? Default FALSE.}
 }
 \value{
 The target resources data frame.

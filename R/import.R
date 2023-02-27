@@ -762,6 +762,7 @@ prepareAccountPayload <- function(accounts, portfolios, institutions, rccy="USD"
 ##' @param customSymbolFunction Either a function or NULL.
 ##' @param tResources The resource data frame at target.
 ##' @param matchBy The field to match by.
+##' @param override Shall the resources be overidden? Default FALSE.
 ##' @return The target resources data frame.
 ##' @export
 decafSyncResources <- function (tSession,
@@ -770,7 +771,8 @@ decafSyncResources <- function (tSession,
                                 overrideTypes=NULL,
                                 customSymbolFunction=function(x) {paste(x[, "isin"], x[, "ccymain"], "[CUB]")},
                                 tResources=NULL,
-                                matchBy="symbol") {
+                                matchBy="symbol",
+                                override=FALSE) {
 
     ## Get the stocks:
     stocks <- getStocksFromContainerNames(sSession, "accounts", sAccountNames, zero=1, date=Sys.Date())
@@ -786,6 +788,11 @@ decafSyncResources <- function (tSession,
 
     ## Get the NA resources:
     naResources <- is.na(match(resources[, matchBy], tResources[, matchBy], incomparables=NA))
+
+    ## If override, set naResources to TRUE:
+    if (override) {
+        naResources <- rep(TRUE, NROW(resources))
+    }
 
     ##:
     naCCY <- resources[, "ctype"] == "CCY" & naResources
@@ -804,7 +811,8 @@ decafSyncResources <- function (tSession,
 
     ## If all exist, return:
     if (all(!naResources)) {
-        return(tResources)
+        return(list("targetResources"=tResources,
+                    "sourceResources"=resources))
     }
 
     ## Get the resources:
@@ -851,6 +859,18 @@ decafSyncResources <- function (tSession,
         resources[hasISIN, "symbol"] <- sapply(which(hasISIN), function(row) customSymbolFunction(resources[row, ]))
     }
 
+    ## Check ones more with symbol:
+    naResources <- is.na(match(resources[, "symbol"], tResources[, "symbol"], incomparables=NA))
+
+    ## If all exist, return:
+    if (all(!naResources)) {
+        return(list("targetResources"=tResources,
+                    "sourceResources"=resources))
+    }
+
+    ## Get the resources:
+    resources <- resources[naResources, ]
+
     ## Is Loan or Deposit:
     isLoanDepo <- resources[, "ctype"] == "DEPO" | resources[, "ctype"] == "LOAN"
     dubiousDenom <- safeCondition(data.frame("aa"=substr(gsub("-", "", trimConcatenate(resources[, "pxmain"])), 1, 2)), "aa", "00")
@@ -892,7 +912,8 @@ decafSyncResources <- function (tSession,
     response <- pushPayload(payload=payload, session=tSession, import=FALSE, inbulk=TRUE, params=list(sync="True"))
 
     ## Get target resources and return:
-    getSystemResources(tSession)
+    return(list("targetResources"=getSystemResources(tSession),
+                "sourceResources"=resources))
 }
 
 
@@ -906,9 +927,10 @@ decafSyncResources <- function (tSession,
 ##' @param resources The resources data frame at target.
 ##' @param gte The greater than or equal to date for commitment.
 ##' @param omitFlag The flag type of record to bypass sync. Default NULL.
+##' @param sResources The resources data frame at source.
 ##' @return NULL.
 ##' @export
-decafSyncTrades <- function(accounts, sSession, tSession, resources, gte, omitFlag=NULL) {
+decafSyncTrades <- function(accounts, sSession, tSession, resources, gte, omitFlag=NULL, sResources=NULL) {
 
     ## Get the account names:
     containerNames <- names(accounts[!substr(names(accounts), 1,1) == "_"])
@@ -948,9 +970,16 @@ decafSyncTrades <- function(accounts, sSession, tSession, resources, gte, omitFl
     ## Set to transfer:
     visionTrades[isTRA, "ctype"] <- "30"
 
-    ## Get the resmains:
-    visionTrades[, "resmain"] <- paste0("dcf:artifact?guid=", visionTrades[, "resmain_guid"])
-    visionTrades[, "resmain_guid"] <- NULL
+    if (!is.null(sResources)) {
+        guids <- resources[match(visionTrades[, "resmain_guid"], resources[, "guid"]), "guid"]
+        guids[is.na(guids)] <- resources[match(visionTrades[is.na(guids), "resmain_symbol"], resources[, "symbol"]), "guid"]
+        visionTrades[, "resmain"] <- paste0("dcf:artifact?guid=", guids)
+        visionTrades[, "resmain_guid"] <- NULL
+    } else {
+        ## Get the resmains:
+        visionTrades[, "resmain"] <- paste0("dcf:artifact?guid=", visionTrades[, "resmain_guid"])
+        visionTrades[, "resmain_guid"] <- NULL
+    }
 
     ## Get the accmain:
     visionTrades[, "accmain"] <- sapply(accounts[match(as.character(visionTrades[, "accmain_name"]), names(accounts))], function(x) x[["accmain"]])

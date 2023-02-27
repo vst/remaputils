@@ -225,13 +225,17 @@ getTradesFromContainerNames <- function(containerNames, session, type, gte=NULL)
 ##' @param accounts A vector with account id's.
 ##' @param session The DECAF session info.
 ##' @param gte The date after which trades should be considered.
+##' @param dateType The type, either commitment, settlement, created or updated. Default is commitment.
 ##' @return A data-frame with DECAF trades.
 ##' @import rdecaf
 ##' @export
-getAccountWiseTrades <- function(accounts, session, gte=NULL) {
+getAccountWiseTrades <- function(accounts, session, gte=NULL, dateType="commitment") {
 
     ## Initialise the trade list:
     trades <- list()
+
+    ##:
+    print(sprintf("%s accounts to retrieve trades from.", length(accounts)))
 
     ## Retrieve account-wise trades
     for (i in 1:length(accounts)) {
@@ -239,10 +243,22 @@ getAccountWiseTrades <- function(accounts, session, gte=NULL) {
         ## Get the trades list:
         params <- list("accmain"=accounts[i],
                        "page_size"=-1,
-                       "format"="csv",
-                       "commitment__gte"=gte)
+                       "format"="csv")
 
-        trds  <- as.data.frame(getResource("trades", params=params, session=session))
+
+
+        if (!is.null(gte)) {
+            paramsExt <- c(params, as.character(gte))
+            names(paramsExt) <- c(names(params), sprintf("%s__gte", dateType))
+        } else {
+            paramsExt <- params
+        }
+
+        ## :
+        print(sprintf("Retrieving trades for account no %s (id:%s) on %s", i, accounts[i], session[["location"]]))
+
+        ##:
+        trds  <- as.data.frame(getResource("trades", params=paramsExt, session=session))
 
         ## If no trades, next:
         if (NROW(trds) == 0) {

@@ -1842,15 +1842,17 @@ positionDifferential <- function(data, session) {
 ##' @param close The vector of close values.
 ##' @param date The vector of dates.
 ##' @param session The rdecaf session.
+##' @param source The source. Default NA.
 ##' @return Returns NULL
 ##' @export
-pushOhlc <- function(symbol, close, date, session) {
+pushOhlc <- function(symbol, close, date, session, source=NA) {
 
     ## Construct the data-frame:
     ohlcObs <- data.frame("symbol"=symbol,
                           "close"=close,
                           "date"=date,
-                          stringsAsFactors=FALSE)
+                          "source"=source,
+                          stringsAsFactors = FALSE)
 
     ## Remove NA symbols:
     ohlcObs <- ohlcObs[!is.na(ohlcObs[, "symbol"]), ]

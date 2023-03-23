@@ -4,7 +4,7 @@
 \alias{pushOhlc}
 \title{A function to push ohlc observations}
 \usage{
-pushOhlc(symbol, close, date, session)
+pushOhlc(symbol, close, date, session, source = NA)
 }
 \arguments{
 \item{symbol}{The vector of symbols.}
@@ -14,6 +14,8 @@ pushOhlc(symbol, close, date, session)
 \item{date}{The vector of dates.}
 
 \item{session}{The rdecaf session.}
+
+\item{source}{The source. Default NA.}
 }
 \value{
 Returns NULL

@@ -1025,6 +1025,7 @@ decafSyncTrades <- function(accounts, sSession, tSession, resources, gte, omitFl
 ##' @param ohlccodeKey The key for ohlccode to be used as filter. To bypass, NULL:
 ##' @param omitExpired Ignore resources which have expired. Default TRUE.
 ##' @param omitCtypes The resource ctypes to omit. Default c("DEPO", "LOAN")
+##' @param source The source of the price. Default is NA.
 ##' @return A data frame with ohlc observations.
 ##' @export
 decafSyncOHLC <- function (sSession,
@@ -1034,7 +1035,8 @@ decafSyncOHLC <- function (sSession,
                            lookBack=NULL,
                            ohlccodeKey="~DEBSM",
                            omitExpired=TRUE,
-                           omitCtypes=c("DEPO", "LOAN")) {
+                           omitCtypes=c("DEPO", "LOAN"),
+                           source=NA) {
 
 
     ## Exclude  ctypes:
@@ -1115,6 +1117,9 @@ decafSyncOHLC <- function (sSession,
 
     ## Rbind:
     ohlcObs <- rbind(ohlcObs, fwdOhlc)
+
+    ## Add the source:
+    ohlcObs[, "source"] <- source
 
     ## Iterate over chunks and push ohlc observations:
     for (i in 1:iterations) {

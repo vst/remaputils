@@ -12,7 +12,8 @@ decafSyncOHLC(
   lookBack = NULL,
   ohlccodeKey = "~DEBSM",
   omitExpired = TRUE,
-  omitCtypes = c("DEPO", "LOAN")
+  omitCtypes = c("DEPO", "LOAN"),
+  source = NA
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ decafSyncOHLC(
 \item{omitExpired}{Ignore resources which have expired. Default TRUE.}
 
 \item{omitCtypes}{The resource ctypes to omit. Default c("DEPO", "LOAN")}
+
+\item{source}{The source of the price. Default is NA.}
 }
 \value{
 A data frame with ohlc observations.

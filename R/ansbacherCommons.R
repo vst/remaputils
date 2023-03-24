@@ -474,7 +474,11 @@ ansbacherResourcePreemble <- function(records, accounts, resources, session, ...
     issueDate <- as.character(records[, "ISSUEDATE"])
     freq <- records[, "FREQ"]
 
+    ##
     records[, "quantity"] <- records[, "CONTRACTSIZE"]
+
+    ##
+    records[records[, "ctype"] %in% "ZCPN" & records[, "INTEREST"] != 0, "ctype"] <- "BOND"
 
     ## Combine the existing and new resources:
     abacherResources  <- data.frame("name"=records[, "SECDESC2"],

@@ -1,3 +1,143 @@
+##' This function create a new custom ohlc series and observations based on existing ohlc oberservations
+##' by stichting them based on the order/rank.
+##'
+##' This is a description
+##'
+##' @param resources The resources data frame.
+##' @param session The rdecaf session.
+##' @param lookBack The lookBak period.
+##' @param constituents A list with the existing ohlc symbols and the desired target symbol such as: list("ohlc1"="XYZ|1", "ohlc2"=XYZ|2, target=XYZ|Custom)
+##' @return NULL
+##' @export
+customOhlcRanked <- function(resources, session, lookBack=60, constituents) {
+
+    ## Which resources to consider:
+    resources <- resources[!mCondition(resources, c("ctype"), c("CCY", "DEPO", "LOAN", "FXFWD")), ]
+
+    ## Get the target custom ohlc symbols:
+    target <- as.character(sapply(constituents, function(x) x$target))
+
+    ## Remove the target from the list:
+    constituents <- lapply(constituents, function(x) x[names(x) != "target"])
+
+    ## Iterate over constituents, retrieve ohlc obs and parse:
+    ohlcobs <- lapply(constituents, function(x) {
+
+        ## Get the ohlc obs:
+        aa <- lapply(x, function(z) getOhlcObsForSymbol(session, symbol=z, lookBack=lookBack, addFields="source"))
+
+        ## Name the list:
+        names(aa) <- as.character(unlist(x))
+
+        ## Remove empty lists:
+        aa[sapply(aa, NROW)==0] <- NULL
+
+        ## Round the close values:
+        aa <- lapply(aa, function(x) {
+            x[, "close"] <- round(as.numeric(x[, "close"]), 8)
+            return(x)
+        })
+
+        ## Done return:
+        return(aa)
+    })
+
+    ## Name the ohlc obs list:
+    names(ohlcobs) <- target
+
+    ## Iterative over ohlc observations and get the combined
+    ## xts time series data frame and corresondong source information:
+    combinedOhlc <- lapply(ohlcobs, function(x) {
+
+        ## If no data, exit:
+        length(x) != 0 || return(NULL)
+
+        ## Combine the closes:
+        closes <- list("close"=
+                           ## Get the closes as xts:
+                           do.call(cbind,
+                                   c(lapply(x, function(z) xts::as.xts(z[, "close"], order.by=as.Date(z[, "date"]), source=z[, "source"])),
+                                     check.names=FALSE)))
+
+        ## Get the source of the closes:
+        ## xts does not accept characters so we use the list indices:
+        sources <- do.call(cbind,
+                lapply(1:length(x), function(i) {
+                    xts::as.xts(rep(i, NROW(x[[i]])), order.by=as.Date(x[[i]][, "date"]))
+                }))
+
+        ## Reassign the character values to the xts series:
+        for (i in 1:length(x)) {
+            sources[!is.na(sources[, i]), i] <- x[[i]][, "source"]
+        }
+
+        ## Name the columns of the ohlc source data frame:
+        colnames(sources) <- paste0("source", 1:length(x))
+
+        ## Done, return:
+        return(c(closes, "source"=list(sources)))
+
+    })
+
+    ohlcobs <- NULL
+    gc()
+
+    ## Iterative over combined ohlcs and construct the new series:
+    combinedOhlc <- lapply(combinedOhlc, function(x) {
+
+        ## Exit if NULL:
+        !is.null(x) || return(NULL)
+
+        ## Get the first non-na close index in data frame (by row):
+        clsIdx <- as.numeric(apply(x[["close"]], MARGIN=1, function(z) which(!is.na(z))[1]))
+
+        ## Conscturct the data frame:
+        cls <- data.frame(x[["close"]],
+                          "x"=apply(x[["close"]], MARGIN=1, function(z) z[which(!is.na(z))[1]]),
+                          check.names=FALSE,
+                          stringsAsFactors=FALSE)
+
+        ## Determine the original source fo the new custom observation:
+        sourcePx <- as.character(sapply(1:NROW(x[["source"]]), function(row) as.character(x[["source"]][row, clsIdx[row]])))
+
+        ## Done, return:
+        return(data.frame(cls,
+                          sourcePx,
+                          check.names=FALSE,
+                          stringsAsFactors=FALSE))
+
+    })
+
+    ## Interate over combinedOHlc and prepare the ohlc push:
+    syntheticSeries <- do.call(rbind, lapply(1:length(combinedOhlc), function(i) {
+
+        !is.null(combinedOhlc[[i]]) || return(NULL)
+
+        data.frame("date"=rownames(combinedOhlc[[i]]),
+                   "close"=combinedOhlc[[i]][, "x"],
+                   "symbol"=names(combinedOhlc)[[i]],
+                   "source"=combinedOhlc[[i]][, "sourcePx"])
+    }))
+
+    ## Remove ilegal data:
+    syntheticSeries <- syntheticSeries[!syntheticSeries[, "close"] == 0, ]
+    syntheticSeries <- syntheticSeries[!syntheticSeries[, "date"] == 1, ]
+
+    ## Push:
+    pushOhlc("symbol"=syntheticSeries[, "symbol"],
+              "close"=syntheticSeries[, "close"],
+              "date"=syntheticSeries[, "date"],
+              "source"=syntheticSeries[, "source"],
+              "session"=session)
+
+    ## Done, exit:
+    return(NULL)
+
+}
+
+
+
+
 ##' This function retrievs the ohlc observations for a give symbol.
 ##'
 ##' This is a description

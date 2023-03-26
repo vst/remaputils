@@ -1,3 +1,59 @@
+##' This function create a new index price series from returns in the ohlc table.
+##'
+##' This is a description
+##'
+##' @param session The rdecaf session.
+##' @param sourceKeyword The keyword to look for in the ohlcs denoting returns
+##' @param targetReplacement The replacement of the sourceKeyword to be used for the new ohlc series
+##' @return NULL
+##' @export
+createOhlcIndexSeriesFromReturns <- function(session, sourceKeyword="\\|Return", targetReplacement="|PXLAST") {
+
+    ## Get all ohlcs:
+    ohlcs <- getResource("ohlcs", params=list("page_size"=-1), session=session)
+
+    ## Get all ohlc symbols:
+    symOhlcs <- sapply(ohlcs, function(x) x$symbol)
+
+    ## Get the ohlc's with the Return keyword:
+    retOhlcs <- ohlcs[safeGrep(symOhlcs, sourceKeyword) == "1"]
+
+    ## If none, exit:
+    length(retOhlcs) > 0 || return(NULL)
+
+    ## Construct the index price series and push the new series using the new symbol:
+    retOhlcObs <- lapply(retOhlcs, function(x) {
+
+        ## Get the symbol:
+        symbol <- x$symbol
+
+        ##  Get the observations of returns
+        ohlcObs <- getOhlcObsForSymbol(session, symbol, lte=Sys.Date(), lookBack=NULL)
+
+        ## If none, exit:
+        NROW(ohlcObs) != 0 || return(NULL)
+
+        ## Crdate the indexed series:
+        indexed <- rev(100*(1+cumsum(rev(ohlcObs[, "close"]))))
+
+        ## Set OHL to NULL
+        ohlcObs[, c("open", "high", "low", "id")] <- NULL
+
+        ## Construct the new symbol:
+        ohlcObs[, "symbol"] <- trimws(paste0(unlist(strsplit(symbol, sourceKeyword)), targetReplacement))
+
+        ## Assign indexed to close:
+        ohlcObs[, "close"] <- indexed
+
+        ## Push OHLC:
+        pushOhlc(ohlcObs[, "symbol"], ohlcObs[, "close"], ohlcObs[, "date"], session)
+    })
+
+    ## Done, return:
+    return(NULL)
+}
+
+
 ##' This function create a new custom ohlc series and observations based on existing ohlc oberservations
 ##' by stichting them based on the order/rank.
 ##'
@@ -108,7 +164,7 @@ customOhlcRanked <- function(resources, session, lookBack=60, constituents) {
 
     })
 
-    ## Interate over combinedOHlc and prepare the ohlc push:
+    ## Iterate over combinedOHlc and prepare the ohlc push:
     syntheticSeries <- do.call(rbind, lapply(1:length(combinedOhlc), function(i) {
 
         !is.null(combinedOhlc[[i]]) || return(NULL)

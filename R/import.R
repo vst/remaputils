@@ -763,6 +763,7 @@ prepareAccountPayload <- function(accounts, portfolios, institutions, rccy="USD"
 ##' @param tResources The resource data frame at target.
 ##' @param matchBy The field to match by.
 ##' @param override Shall the resources be overidden? Default FALSE.
+##' @param customOHLCFunction Either a function or NULL. Default is NULL.
 ##' @return The target resources data frame.
 ##' @export
 decafSyncResources <- function (tSession,
@@ -772,13 +773,23 @@ decafSyncResources <- function (tSession,
                                 customSymbolFunction=function(x) {paste(x[, "isin"], x[, "ccymain"], "[CUB]")},
                                 tResources=NULL,
                                 matchBy="symbol",
-                                override=FALSE) {
+                                override=FALSE,
+                                customOHLCFunction=NULL) {
 
     ## Get the stocks:
     stocks <- getStocksFromContainerNames(sSession, "accounts", sAccountNames, zero=1, date=Sys.Date())
 
     ## Get the source resources:
     resources <- getResourcesByStock(stocks, sSession)
+
+    ##:
+    if (!is.null(customOHLCFunction)) {
+        resources[, "sourceOhlc"] <- resources[, "ohlccode"]
+        resources[, "ohlccode"] <- customOHLCFunction(resources)
+        ohlcMap <- resources[, c("ohlccode", "sourceOhlc")]
+    } else {
+        ohlcMap <- NULL
+    }
 
     ##:
     if (is.null(tResources)) {
@@ -812,7 +823,8 @@ decafSyncResources <- function (tSession,
     ## If all exist, return:
     if (all(!naResources)) {
         return(list("targetResources"=tResources,
-                    "sourceResources"=resources))
+                    "sourceResources"=resources,
+                    "ohlcMap"=ohlcMap))
     }
 
     ## Get the resources:
@@ -865,7 +877,8 @@ decafSyncResources <- function (tSession,
     ## If all exist, return:
     if (all(!naResources)) {
         return(list("targetResources"=tResources,
-                    "sourceResources"=resources))
+                    "sourceResources"=resources,
+                    "ohlcMap"=ohlcMap))
     }
 
     ## Get the resources:
@@ -913,7 +926,8 @@ decafSyncResources <- function (tSession,
 
     ## Get target resources and return:
     return(list("targetResources"=getSystemResources(tSession),
-                "sourceResources"=resources))
+                "sourceResources"=resources,
+                "ohlcMap"=ohlcMap))
 }
 
 
@@ -1026,6 +1040,7 @@ decafSyncTrades <- function(accounts, sSession, tSession, resources, gte, omitFl
 ##' @param omitExpired Ignore resources which have expired. Default TRUE.
 ##' @param omitCtypes The resource ctypes to omit. Default c("DEPO", "LOAN")
 ##' @param source The source of the price. Default is NA.
+##' @param ohlcMap A data-frame with the ohlc mapping. Default: It's identity.
 ##' @return A data frame with ohlc observations.
 ##' @export
 decafSyncOHLC <- function (sSession,
@@ -1036,8 +1051,8 @@ decafSyncOHLC <- function (sSession,
                            ohlccodeKey="~DEBSM",
                            omitExpired=TRUE,
                            omitCtypes=c("DEPO", "LOAN"),
-                           source=NA) {
-
+                           source=NA,
+                           ohlcMap=data.frame("ohlccode"=resources[, "ohlccode"], "sourceOhlc"=resources[, "ohlccode"])) {
 
     ## Exclude  ctypes:
     resources <- resources[!resources[, "ctype"] %in% omitCtypes, ]
@@ -1048,7 +1063,6 @@ decafSyncOHLC <- function (sSession,
     ##:
     if (omitExpired) {
         if (is.null(lte)){lte=Sys.Date()}
-
         expiry <- as.Date(ifelse(isNAorEmpty(resources[, "expiry"]), NA, resources[, "expiry"]))
         expired <- expiry < lte
         expired[is.na(expired)] <- FALSE
@@ -1067,6 +1081,11 @@ decafSyncOHLC <- function (sSession,
         ohlccodes <- ohlccodes[safeGrep(ohlccodes, ohlccodeKey) == "1"]
     }
 
+    if (!is.null(ohlcMap)) {
+        consider <- !is.na(ohlcMap[, "sourceOhlc"])
+        ohlccodes <- ohlcMap[consider, "sourceOhlc"]
+    }
+
     ## Get the ohlc observations for ohlc codes:
     ohlcObsList <- lapply(ohlccodes, function(sym) getOhlcObsForSymbol(sSession, sym, lte, lookBack))
 
@@ -1082,6 +1101,14 @@ decafSyncOHLC <- function (sSession,
     ## Make data frame:
     ## ohlcObs <- safeRbind(ohlcObsList)
     ohlcObs <- do.call(rbind, ohlcObsList)
+
+    ##
+    ohlcObs[, "symbol"] <- ohlcMap[match(ohlcObs[, "symbol"], ohlcMap[, "sourceOhlc"]), "ohlccode"]
+
+    ##
+    if (!is.null(ohlcMap)) {
+        ohlcObs[, "symbol"] <- ohlcMap[match(ohlcObs[, "symbol"], ohlcMap[, "sourceOhlc"]), "ohlccode"]
+    }
 
     ## Append dates:
     ohlcObs[, "date"] <- dates
@@ -1099,9 +1126,8 @@ decafSyncOHLC <- function (sSession,
 
     ## Prepare the data frame:
     df <- data.frame("priceid"=ifelse(isNAorEmpty(as.character(fxfwd[, "ohlccode"])), fxfwd[, "symbol"], fxfwd[, "ohlccode"]),
-                      "symbol"=fxfwd[, "symbol"],
-                      "rate"=fxfwd[, "pxmain"])
-
+                     "symbol"=fxfwd[, "symbol"],
+                     "rate"=fxfwd[, "pxmain"])
 
     ## Get the match index for symbols and price id's:
     matchIdx <- match(ohlcObs[, "symbol"], df[, "priceid"])

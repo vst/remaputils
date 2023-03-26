@@ -13,7 +13,9 @@ decafSyncOHLC(
   ohlccodeKey = "~DEBSM",
   omitExpired = TRUE,
   omitCtypes = c("DEPO", "LOAN"),
-  source = NA
+  source = NA,
+  ohlcMap = data.frame(ohlccode = resources[, "ohlccode"], sourceOhlc = resources[,
+    "ohlccode"])
 )
 }
 \arguments{
@@ -34,6 +36,8 @@ decafSyncOHLC(
 \item{omitCtypes}{The resource ctypes to omit. Default c("DEPO", "LOAN")}
 
 \item{source}{The source of the price. Default is NA.}
+
+\item{ohlcMap}{A data-frame with the ohlc mapping. Default: It's identity.}
 }
 \value{
 A data frame with ohlc observations.

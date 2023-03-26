@@ -13,7 +13,8 @@ decafSyncResources(
     },
   tResources = NULL,
   matchBy = "symbol",
-  override = FALSE
+  override = FALSE,
+  customOHLCFunction = NULL
 )
 }
 \arguments{
@@ -32,6 +33,8 @@ decafSyncResources(
 \item{matchBy}{The field to match by.}
 
 \item{override}{Shall the resources be overidden? Default FALSE.}
+
+\item{customOHLCFunction}{Either a function or NULL. Default is NULL.}
 }
 \value{
 The target resources data frame.

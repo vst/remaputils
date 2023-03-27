@@ -261,6 +261,10 @@ getOhlcObsForSymbol <- function(session, symbol, lte=Sys.Date(), lookBack=30, ex
     ## Append additional query fields:
     fields <- paste0("id,symbol,date,open,high,low,close", addFields)
 
+    ## Safety:
+    !isNAorEmpty(symbol) || return(NULL)
+    nchar(symbol) > 0 || return(NULL)
+
     ## Build the parameters:
     params=list("format"="csv",
                 "_fields"=fields,

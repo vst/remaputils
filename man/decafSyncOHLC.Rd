@@ -14,8 +14,7 @@ decafSyncOHLC(
   omitExpired = TRUE,
   omitCtypes = c("DEPO", "LOAN"),
   source = NA,
-  ohlcMap = data.frame(ohlccode = resources[, "ohlccode"], sourceOhlc = resources[,
-    "ohlccode"])
+  ohlcMap = NULL
 )
 }
 \arguments{

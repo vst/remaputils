@@ -1052,7 +1052,7 @@ decafSyncOHLC <- function (sSession,
                            omitExpired=TRUE,
                            omitCtypes=c("DEPO", "LOAN"),
                            source=NA,
-                           ohlcMap=data.frame("ohlccode"=resources[, "ohlccode"], "sourceOhlc"=resources[, "ohlccode"])) {
+                           ohlcMap=NULL) {
 
     ## Exclude  ctypes:
     resources <- resources[!resources[, "ctype"] %in% omitCtypes, ]
@@ -1062,7 +1062,7 @@ decafSyncOHLC <- function (sSession,
 
     ##:
     if (omitExpired) {
-        if (is.null(lte)){lte=Sys.Date()}
+        if (is.null(lte)) {lte=Sys.Date() }
         expiry <- as.Date(ifelse(isNAorEmpty(resources[, "expiry"]), NA, resources[, "expiry"]))
         expired <- expiry < lte
         expired[is.na(expired)] <- FALSE

@@ -1103,9 +1103,6 @@ decafSyncOHLC <- function (sSession,
     ohlcObs <- do.call(rbind, ohlcObsList)
 
     ##
-    ohlcObs[, "symbol"] <- ohlcMap[match(ohlcObs[, "symbol"], ohlcMap[, "sourceOhlc"]), "ohlccode"]
-
-    ##
     if (!is.null(ohlcMap)) {
         ohlcObs[, "symbol"] <- ohlcMap[match(ohlcObs[, "symbol"], ohlcMap[, "sourceOhlc"]), "ohlccode"]
     }

@@ -626,11 +626,41 @@ tradeFields <- function() {
 ##' @param session The rdecaf session.
 ##' @param addParams A list with additional parameters.
 ##' @param pageSize numeric to return number of pages, default -1 = all.
+##' @param guess_max The number of rows for httr type inference. Numberic value.
 ##' @return A data frame with the endpoint as data frame.
 ##' @export
-getDBObject <- function(endpoint, session, addParams=NULL, pageSize=-1) {
-    params <- c(list(format="csv", "page_size"=pageSize), addParams)
-    as.data.frame(getResource(endpoint, params=params, session=session))
+getDBObject <- function(endpoint, session, addParams=NULL, pageSize=-1, guess_max=50000) {
+
+    .getResource2 <- function (..., params = list(), session = NULL) {
+
+        if (is.null(session)) {
+            session <- rdecaf::readSession()
+        }
+
+        url <- httr::parse_url(session$location)
+
+        url$path <- c(sub("/$", "", gsub("//", "/", c(url$path, ...))),  "/")
+
+        url$query <- params
+
+        url <- httr::build_url(url)
+
+        response <- httr::GET(url, httr::add_headers(Authorization = rdecaf:::.authorizationHeader(session)))
+
+        status <- response$status_code
+
+        if (status != 200) {
+            stop(sprintf("%s returned a status code of '%d'.\n\n Details provided by the API are:\n\n%s",
+                         url, status, httr::content(response, as = "text")))
+        }
+
+        suppressMessages(httr::content(response, as="parsed", guess_max=guess_max))
+        ## read.csv(textConnection(httr::content(response, "text")))
+    }
+
+    params <- c(list(format = "csv", page_size = pageSize), addParams)
+    as.data.frame(.getResource2(endpoint, params = params, session = session))
+    ## .getResource2(endpoint, params = params, session = session)
 }
 
 
@@ -1638,12 +1668,15 @@ appendPortfolioIDs <- function(data, session, prefix="") {
 ##' @param guidInst The guid for the institution.
 ##' @param session The rdecaf session
 ##' @param prefix Optional string to be used as prefix for account name:
+##' @param guidAcc Optional guids for accounts if they exist. If not, inbulkAccount will create.
+##' @param append Should excess accounts in system appended to data? Default=TRUE.
 ##' @return Returns the appended data frame.
 ##' @export
-appendAccountIDs <- function(data, guidInst, session, prefix) {
+appendAccountIDs <- function(data, guidInst, session, prefix, guidAcc=NULL, append=TRUE) {
 
     ## Inbulk the accounts:
-    result <- inbulkAccount(name=paste0(prefix, data[, "account"]),
+    result <- inbulkAccount(guid=guidAcc,
+                            name=paste0(prefix, data[, "account"]),
                             portfolio=paste0("dcf:portfolio?guid=", data[["portfolio_guid"]]),
                             custodian=paste0("dcf:institution?guid=", guidInst),
                             guidPrefix=prefix,
@@ -1658,6 +1691,9 @@ appendAccountIDs <- function(data, guidInst, session, prefix) {
 
     ## Assign the accmain:
     data[, "accmain"] <- paste0("dcf:account?guid=", result[["guid"]])
+
+    ##:
+    append || return(data)
 
     ## Get the portfolio-wise data:
     pWiseData <- lapply(unique(data[, "portfolio_id"]), function(p) data[data[, "portfolio_id"] == p,])

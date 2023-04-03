@@ -4,7 +4,14 @@
 \alias{appendAccountIDs}
 \title{This function creates new accounts if missing and appends masked ficticious records}
 \usage{
-appendAccountIDs(data, guidInst, session, prefix)
+appendAccountIDs(
+  data,
+  guidInst,
+  session,
+  prefix,
+  guidAcc = NULL,
+  append = TRUE
+)
 }
 \arguments{
 \item{data}{The data frame. Required columns: "account" ("name of account"), "portfolio_id",}
@@ -14,6 +21,10 @@ appendAccountIDs(data, guidInst, session, prefix)
 \item{session}{The rdecaf session}
 
 \item{prefix}{Optional string to be used as prefix for account name:}
+
+\item{guidAcc}{Optional guids for accounts if they exist. If not, inbulkAccount will create.}
+
+\item{append}{Should excess accounts in system appended to data? Default=TRUE.}
 }
 \value{
 Returns the appended data frame.

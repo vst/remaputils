@@ -4,7 +4,13 @@
 \alias{getDBObject}
 \title{This function gets the data base object as data frame.}
 \usage{
-getDBObject(endpoint, session, addParams = NULL, pageSize = -1)
+getDBObject(
+  endpoint,
+  session,
+  addParams = NULL,
+  pageSize = -1,
+  guess_max = 50000
+)
 }
 \arguments{
 \item{endpoint}{The endpoint.}
@@ -14,6 +20,8 @@ getDBObject(endpoint, session, addParams = NULL, pageSize = -1)
 \item{addParams}{A list with additional parameters.}
 
 \item{pageSize}{numeric to return number of pages, default -1 = all.}
+
+\item{guess_max}{The number of rows for httr type inference. Numberic value.}
 }
 \value{
 A data frame with the endpoint as data frame.

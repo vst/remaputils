@@ -15,7 +15,8 @@ emailAlert(
   emailBody,
   deployment,
   subject,
-  session
+  session,
+  attachments = NULL
 )
 }
 \arguments{
@@ -40,6 +41,8 @@ emailAlert(
 \item{subject}{The subject of the email.}
 
 \item{session}{The rdecaf session.}
+
+\item{attachments}{The path to files for attachment. Default NULL.}
 }
 \value{
 NULL. An email with the alert will be sent.

@@ -13,6 +13,7 @@
 ##' @param deployment The name of the deployment.
 ##' @param subject The subject of the email.
 ##' @param session The rdecaf session.
+##' @param attachments The path to files for attachment. Default NULL.
 ##' @return NULL. An email with the alert will be sent.
 ##' @export
 emailAlert <- function(df,
@@ -25,7 +26,8 @@ emailAlert <- function(df,
                        emailBody,
                        deployment,
                        subject,
-                       session) {
+                       session,
+                       attachments=NULL) {
 
     ## If empty data frame, return NULL:
     !NROW(df) == 0 || return(NULL)
@@ -62,7 +64,8 @@ emailAlert <- function(df,
     syncUpdateEmail(template=readLines("../assets/update_email.html"),
                     updateText=.UPDATETEXT,
                     emailParams = emailParams,
-                    subject=subject)
+                    subject=subject,
+                    attachments=attachments)
 
 }
 

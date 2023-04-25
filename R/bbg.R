@@ -410,9 +410,10 @@ getRequestDataPrice <- function(session, date, zero, underlying, fx=NULL, resour
 ##' @param result The result data frame as obtained from bdhls.
 ##' @param reqData The original request data from getRequestDataPrice.
 ##' @param noCents If noCents, prices in cents will be divided by 100. Default is TRUE.
+##' @param addBid Should Bid price be added separately. Default=FALSE.
 ##' @return A list with the ohlc observations and invalid symbols.
 ##' @export
-treatBBGResultsPrice <- function(result, reqData, noCents=TRUE) {
+treatBBGResultsPrice <- function(result, reqData, noCents=TRUE, addBid=FALSE) {
 
     if (is.null(result)) {
         return(NULL)
@@ -424,6 +425,11 @@ treatBBGResultsPrice <- function(result, reqData, noCents=TRUE) {
                    "QUOTED_CRNCY",
                    "PX_YEST_CLOSE",
                    "PX_YEST_DT")
+
+    ##:
+    if (addBid) {
+        priceFlds <- c(priceFlds, "PX_BID", "PX_YEST_BID")
+    }
 
     ## Set columns characters:
     for (col in c("ID", priceFlds)) {
@@ -445,6 +451,24 @@ treatBBGResultsPrice <- function(result, reqData, noCents=TRUE) {
                                  "last_update"=result[, "PX_YEST_DT"],
                                  "quoted_ccy"=result[, "QUOTED_CRNCY"],
                                  stringsAsFactors=FALSE))
+
+    ##:
+    if (addBid) {
+
+        obs <- rbind(obs , data.frame("symbol"=paste0(result[, "ID"], "|BID"),
+                                      "date"=Sys.Date(),
+                                      "close"=result[, "PX_BID"],
+                                      "last_update"=result[, "LAST_UPDATE"],
+                                      "quoted_ccy"=result[, "QUOTED_CRNCY"],
+                                      stringsAsFactors=FALSE))
+
+        obs <- rbind(obs, data.frame("symbol"=paste0(result[, "ID"], "|BID"),
+                                     "date"=Sys.Date(),
+                                     "close"=result[, "PX_YEST_BID"],
+                                     "last_update"=result[, "PX_YEST_DT"],
+                                     "quoted_ccy"=result[, "QUOTED_CRNCY"],
+                                     stringsAsFactors=FALSE))
+    }
 
     ## Invalid symbols:
     invalids <- obs[, "close"] == "N.A." | isNAorEmpty(trimws(obs[, "close"]))

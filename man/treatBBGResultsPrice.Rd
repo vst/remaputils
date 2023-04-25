@@ -4,7 +4,7 @@
 \alias{treatBBGResultsPrice}
 \title{A function to treat the results of a bbgdl price request.}
 \usage{
-treatBBGResultsPrice(result, reqData, noCents = TRUE)
+treatBBGResultsPrice(result, reqData, noCents = TRUE, addBid = FALSE)
 }
 \arguments{
 \item{result}{The result data frame as obtained from bdhls.}
@@ -12,6 +12,8 @@ treatBBGResultsPrice(result, reqData, noCents = TRUE)
 \item{reqData}{The original request data from getRequestDataPrice.}
 
 \item{noCents}{If noCents, prices in cents will be divided by 100. Default is TRUE.}
+
+\item{addBid}{Should Bid price be added separately. Default=FALSE.}
 }
 \value{
 A list with the ohlc observations and invalid symbols.

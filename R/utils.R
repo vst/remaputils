@@ -1569,6 +1569,7 @@ safeRbind <- function(x, convertToString=FALSE){
     if (is.list(x[[1]])) {
         colNames <- unique(do.call(c, lapply(x, names)))
         df <- as.data.frame(matrix(NA, ncol=length(colNames), nrow=length(x)), check.names=FALSE)
+
     } else {
         ## Ge the unique column names of all ucapbh resources:
         colNames <- unique(do.call(c, lapply(x, colnames)))
@@ -1581,7 +1582,7 @@ safeRbind <- function(x, convertToString=FALSE){
     ## Initialse the starting row:
     sRow <- 1
 
-    ## Iterate over the ucapbh resource list and populate the new data frame:
+    ## Iterate over the list and populate the new data frame:
     for (i in 1:length(x)){
 
         ## Get the current data frame from list:
@@ -1622,13 +1623,13 @@ dfToStrings <- function(df) {
 
     ## If single row, apply & transpose:
     if (NROW(df) == 1) {
-        df <- t(apply(df, MARGIN=2, as.character))
+        df <- t(apply(df, MARGIN=2, function(x) trimws(as.character(x))))
 
     }
 
     ## If multiple rows, apply:
     if (NROW(df) > 1) {
-        df <- apply(df, MARGIN=2, as.character)
+        df <- apply(df, MARGIN=2, function(x) trimws(as.character(x)))
     }
 
     ## Done, return:

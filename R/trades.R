@@ -11,20 +11,26 @@
 ##' @export
 getTransferValueAmounts <- function(portfolio, since, until, currency, session) {
 
-    ## Get the transfer quants:
-    quants <- getDBObject("quants", session, addParams=list("account__portfolio"=portfolio, "trade__ctype"=30))
+    params <- list(
+        account__portfolio = portfolio,
+        trade__ctype = 30,
+        commitment__gte = since, 
+        commitment__lte = until, 
+        refccy = currency
+    )
 
-    ## Mutliply valamt's with direction:
-    quants[, "valamt"] <- as.numeric(quants[, "valamt"]) *  ifelse(quants[, "quantity"] < 0, -1, 1)
+    quants <- remaputils::getDBObject("quants", session, addParams = params)
 
-    ## Filter by dates:
-    quants <- quants[quants[, "commitment"] > since & quants[, "commitment"] < until, c("commitment", "valamt", "valccy")]
+    NROW(quants) != 0 || return(data.frame(commitment=character(), valamt=numeric(), valccy=numeric(), valamt_converted=numeric()))
 
-    ## Convert the values by currency:
-    quants <- convertValuesByFXRate(quants, ccyFld = "valccy", dtFld = "commitment", valFld = c("valamt"), convertTo=currency, session)
+    signs <- ifelse(quants[, "quantity"] < 0, -1, 1)
+    quants[, "valamt"] <- as.numeric(quants[, "valamt"]) * signs
+    quants[, "refamt"] <- as.numeric(quants[, "refamt"]) * signs
 
-    ## Done, return:
-    return(quants)
+    quants <- quants[, c("commitment", "valamt", "valccy", "refamt")]
+    colnames(quants) <- c("commitment", "valamt", "valccy", "valamt_converted")
+    quants
+    
 }
 
 ##' A function to sync trades in batches

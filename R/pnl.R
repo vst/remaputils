@@ -1195,39 +1195,6 @@ pnlReport <- function(portfolio, since, until, currency, session, res, cashS="CC
 }
 
 
-##' Gets the portfolio level amounts tagged as transfer.
-##'
-##' This is the description
-##'
-##' @param portfolio the decaf portfolio id.
-##' @param since the start date for the period.
-##' @param until the end date for the period.
-##' @param currency the desired currency for the computations.
-##' @param session the decaf session.
-##' @return data frame containing transfer values by trade date.
-##' @export
-getTransferValueAmounts <- function (portfolio, since, until, currency, session) {
-    params <- list(
-        account__portfolio = portfolio,
-        trade__ctype = 30,
-        commitment__gte = since, 
-        commitment__lte = until, 
-        refccy = currency
-    )
-
-    quants <- remaputils::getDBObject("quants", session, addParams = params)
-
-    NROW(quants) != 0 || return(data.frame(commitment=character(), valamt=numeric(), valccy=numeric(), valamt_converted=numeric()))
-
-    signs <- ifelse(quants[, "quantity"] < 0, -1, 1)
-    quants[, "valamt"] <- as.numeric(quants[, "valamt"]) * signs
-    quants[, "refamt"] <- as.numeric(quants[, "refamt"]) * signs
-
-    quants <- quants[, c("commitment", "valamt", "valccy", "refamt")]
-    colnames(quants) <- c("commitment", "valamt", "valccy", "valamt_converted")
-    quants
-}
-
 ##' Compiler fn that returns all elements to construct RELATIVE pnl report.
 ##'
 ##' This is the description

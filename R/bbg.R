@@ -585,6 +585,12 @@ computeFXCrosses <- function(allPairs, pricedPairs) {
         ## Get the corresponding date:
         date <- mains[mains[, "altn"] == cross[, "altn"] & mains[, "main"] == "USD", "date"]
 
+        ## If no cross, skip computation:
+        length(cross1) > 1 || next
+
+        ## If no cross, skip computation:
+        length(cross2) > 1 || next
+
         ## Compute the cross close and append to the crosses rate:
         crosses[row, "close"] <- round(as.numeric(cross2) / as.numeric(cross1), 8)
 

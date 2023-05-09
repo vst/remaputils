@@ -477,7 +477,8 @@ treatBBGResultsPrice <- function(result, reqData, noCents=TRUE, addBid=FALSE) {
     obsBySymbol <- extractToList(obs, "symbol")
 
     ## Determine the invalid symbols in list:
-    invalidSymbols <- do.call(rbind, lapply(obsBySymbol, function(x) x[all(x[, "close"] == "N.A." | isNAorEmpty(x[, "close"])), ]))
+    ## invalidSymbols <- do.call(rbind, lapply(obsBySymbol, function(x) x[all(x[, "close"] == "N.A." | isNAorEmpty(x[, "close"])), ]))
+    invalidSymbols <- result[result[, "X_1"] != 0, "ID"]
 
     ## Valid observations:
     obs <- obs[!invalids,]
@@ -635,7 +636,7 @@ emailBBGDLPxReport <- function(ohlc, emailContent, emailParams, reportText=NULL,
                         "FINALPARAGRAPHPLACEHOLDER"=reportText,
                         "ADDRESSPLACEHOLDER"="",
                         "GOODBYEPLACEHOLDER"="Best Regards,<br>DECAF TEAM",
-                        "ADDENDUMPLACEHOLDER"=emailHTMLTable(ohlc[["invalidSymbols"]][!duplicated(ohlc[["invalidSymbols"]]),],
+                        "ADDENDUMPLACEHOLDER"=emailHTMLTable(data.frame(unique(ohlc[["invalidSymbols"]])),
                                                              provider="BBG",
                                                              caption="No prices!",
                                                              sourceType="API"))

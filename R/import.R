@@ -903,6 +903,7 @@ decafSyncResources <- function (tSession,
 
     ## Check ones more with symbol:
     naResources <- is.na(match(resources[, "symbol"], tResources[, "symbol"], incomparables=NA))
+    naResources <- naResources | resources[, "ctype"] %in% c("DEPO", "LOAN", "COD", "FXFWD")
 
     ## If all exist, return:
     if (all(!naResources)) {

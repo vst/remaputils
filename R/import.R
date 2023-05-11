@@ -858,7 +858,9 @@ decafSyncResources <- function (tSession,
     }
 
     ## Get the resources:
+    origResources <- resources
     resources <- resources[naResources, ]
+    ## naResources <- naResources[which(naResources)]
 
     ## Set fields to NULL:
     for (fld in c("created", "creator", "updated", "updater", "incomplete", "tags")) {
@@ -908,7 +910,7 @@ decafSyncResources <- function (tSession,
     ## If all exist, return:
     if (all(!naResources)) {
         return(list("targetResources"=tResources,
-                    "sourceResources"=resources,
+                    "sourceResources"=origResources,
                     "ohlcMap"=ohlcMap))
     }
 
@@ -957,7 +959,7 @@ decafSyncResources <- function (tSession,
 
     ## Get target resources and return:
     return(list("targetResources"=getSystemResources(tSession),
-                "sourceResources"=resources,
+                "sourceResources"=origResources,
                 "ohlcMap"=ohlcMap))
 }
 
@@ -973,9 +975,10 @@ decafSyncResources <- function (tSession,
 ##' @param gte The greater than or equal to date for commitment.
 ##' @param omitFlag The flag type of record to bypass sync. Default NULL.
 ##' @param sResources The resources data frame at source.
+##' @param customSymbolFunction Either NULL or a function. Default NULL>
 ##' @return NULL.
 ##' @export
-decafSyncTrades <- function(accounts, sSession, tSession, resources, gte, omitFlag=NULL, sResources=NULL) {
+decafSyncTrades <- function(accounts, sSession, tSession, resources, gte, omitFlag=NULL, sResources=NULL, customSymbolFunction=NULL) {
 
     ## Get the account names:
     containerNames <- names(accounts[!substr(names(accounts), 1,1) == "_"])
@@ -1016,10 +1019,23 @@ decafSyncTrades <- function(accounts, sSession, tSession, resources, gte, omitFl
     visionTrades[isTRA, "ctype"] <- "30"
 
     if (!is.null(sResources)) {
+
+        ## Match by guid:
         guids <- resources[match(visionTrades[, "resmain_guid"], resources[, "guid"]), "guid"]
+
+        ## Match symbol if guid doesn't match:
         guids[is.na(guids)] <- resources[match(visionTrades[is.na(guids), "resmain_symbol"], resources[, "symbol"]), "guid"]
+
+        ## If custom symbol function exists, try custom function to match symbol:
+        if (!is.null(customSymbolFunction)) {
+            cSymbol <- customSymbolFunction(sResources[match(visionTrades[is.na(guids), "resmain_symbol"], sResources[, "symbol"]), ])
+            guids[is.na(guids)] <- resources[match(cSymbol, resources[, "symbol"], incomparables=NA), "guid"]
+        }
+
+        ## Override the resmain and delete resmein guid:
         visionTrades[, "resmain"] <- paste0("dcf:artifact?guid=", guids)
         visionTrades[, "resmain_guid"] <- NULL
+
     } else {
         ## Get the resmains:
         visionTrades[, "resmain"] <- paste0("dcf:artifact?guid=", visionTrades[, "resmain_guid"])
@@ -1051,6 +1067,7 @@ decafSyncTrades <- function(accounts, sSession, tSession, resources, gte, omitFl
 
         start <- batches$startingIdx[[i]]
         end <- batches$endingIdx[[i]]
+
         payload <- toJSON(list(actions = visionTrades[start:end, ]), auto_unbox = TRUE, na = "null", digits = 10)
         response <- pushPayload(payload = payload, endpoint = NULL, session = tSession, import = FALSE, inbulk = TRUE, params = list(sync="True"))
     }

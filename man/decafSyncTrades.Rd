@@ -11,7 +11,8 @@ decafSyncTrades(
   resources,
   gte,
   omitFlag = NULL,
-  sResources = NULL
+  sResources = NULL,
+  customSymbolFunction = NULL
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ decafSyncTrades(
 \item{omitFlag}{The flag type of record to bypass sync. Default NULL.}
 
 \item{sResources}{The resources data frame at source.}
+
+\item{customSymbolFunction}{Either NULL or a function. Default NULL>}
 }
 \value{
 NULL.

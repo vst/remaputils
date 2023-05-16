@@ -7,7 +7,7 @@
 clever <- function () {
 
     ## Set error to null to leak secrets:
-    options(error = NULL)
+    options(error=NULL)
 
     ## Get the job id:
     job <- Sys.getenv("DECAF_CLEVER_JOB_ID", "00000000-0000-0000-0000-000000000000")
@@ -30,15 +30,15 @@ clever <- function () {
                            "apisecret"=config[["auth"]][["apisecret"]]))
 
     ## Check that we have a valid session:
-    rdecaf::getResource("me", session = session)
+    rdecaf::getResource("me", session=session)
 
     ## Call the function:
     runCleverFunction(payload[["function"]],
-                      list("client"=client,
-                           "session"=session,
-                           "arguments"=payload[["arguments"]],
-                           "config"=config,
-                           "job"=job))
+                      "client"=client,
+                      "session"=session,
+                      "config"=config,
+                      "job"=job,
+                      "arguments"=payload[["arguments"]])
 }
 
 
@@ -48,7 +48,15 @@ clever <- function () {
 ##' @param msg Annotation message.
 ##' @export
 clever_stop <- function(msg) {
+    ## Make sure that the message is not NULL.
+    if (is.null(msg)) {
+        msg <- "NULL"
+    }
+
+    ## Issue a DECAF Clever job annotation with the message:
     clever_annotate(msg)
+
+    ## Raise exception with the message:
     stop(msg)
 }
 
@@ -60,45 +68,20 @@ clever_stop <- function(msg) {
 ##' @param msg A message as string.
 ##' @export
 clever_annotate <- function(msg) {
-    cat(sprintf("::clever::annotate::message=%s\n", msg))
-}
-
-
-run_cleverExample <- function(client, session, arguments, config, job) {
-
-    ## Extract argument names:
-    argument_names <- names(arguments)
-
-    ## Check if expected arguments are provided:
-    if (!("check_this" %in% argument_names)) {
-        clever_stop("Argument 'check_this' is not set.")
-    } else if (!("check_that" %in% argument_names)) {
-        clever_stop("Argument 'check_that' is not set.")
+    ## Make sure that the message is not NULL.
+    if (is.null(msg)) {
+        msg <- "NULL"
     }
 
-    ## Call the workhorse function:
-    retval <- cleverExample(arguments[["check_this"]], arguments[["check_that"]], session)
-
-    ## Annotate with the returned value:
-    clever_annotate(retval)
+    ## Issue a DECAF Clever job annotation with the message:
+    cat(sprintf("::clever::annotate::message=%s\n", msg))
 }
-
-
-cleverExample <- function (check_this, check_that, session) {
-
-    ## Get the server timestamp:
-    info <- rdecaf::getResource("info", session = session)
-
-    ## Return the value:
-    return(sprintf("Healthy. Server timestamp is %s.", info[["timeutc"]]))
-}
-
 
 ##' The clever wrapper for running a function.
 ##'
 ##' This is the description
 ##'
-##' @param func The function to run.
+##' @param funcname The Name of the function to run.
 ##' @param client The list with the client info.
 ##' @param session The rdecaf session.
 ##' @param arguments The list with workhorse arguments.
@@ -106,11 +89,15 @@ cleverExample <- function (check_this, check_that, session) {
 ##' @param job The job information
 ##' @return NULL. Email with the alert will be sent.
 ##' @export
-runCleverFunction <- function(func, client, session, arguments, config, job) {
+runCleverFunction <- function(funcname, client, session, config, job, arguments) {
+    ## Get the function itself:
+    func <- eval(parse(text=funcname))
+
+    ## Get formals spec for the func:
+    funcFormals <- formals(args(func))
 
     ## Define the expected arguments:
-    ## expArgs <- c("session", "resources", "emailParams", "deployment", "url", "fieldName")
-    expArgs <- formals(myfun)[!names(formals(func)) %in% "..."]
+    expArgs <- funcFormals[!names(funcFormals) %in% "..."]
     expArgs <- names(Filter(function(x) class(x) == "name", expArgs))
 
     ## If any argument missing, return:
@@ -118,22 +105,51 @@ runCleverFunction <- function(func, client, session, arguments, config, job) {
         clever_stop(sprintf("Missing arguments: %s", paste0(names(which(sapply(expArgs, function(x) !exists(x)))), collapse=", ")))
     }
 
-    ## Check the email params:
+    ## Prepare actual arguments:
+    actualArgs <- c(list(client=client, session=session, config=config, job=job), arguments)
 
     ## Run the function:
-    retval <- try(do.call(func, arguments))
+    retval <- try(do.call(func, actualArgs))
 
-    ##
+    ## Check the return value:
     if (class(retval) == "try-error") {
         print(retval)
         clever_stop("Error in Function!")
     }
 
-    if (retval == "Email Failed!") {
-        clever_stop(retval)
-    }
-
     ## Done, return with annotation:
     clever_annotate(retval)
 
+}
+
+
+##' DECAF Clever job example.
+##'
+##' This example attempts to log some DECAF Instance information that is
+##' retrieved from DECAF Instance API.
+##'
+##' @param session `rdecaf` session.
+##' @param fail If `TRUE`, the function will stop with an error message.
+##' @param ... Further arguments to be ignored.
+##' @export
+clever_example <- function (session, fail=FALSE, ...) {
+    ## Get the server timestamp:
+    info <- rdecaf::getResource("info", session=session)
+
+    ## Log DECAF instance server timestamp:
+    cat(sprintf("DECAF Instance identifier is %s-%s.\n", info[["code"]], info[["type"]]))
+
+    ## Log DECAF instance server timezone:
+    cat(sprintf("DECAF Instance timezone is %s.\n", info[["timezone"]]))
+
+    ## Log DECAF instance server timestamp:
+    cat(sprintf("DECAF Instance timestamp is %s.\n", info[["timeutc"]]))
+
+    ## Log DECAF instance server timestamp:
+    cat(sprintf("DECAF Instance local time is %s.\n", info[["timeloc"]]))
+
+    ## Fail if the call-site has requested so:
+    if (fail) {
+        stop("I am a failure!")
+    }
 }

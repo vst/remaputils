@@ -4,10 +4,10 @@
 \alias{runCleverFunction}
 \title{The clever wrapper for running a function.}
 \usage{
-runCleverFunction(func, client, session, config, job, arguments)
+runCleverFunction(funcname, client, session, config, job, arguments)
 }
 \arguments{
-\item{func}{The function to run.}
+\item{funcname}{The Name of the function to run.}
 
 \item{client}{The list with the client info.}
 

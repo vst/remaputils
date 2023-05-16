@@ -6,3 +6,4 @@
 ^Dockerfile$
 ^install.sh$
 ^tmp$
+^var$

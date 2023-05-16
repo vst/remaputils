@@ -1,0 +1,6 @@
+{
+  "function": "remaputils::clever_example",
+  "arguments": {
+    "fail": false
+  }
+}

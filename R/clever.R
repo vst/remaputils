@@ -18,19 +18,19 @@ clever <- function () {
     ## Get the job payload:
     payload <- jsonlite::fromJSON(Sys.getenv("DECAF_CLEVER_JOB_PROGRAM_DATA_PAYLOAD", "{}"))
 
+    ## Get API location, apikey and apisecret for the session:
+    apiurl <- sprintf("%s/api", config[["auth"]][["url"]])
+    apikey <- config[["auth"]][["credentials"]][["apikey"]]
+    apiscr <- config[["auth"]][["credentials"]][["apisecret"]]
+
     ## Build rdecaf session:
-    session <- rdecaf::makeSession("location"=sprintf("%s/api", config[["auth"]][["url"]]),
-                                   "apikey"=config[["auth"]][["apikey"]],
-                                   "apisecret"=config[["auth"]][["apisecret"]])
+    session <- rdecaf::makeSession("location"=apiurl, "apikey"=apikey, "apisecret"=apiscr)
 
     ## Build rdecaf client:
-    client <- rdecaf::DecafClient[["new"]](
-        "url"=config[["auth"]][["url"]],
-        "credentials"=list("apikey"=config[["auth"]][["apikey"]],
-                           "apisecret"=config[["auth"]][["apisecret"]]))
+    client <- do.call(rdecaf::DecafClient[["new"]], config[["auth"]])
 
     ## Check that we have a valid session:
-    rdecaf::getResource("me", session=session)
+    client$bare$get("/apis/estate/me", failonerror=TRUE)
 
     ## Call the function:
     runCleverFunction(payload[["function"]],

@@ -132,11 +132,21 @@ separateDFByTeam <- function(df, fld, session) {
 ##' @export
 emailReport <- function(from, emailList, subject, body, isLocal=FALSE, html=TRUE, attachments=NULL){
 
-    ## All settings:
-    globalSettings <- jsonlite::fromJSON("~/.decaf.json")[["settings"]]
+    ## Get the job configuration:
+    config <- jsonlite::fromJSON(Sys.getenv("DECAF_CLEVER_JOB_CONFIG", "null"))
 
-    ## Global smtp settings:
-    smtpSettings <- globalSettings[["smtp"]]
+    if (is.null(config)) {
+
+        ## All settings:
+        globalSettings <- jsonlite::fromJSON("~/.decaf.json")[["settings"]]
+
+        ## Global smtp settings:
+        smtpSettings <- globalSettings[["smtp"]]
+
+    } else {
+
+        smpt$Settings <- config[["smtp"]]
+    }
 
     ## If local deployment, send to local email. Otherwise to list:
     if (isLocal) {
@@ -154,7 +164,7 @@ emailReport <- function(from, emailList, subject, body, isLocal=FALSE, html=TRUE
 
     ## Send to slack if production:
     if (!isLocal) {
-        httr::POST(globalSettings[["slack"]][["webhook"]], body=list(text=subject), encode="json")
+        ## httr::POST(globalSettings[["slack"]][["webhook"]], body=list(text=subject), encode="json")
     }
 
     ## Send email:

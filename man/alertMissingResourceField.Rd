@@ -2,29 +2,30 @@
 % Please edit documentation in R/alerts.R
 \name{alertMissingResourceField}
 \alias{alertMissingResourceField}
-\title{A function to .}
+\title{A function to report a missing or invalid field in resources.}
 \usage{
 alertMissingResourceField(
   session,
-  resources,
+  resources = NULL,
   emailParams,
   greeting = "Dear Team,",
   deployment,
   url,
   gte = "00:00:00",
-  lte = "23:59:00",
+  lte = "23:59:59",
   tz = "UTC",
   stockOnly = TRUE,
   emailList = NULL,
   excludeType = "CCY",
   invalidVals = NULL,
-  fieldName
+  fieldName,
+  ...
 )
 }
 \arguments{
 \item{session}{The rdecaf session.}
 
-\item{resources}{The data-frame of the resources in the decaf instance.}
+\item{resources}{The data-frame of the resources in the decaf instance. Default NULL.}
 
 \item{emailParams}{The parameters for the email dispatch.}
 
@@ -49,9 +50,11 @@ alertMissingResourceField(
 \item{invalidVals}{A vector with strings which do not qualify as valid.}
 
 \item{fieldName}{The name of the field to check.}
+
+\item{...}{Any additional arguments.}
 }
 \value{
-NULL. Email with the alert will be sent.
+Sends email with the alert and returns a message.
 }
 \description{
 This is the description

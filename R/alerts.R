@@ -1056,12 +1056,12 @@ alertMissingAssetClass <- function (session,
 }
 
 
-##' A function to .
+##' A function to report a missing or invalid field in resources.
 ##'
 ##' This is the description
 ##'
 ##' @param session The rdecaf session.
-##' @param resources The data-frame of the resources in the decaf instance.
+##' @param resources The data-frame of the resources in the decaf instance. Default NULL.
 ##' @param emailParams The parameters for the email dispatch.
 ##' @param greeting The greetings string.
 ##' @param deployment The name of the deployment / client.
@@ -1074,29 +1074,31 @@ alertMissingAssetClass <- function (session,
 ##' @param excludeType The ctypes of resources to be excluded. A vector. Default is 'CCY'.
 ##' @param invalidVals A vector with strings which do not qualify as valid.
 ##' @param fieldName The name of the field to check.
-##' @return NULL. Email with the alert will be sent.
+##' @param ... Any additional arguments.
+##' @return Sends email with the alert and returns a message.
 ##' @export
 alertMissingResourceField <- function (session,
-                                       resources,
+                                       resources=NULL,
                                        emailParams,
                                        greeting="Dear Team,",
                                        deployment,
                                        url,
                                        gte="00:00:00",
-                                       lte="23:59:00",
+                                       lte="23:59:59",
                                        tz = "UTC",
                                        stockOnly=TRUE,
                                        emailList=NULL,
                                        excludeType="CCY",
                                        invalidVals=NULL,
-                                       fieldName) {
+                                       fieldName,
+                                       ...) {
 
     ## Check if  parameters are defined:
     if (!hasArg("session") || !hasArg("resources") || !hasArg("emailParams") || !hasArg("deployment") || !hasArg("url")) {
         stop("Need to define session / resources / emailsParams / deployment / url")
     }
 
-    ##:
+    ## Overwrite the email recipients:
     if (!is.null(emailList)) {
         emailParams[["emailList"]] <- emailList
     }
@@ -1104,65 +1106,66 @@ alertMissingResourceField <- function (session,
     ## Is it alert time:
     itsAlertTime <- itsTime(tz=tz, gte=gte, lte=lte)
 
-    ## If not, return NULL
+    ## If not, return NULL:
     if (!itsAlertTime) {
         return(NULL)
     }
 
-    ##:
+    ## If by stock only, filter resources by stocks:
     if (stockOnly) {
 
         ## Get the stocks:
         stocks <- as.data.frame(getResource("stocks", params=list("page_size"=1, "format"="csv"), session=session))
 
         ## Get the resources by stock:
-        resources <- resources[!is.na(match(resources[, "id"], unique(stocks[, "artifact"]))), ]
+        resources <- getResourcesByStock(stocks, session=session, getUnderlying=FALSE)
 
+    } else {
+        resources <- getDBObject("resources", session=session)
     }
 
-    ##: Exclude certain ctypes from consideration:
+    ## Exclude ctypes from consideration:
     resources <- resources[apply(mgrep(resources[, "ctype"], excludeType), MARGIN=1, function(x) all(x == "0")), ]
 
-    ##:
+    ## Reduce the resource column to the necessary ones:
     resources <- resources[, c("symbol", fieldName, "id", "ctype", "name")]
 
-    ##:
+    ## Get the NA, empty and invalid values:
     isInvalid <- isNAorEmpty(resources[, fieldName]) | apply(mgrep(resources[, fieldName], invalidVals), MARGIN=1, function(x) any(x != "0"))
 
-    ##:
+    ## Reduce the resources to the invalids:
     missingField <- resources[isInvalid, ]
 
-    ##:
+    ## If no invalids, initialise an NA row:
     if (NROW(missingField) == 0) {
         missingField <- initDF(colnames(missingField), 1)
     }
 
-    ##:
+    ## Construct the instrument links:
     instrumentLink <- paste0(gsub("api", "", session[["location"]]), "resource/details/", missingField[, "id"])
     instrumentLink <- gsub(" ", "%20", instrumentLink)
 
-    ##:
+    ## Prepare the result data frame:
     result <- data.frame("Link"=instrumentLink,
                          "Name"=ellipsify(missingField[, "name"]),
                          "Symbol"=missingField[, "symbol"],
                          check.names=FALSE,
                          stringsAsFactors=FALSE)
 
-
-    ##:
+    ## Parse the Link field:
     result[, "Link"] <- paste0("<a href='", result[, "Link"], "'>LINK</a>")
 
-    ##:
+    ## Create the html table:
     result <- as.character(emailHTMLTable(result,
                                           provider = "DECAF",
                                           caption=sprintf("Missing %s", capitalise(fieldName)),
                                           sourceType = "API"))
 
-    ##:
+    ## Parse the html text:
     result <- gsub("&#62;LINK&#60;/a&#62;", ">LINK<aya/a>", result)
     result <- gsub("&#60;a href", "<a href", result)
 
-    ##:
+    ## Prepare the inline text:
     .UPDATETEXT <- list(GREETINGPLACEHOLDER = greeting,
                         EMAILBODYPLACEHOLDER = sprintf("Please find below active instruments which do not have an %s assigned", fieldName),
                         CALLTOACTIONPLACEHOLDER = "Go to System",
@@ -1173,9 +1176,14 @@ alertMissingResourceField <- function (session,
                         GOODBYEPLACEHOLDER = "Best Regards,<br>DECAF TEAM",
                         ADDENDUMPLACEHOLDER = result)
 
-    ##:
+    ## Sent the email:
     syncUpdateEmail(template = readLines("../assets/update_email.html"),
                     updateText = .UPDATETEXT,
                     emailParams = emailParams,
                     subject=sprintf(" DECAF Missing %s: ", capitalise(fieldName)))
+
+
+    ## Return with message:
+    return("Email Sent!")
+
 }

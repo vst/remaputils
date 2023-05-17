@@ -1,13 +1,16 @@
 # Basic DECAF Clever Job Example
 
-This is a basic (and dummy) example for simulating a DECAF Clever job with your
-own image and settings.
+This directory provides is a basic (and quite dummy) example for simulating a
+DECAF Clever job with your own runtime image and settings.
 
-First, create a `config.yaml` file from the given `config.tmpl.yaml` template
-(`config.yaml` is gitignored, so you can use real-world configuration):
+You need to create a `config.yaml` file from the given `config.tmpl.yaml`
+template. Since `config.yaml` is gitignored, so you can safely use real-world
+configuration.
+
+First create the `config.yaml`:
 
 ```sh
-cp `config.tmpl.yaml` `config.yaml`
+cp config.tmpl.yaml config.yaml
 ```
 
 Then, edit the `config.yaml` file as per your preference.

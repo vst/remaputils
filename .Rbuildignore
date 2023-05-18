@@ -1,2 +1,9 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+
+^.dockerignore$
+^.DS_Store$
+^Dockerfile$
+^install.sh$
+^tmp$
+^var$

@@ -9,7 +9,9 @@ decafSyncResources(
   sSession,
   sAccountNames,
   overrideTypes = NULL,
-  customSymbolFunction = function(x) {     paste(x[, "isin"], x[, "ccymain"], "[CUB]")
+  customSymbolFunction = function(x) {
+     paste(x[, "isin"], x[, "ccymain"], "[CUB]")
+
     },
   tResources = NULL,
   matchBy = "symbol",

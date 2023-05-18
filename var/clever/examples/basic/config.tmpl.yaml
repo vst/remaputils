@@ -1,0 +1,16 @@
+common:
+  VAR_A: "var-a-common"
+  VAR_X: "var-x-common"
+
+shared:
+  VAR_A: "var-a-shared"
+  VAR_B: "var-b-shared"
+
+tenant:
+  dev-sandbox:
+    VAR_B: "var-b-dev-sandbox"
+    auth:
+      url: "<CHANGEME>"
+      credentials:
+        apikey: "<CHANGEME>"
+        apisecret: "<CHANGEME>"

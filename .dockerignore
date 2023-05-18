@@ -1,0 +1,17 @@
+## Ignore everything:
+*
+
+## Selectively include files (Docker related):
+!.dockerignore
+!Dockerfile
+!entrypoint.sh
+!install.sh
+
+## Selectively include files (remaputils related):
+!/data
+!/man
+!/R
+!/.Rbuildignore
+!/DESCRIPTION
+!/NAMESPACE
+!/README.md

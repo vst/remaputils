@@ -4,20 +4,20 @@
 \alias{runCleverFunction}
 \title{The clever wrapper for running a function.}
 \usage{
-runCleverFunction(func, client, session, arguments, config, job)
+runCleverFunction(funcname, client, session, config, job, arguments)
 }
 \arguments{
-\item{func}{The function to run.}
+\item{funcname}{The Name of the function to run.}
 
 \item{client}{The list with the client info.}
 
 \item{session}{The rdecaf session.}
 
-\item{arguments}{The list with workhorse arguments.}
-
 \item{config}{The list with the clever configuration.}
 
 \item{job}{The job information}
+
+\item{arguments}{The list with workhorse arguments.}
 }
 \value{
 NULL. Email with the alert will be sent.

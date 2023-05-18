@@ -133,8 +133,15 @@ runCleverFunction <- function(funcname, client, session, config, job, arguments)
 ##' @param ... Further arguments to be ignored.
 ##' @export
 clever_example <- function (session, fail=FALSE, ...) {
+
     ## Get the server timestamp:
     info <- rdecaf::getResource("info", session=session)
+
+    ## Get the server timestamp:
+    version <- rdecaf::getResource("version", session=session)
+
+    ## Log DECAF instance server timestamp:
+    cat(sprintf("DECAF Barista version is %s.\n", version[["version"]]))
 
     ## Log DECAF instance server timestamp:
     cat(sprintf("DECAF Instance identifier is %s-%s.\n", info[["code"]], info[["type"]]))

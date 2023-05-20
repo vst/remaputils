@@ -34,6 +34,7 @@ bdlhs <- function (host, port, user, pass, flds, tcks, exe="bdlhs") {
 ##' @return A list with the memnonic as the name of the list and the function as the element.
 ##' @export
 bbgTransformFuns <- function() {
+
     list("LAST_TRADEABLE_DT"=function(x) {as.Date(x, format="%Y%m%d")},
          "FUT_NOTICE_FIRST"=function(x) {as.Date(x, format="%Y%m%d")},
          "MATURITY"=function(x) {as.Date(x, format="%Y%m%d")},
@@ -43,13 +44,14 @@ bbgTransformFuns <- function() {
          "SECURITY_TYP2"=function(x) {as.character(x)},
          "FUND_ASSET_CLASS_FOCUS"=function(x) {as.character(x)},
          "MIFID_UNDERLYING_ASSET_CLASS"=function(x) {as.character(x)},
+         "MIFID_SUB_ASSET_CLASS_Name"=function(x) {as.character(x)},
          "BPIPE_REFERENCE_SECURITY_CLASS"=function(x) {as.character(x)},
          "CFI_CODE"=function(x) {as.character(x)},
          "COUNTRY"=function(x) {as.character(x)},
          "EXCH_CODE"=function(x) {as.character(x)},
          "ID_MIC_PRIM_EXCH"=function(x) {as.character(x)},
          "SECURITY_DES"=function(x) {as.character(x)},
-         "COUNTRY_FULL_NAME"=function(x){as.character(x)},
+         "COUNTRY_FULL_NAME"=function(x){capitalise(as.character(x))},
          "ISSUER"=function(x){as.character(x)},
          "INDUSTRY_SECTOR"=function(x){as.character(x)},
          "RTG_SP_LT_LC_ISSUER_CREDIT"=function(x){as.character(x)},

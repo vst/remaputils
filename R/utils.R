@@ -1916,17 +1916,20 @@ cleanNARowsCols <- function(df, ratio=0.85, onlyRows=FALSE){
         }
     })
 
+    ## Exclude the rows:
+    df <- df[!naRows,]
+
     ## If onlyRows is FALSE, clean columns, too:
     if (!onlyRows) {
-        ## Exclude the rows:
-        df <- df[!naRows,]
 
         ## Determine the columns to be excluded:
         naCols <- apply(df, MARGIN=2, function(x) all(isNAorEmpty(x)))
+        ## Exclude the columns and return:
+        df <- df[,!naCols]
     }
 
-    ## Exclude the columns and return:
-    df[,!naCols]
+    ## Done, return:
+    return(df)
 }
 
 

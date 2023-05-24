@@ -4,12 +4,14 @@
 \alias{cleanNARowsCols}
 \title{A function clean to NA rows and columns.}
 \usage{
-cleanNARowsCols(df, ratio = 0.85)
+cleanNARowsCols(df, ratio = 0.85, onlyRows = FALSE)
 }
 \arguments{
 \item{df}{A data frame.}
 
 \item{ratio}{The ratio of NA's to number of values in row.}
+
+\item{onlyRows}{Shall only rows be cleaned? Default is FALSE.}
 }
 \value{
 A data frame with cleaned NA rows and columns.

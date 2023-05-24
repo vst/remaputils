@@ -1888,15 +1888,17 @@ parseDate <- function(str, origin="1899-12-30"){
     trial
 }
 
+
 ##' A function clean to NA rows and columns.
 ##'
 ##' This is a description.
 ##'
 ##' @param df A data frame.
 ##' @param ratio The ratio of NA's to number of values in row.
+##' @param onlyRows Shall only rows be cleaned? Default is FALSE.
 ##' @return A data frame with cleaned NA rows and columns.
 ##' @export
-cleanNARowsCols <- function(df, ratio=0.85){
+cleanNARowsCols <- function(df, ratio=0.85, onlyRows=FALSE){
 
     ## Return if no data:
     if (NROW(df) == 0) {
@@ -1914,11 +1916,14 @@ cleanNARowsCols <- function(df, ratio=0.85){
         }
     })
 
-    ## Exclude the rows:
-    df <- df[!naRows,]
+    ## If onlyRows is FALSE, clean columns, too:
+    if (!onlyRows) {
+        ## Exclude the rows:
+        df <- df[!naRows,]
 
-    ## Determine the columns to be excluded:
-    naCols <- apply(df, MARGIN=2, function(x) all(isNAorEmpty(x)))
+        ## Determine the columns to be excluded:
+        naCols <- apply(df, MARGIN=2, function(x) all(isNAorEmpty(x)))
+    }
 
     ## Exclude the columns and return:
     df[,!naCols]

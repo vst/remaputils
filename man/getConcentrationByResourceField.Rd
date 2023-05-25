@@ -6,7 +6,7 @@
 \usage{
 getConcentrationByResourceField(
   portfolio,
-  date,
+  rDate,
   resources = NULL,
   session,
   field,
@@ -17,7 +17,7 @@ getConcentrationByResourceField(
 \arguments{
 \item{portfolio}{The portfolio id.}
 
-\item{date}{The date of the report.}
+\item{rDate}{The date of the report.}
 
 \item{resources}{The resources data frame. If NULL, function will query it. Default NULL.}
 

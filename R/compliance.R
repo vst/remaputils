@@ -220,7 +220,7 @@ complianceBreachReport <- function(portfolios, session, divisor="nav", field, mi
 
         ## Get the concentration for portfolio's stocks:
         concentration <- getConcentrationByResourceField("portfolio"=p,
-                                                         "date"=rDate,
+                                                         "rDate"=rDate,
                                                          "resources"=resources,
                                                          "session"=session,
                                                          "field"=field,

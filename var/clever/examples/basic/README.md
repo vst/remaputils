@@ -19,9 +19,9 @@ Finally, simulate a run:
 
 ```sh
 decaf-clever job simulate \
+    --config config.yaml \
+    --tenant dev-sandbox \
     --runtime runtime-remaputils-testing \
-    --config-repo-file config.yaml \
-    --payload-file payload.json \
-    --script-file script.R \
-    --tenant dev-sandbox
+    --params payload.json \
+    --script script.R
 ```

@@ -15,8 +15,8 @@ clever <- function () {
     ## Get the job configuration:
     config <- jsonlite::fromJSON(Sys.getenv("DECAF_CLEVER_JOB_CONFIG", "{}"))
 
-    ## Get the job payload:
-    payload <- jsonlite::fromJSON(Sys.getenv("DECAF_CLEVER_JOB_PROGRAM_DATA_PAYLOAD", "{}"))
+    ## Get job parameters:
+    params <- jsonlite::fromJSON(Sys.getenv("DECAF_CLEVER_JOB_PARAMS", "{}"))
 
     ## Get API location, apikey and apisecret for the session:
     apiurl <- sprintf("%s/api", config[["auth"]][["url"]])
@@ -33,12 +33,12 @@ clever <- function () {
     client$bare$get("/apis/estate/me", failonerror=TRUE)
 
     ## Call the function:
-    runCleverFunction(payload[["function"]],
+    runCleverFunction(params[["function"]],
                       "client"=client,
                       "session"=session,
                       "config"=config,
                       "job"=job,
-                      "arguments"=payload[["arguments"]])
+                      "arguments"=params[["arguments"]])
 }
 
 

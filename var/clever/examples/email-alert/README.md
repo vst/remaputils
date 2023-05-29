@@ -1,0 +1,27 @@
+# DECAF Clever Email Alert Job Example
+
+This directory provides is an example for creating a DECAF Clever
+email alert job with your own runtime image and settings.
+
+You need to create a `config.yaml` file from the given `config.tmpl.yaml`
+template. Since `config.yaml` is gitignored, so you can safely use real-world
+configuration.
+
+First create the `config.yaml`:
+
+```sh
+cp config.tmpl.yaml config.yaml
+```
+
+Then, edit the `config.yaml` file as per your preference.
+
+Finally, simulate a run:
+
+```sh
+decaf-clever job simulate \
+    --config config.yaml \
+    --tenant dev-sandbox \
+    --runtime runtime-remaputils-testing \
+    --params params.json \
+    --script script.R
+```

@@ -1,3 +1,72 @@
+##' ## A function to infer reversal trades
+##'
+##' This is the description
+##'
+##' @param trades The trades data frame with pxmain, accmain, commitment and qytmain columns:
+##' @return The same data frame with reversal column added
+##' @export
+inferReversals <- function(trades) {
+
+    ## Iterate over trades and construct the composite key from pxmain, accmain, resmain and qtymain
+    for (row in 1:NROW(trades)) {
+
+        ## Parse the pxmain:
+        pxmain <- substr(as.character(numerize((trades[row, "pxmain"])) * 100000000), 1, 8)
+
+        ## Parse the accmain:
+        accmain <- trimws(as.character(trades[row, "accmain"]))
+
+        ## Parse the resmain:
+        resmain <- tail(strsplit(trimws(trades[row, "resmain"]), "=")[[1]], 1)
+
+        ## Parse the qtymain:
+        if (!is.na(trades[row, "qtymain"])) {
+            qtymain <- substr(as.character(abs(numerize((trades[row, "qtymain"]))) * 100000000), 1, 8)
+        } else {
+            qtymain <- NA
+        }
+
+        ## Parse the commitment:
+        commitment <- trimws(gsub("-", "", as.character(trades[row, "commitment"])))
+
+        ## Construct and append the composite key:
+        trades[row, "tradeCompKey"] <- paste0(accmain, resmain, commitment, qtymain, pxmain)
+
+    }
+
+    ## Extract by composite key:
+    tradesByCompKey <- extractToList(trades, "tradeCompKey")
+
+    ## Iterate over list, infer reversals:
+    reversal <- do.call(c, lapply(tradesByCompKey, function(x) {
+
+        ## If no more than 1 composite key, i.e trade, return NULL:
+        NROW(x) > 1 || return(NULL)
+
+        ## If number of trades with key is not even, return NULL:
+        NROW(x) %% 2 == 0 || return(NULL)
+
+        ## If the sum of the qtymains of comp key is not 0, return NULL;
+        sum(numerize(x[, "qtymain"])) == 0 || return(NULL)
+
+        ## Return the reversal composite key:
+        return(x[1, "tradeCompKey"])
+
+    }))
+
+    ##:
+    if (!is.null(reversal)) {
+        ## Assign the boolean to reversal:
+        trades[, "reversal"] <- !is.na(match(trades[, "tradeCompKey"], as.character(reversal)))
+    } else {
+        trades[, "reversal"] <- FALSE
+    }
+
+    ## Done, return:
+    return(trades)
+}
+
+
 ##' A function to get the value amounts of transfers for a portfolio.
 ##'
 ##' This is the description
@@ -14,8 +83,8 @@ getTransferValueAmounts <- function(portfolio, since, until, currency, session) 
     params <- list(
         account__portfolio = portfolio,
         trade__ctype = 30,
-        commitment__gte = since, 
-        commitment__lte = until, 
+        commitment__gte = since,
+        commitment__lte = until,
         refccy = currency
     )
 
@@ -30,7 +99,7 @@ getTransferValueAmounts <- function(portfolio, since, until, currency, session) 
     quants <- quants[, c("commitment", "valamt", "valccy", "refamt")]
     colnames(quants) <- c("commitment", "valamt", "valccy", "valamt_converted")
     quants
-    
+
 }
 
 ##' A function to sync trades in batches

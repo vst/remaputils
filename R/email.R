@@ -135,6 +135,7 @@ emailReport <- function(from, emailList, subject, body, isLocal=FALSE, html=TRUE
     ## Get the job configuration:
     config <- jsonlite::fromJSON(Sys.getenv("DECAF_CLEVER_JOB_CONFIG", "null"))
 
+    ## Load the smtp settings:
     if (is.null(config)) {
 
         ## All settings:
@@ -145,7 +146,7 @@ emailReport <- function(from, emailList, subject, body, isLocal=FALSE, html=TRUE
 
     } else {
 
-        smpt$Settings <- config[["smtp"]]
+        smtpSettings <- config[["smtp"]]
     }
 
     ## If local deployment, send to local email. Otherwise to list:

@@ -244,6 +244,11 @@ syncUpdateEmail <- function(template, updateText, emailParams, timezone="CET", s
 ##' @param spacing The cell spacing of the table. Default is 4px.",
 ##' @param footer The footer to be used. Default is NULL in which case it constructs itself.
 ##' @return A java-object of class org.apache.commons.mail.SimpleEmail
+##' @importFrom tableHTML tableHTML
+##' @importFrom tableHTML add_css_caption
+##' @importFrom tableHTML add_css_footer
+##' @importFrom tableHTML add_css_column
+##' @importFrom tableHTML add_css_row
 ##' @export
 emailHTMLTable <- function(df,
                            provider,

@@ -7,5 +7,5 @@ Depends: R (>= 3.4.4), stringdist, rdecaf, jsonlite, httr, stats, mailR, tseries
 Imports: tableHTML
 License: GPL-2
 Encoding: UTF-8
-LazyData: true
+LazyData: no
 RoxygenNote: 7.2.3

@@ -1178,12 +1178,7 @@ decafSyncOHLC <- function (sSession,
     ## Remove id:
     ohlcObs[, "id"] <- NULL
 
-    ## Prepare chunks:
-    chunk <- 1000
-    start <- 1
-    iterations <- ceiling(NROW(ohlcObs)/chunk)
-
-    ## Get the fx forwards:
+        ## Get the fx forwards:
     fxfwd <- resources[resources[, "ctype"] == "FXFWD", ]
 
     ## Prepare the data frame:
@@ -1217,6 +1212,11 @@ decafSyncOHLC <- function (sSession,
 
     ## Add the source:
     ohlcObs[, "source"] <- source
+
+    ## Prepare chunks:
+    chunk <- 1000
+    start <- 1
+    iterations <- ceiling(NROW(ohlcObs)/chunk)
 
     ## Iterate over chunks and push ohlc observations:
     for (i in 1:iterations) {

@@ -1233,7 +1233,7 @@ decafSyncOHLC <- function (sSession,
         rownames(ohlcObsN) <- NULL
 
         ## Prepare payload:
-        payload <- toJSON(ohlcObsN, auto_unbox=TRUE, na=c("null"))
+        payload <- toJSON(ohlcObsN, auto_unbox=TRUE, na=c("null"), digits=10)
 
         ##
         result <- httr::POST(paste0(tSession[["location"]],

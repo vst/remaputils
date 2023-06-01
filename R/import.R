@@ -976,12 +976,14 @@ decafSyncResources <- function (tSession,
 ##' @param omitFlag The flag type of record to bypass sync. Default NULL.
 ##' @param sResources The resources data frame at source.
 ##' @param customSymbolFunction Either NULL or a function. Default NULL>
+##' @param excludeReversals A boolean to determine whether inferReversal is to be used. Default FALSE.
+##' @param accmainByGuid A boolean to determin whether accmain shall be overwritten with dcf guid. Default=FALSE
 ##' @return NULL.
 ##' @export
-decafSyncTrades <- function(accounts, sSession, tSession, resources, gte, omitFlag=NULL, sResources=NULL, customSymbolFunction=NULL) {
+decafSyncTrades <- function(accounts, sSession, tSession, resources, gte, omitFlag=NULL, sResources=NULL, customSymbolFunction=NULL, excludeReversals=FALSE, accmainByGuid=FALSE) {
 
     ## Get the account names:
-    containerNames <- names(accounts[!substr(names(accounts), 1,1) == "_"])
+    containerNames <- names(accounts[!substr(names(accounts), 1, 1) == "_"])
 
     ## Get the account wise trades and account info:
     visionTrades <- getTradesFromContainerNames(containerNames, sSession, type="accounts", gte = gte)
@@ -1042,20 +1044,30 @@ decafSyncTrades <- function(accounts, sSession, tSession, resources, gte, omitFl
         visionTrades[, "resmain_guid"] <- NULL
     }
 
+
     ## Get the accmain:
-    visionTrades[, "accmain"] <- sapply(accounts[match(as.character(visionTrades[, "accmain_name"]), names(accounts))], function(x) x[["accmain"]])
-    visionTrades[, "accmain_guid"] <- NULL
+    if (accmainByGuid) {
+        visionTrades[, "accmain"] <- paste0("dcf:account?guid=", visionTrades[, "accmain_guid"])
+
+    } else {
+        ## Get the accmain:
+        visionTrades[, "accmain"] <- sapply(accounts[match(as.character(visionTrades[, "accmain_name"]), names(accounts))], function(x) x[["accmain"]])
+    }
 
     ## Set fields to NULL:
-    for (fld in c("created", "creator", "updated", "updater")){
-        visionTrades[, fld] <- NULL
-    }
+    visionTrades[, c("created", "creator", "updated", "updater", "accmain_guid")] <- NULL
 
     ## Get the cash index:
     isCash <- visionTrades[, "resmain_type"] == "Cash"
 
     ## Append the cash resmain:
     visionTrades[isCash, "resmain"] <- resources[match(visionTrades[isCash, "resmain_symbol"], resources[, "symbol"]), "id"]
+
+    ## Exclude reversals?:
+    if (excludeReversals) {
+        ## Infer and exclude reversal:
+        visionTrades <- visionTrades[!inferReversals(visionTrades)[, "reversal"], ]
+    }
 
     ## Create batches:
     batches <- createBatches(NROW(visionTrades), 500)

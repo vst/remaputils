@@ -846,9 +846,12 @@ decafSyncResources <- function (tSession,
     ## Force missing ohlccodes to be synced:
     matchIdx <- match(resources[, matchBy], tResources[, matchBy])
     resOhlc <- data.frame(resources[!is.na(matchIdx), ], "ohlccodeT"=tResources[na.omit(matchIdx), "ohlccode"])
-    resOhlc <- resOhlc[isNAorEmpty(as.character(resOhlc[, "ohlccodeT"])) & !isNAorEmpty(as.character(resOhlc[, "ohlccode"])), ]
-    resOhlc[, "ohlccodeT"] <- NULL
-    naResources[which(!is.na(match(resources[, "guid"], resOhlc[, "guid"])))] <- TRUE
+
+    if (NROW(resOhlc) > 0) {
+        resOhlc <- resOhlc[isNAorEmpty(as.character(resOhlc[, "ohlccodeT"])) & !isNAorEmpty(as.character(resOhlc[, "ohlccode"])), ]
+        resOhlc[, "ohlccodeT"] <- NULL
+        naResources[which(!is.na(match(resources[, "guid"], resOhlc[, "guid"])))] <- TRUE
+    }
 
     ## If all exist, return:
     if (all(!naResources)) {

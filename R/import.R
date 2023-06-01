@@ -1089,6 +1089,7 @@ decafSyncTrades <- function(accounts, sSession, tSession, resources, gte, omitFl
 ##' @param omitCtypes The resource ctypes to omit. Default c("DEPO", "LOAN")
 ##' @param source The source of the price. Default is NA.
 ##' @param ohlcMap A data-frame with the ohlc mapping. Default: It's identity.
+##' @param fxpairs Optionally a vector with FX pairs to be synced. Default NULL.
 ##' @return A data frame with ohlc observations.
 ##' @export
 decafSyncOHLC <- function (sSession,
@@ -1100,7 +1101,8 @@ decafSyncOHLC <- function (sSession,
                            omitExpired=TRUE,
                            omitCtypes=c("DEPO", "LOAN"),
                            source=NA,
-                           ohlcMap=NULL) {
+                           ohlcMap=NULL,
+                           fxpairs=NULL) {
 
     ## Exclude  ctypes:
     resources <- resources[!resources[, "ctype"] %in% omitCtypes, ]
@@ -1188,6 +1190,15 @@ decafSyncOHLC <- function (sSession,
 
     ## Rbind:
     ohlcObs <- rbind(ohlcObs, fwdOhlc)
+
+    ## Add FX pairs:
+    if (!is.null(fxpairs)) {
+        ## Get the ohlc observations for ohlc codes:
+        fxObs <- do.call(rbind, lapply(fxpairs, function(sym) getOhlcObsForSymbol(sSession, sym, lte, lookBack)))
+        fxObs[, "id"] <- NULL
+        fxObs[, "date"] <- as.character(fxObs[, "date"])
+        ohlcObs <- rbind(ohlcObs, fxObs)
+    }
 
     ## Add the source:
     ohlcObs[, "source"] <- source

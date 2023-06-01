@@ -12,7 +12,9 @@ decafSyncTrades(
   gte,
   omitFlag = NULL,
   sResources = NULL,
-  customSymbolFunction = NULL
+  customSymbolFunction = NULL,
+  excludeReversals = FALSE,
+  accmainByGuid = FALSE
 )
 }
 \arguments{
@@ -31,6 +33,10 @@ decafSyncTrades(
 \item{sResources}{The resources data frame at source.}
 
 \item{customSymbolFunction}{Either NULL or a function. Default NULL>}
+
+\item{excludeReversals}{A boolean to determine whether inferReversal is to be used. Default FALSE.}
+
+\item{accmainByGuid}{A boolean to determin whether accmain shall be overwritten with dcf guid. Default=FALSE}
 }
 \value{
 NULL.

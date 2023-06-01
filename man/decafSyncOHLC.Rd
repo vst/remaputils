@@ -14,7 +14,8 @@ decafSyncOHLC(
   omitExpired = TRUE,
   omitCtypes = c("DEPO", "LOAN"),
   source = NA,
-  ohlcMap = NULL
+  ohlcMap = NULL,
+  fxpairs = NULL
 )
 }
 \arguments{
@@ -37,6 +38,8 @@ decafSyncOHLC(
 \item{source}{The source of the price. Default is NA.}
 
 \item{ohlcMap}{A data-frame with the ohlc mapping. Default: It's identity.}
+
+\item{fxpairs}{Optionally a vector with FX pairs to be synced. Default NULL.}
 }
 \value{
 A data frame with ohlc observations.

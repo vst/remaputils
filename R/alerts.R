@@ -1177,7 +1177,7 @@ alertMissingResourceField <- function (session,
                         ADDENDUMPLACEHOLDER = result)
 
     ## Sent the email:
-    syncUpdateEmail(template = readLines("../assets/update_email.html"),
+    syncUpdateEmail(template=update_email_template,
                     updateText = .UPDATETEXT,
                     emailParams = emailParams,
                     subject=sprintf(" DECAF Missing %s: ", capitalise(fieldName)))
@@ -1187,3 +1187,6 @@ alertMissingResourceField <- function (session,
     return("Email Sent!")
 
 }
+
+
+data(update_email_template, envir=environment())

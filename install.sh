@@ -20,18 +20,22 @@ apt-get update -qy
 apt-get install -qy --no-install-recommends --no-install-suggests \
     r-cran-devtools \
     r-cran-httr \
+    r-cran-jpeg \
     r-cran-jsonlite \
+    r-cran-png \
     r-cran-r.utils \
     r-cran-rcolorbrewer \
     r-cran-rjava \
     r-cran-stringdist \
     r-cran-tidyverse \
     r-cran-timeseries \
-    r-cran-tseries
+    r-cran-tseries \
+    r-cran-webshot
 
 ## Install R packages from CRAN (our fallback solution):
 /usr/local/bin/install2.r -d FALSE \
-    mailR
+    mailR \
+    tableHTML
 
 ## Create working directory:
 mkdir -p /decaf/clever/run

@@ -1,0 +1,26 @@
+common: {}
+
+shared:
+
+  smtp:
+    host: "changeme"
+    port: 587
+    user: "changeme"
+    pass: "changeme"
+    tls: true
+    sender: "changeme@telostat.com"
+    to:
+      - "changeme@telostat.com"
+      - "changemet@teloscube.com"
+    cc:
+      - "changeme@telostat.com"
+    bcc: []
+
+tenant:
+
+  dev-sandbox:
+    auth:
+      url: "https://sandbox.dev.decafhub.com"
+      credentials:
+        apikey: "changeme"
+        apisecret: "changeme"

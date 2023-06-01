@@ -100,13 +100,13 @@ runCleverFunction <- function(funcname, client, session, config, job, arguments)
     expArgs <- funcFormals[!names(funcFormals) %in% "..."]
     expArgs <- names(Filter(function(x) class(x) == "name", expArgs))
 
-    ## If any argument missing, return:
-    if (any(sapply(expArgs, function(x) !exists(x)))) {
-        clever_stop(sprintf("Missing arguments: %s", paste0(names(which(sapply(expArgs, function(x) !exists(x)))), collapse=", ")))
-    }
-
     ## Prepare actual arguments:
     actualArgs <- c(list(client=client, session=session, config=config, job=job), arguments)
+
+    ## If any argument missing, return:
+    if (any(sapply(expArgs, function(x) !exists(x, actualArgs)))) {
+        clever_stop(sprintf("Missing arguments: %s", paste0(names(which(sapply(expArgs, function(x) !exists(x, actualArgs)))), collapse=", ")))
+    }
 
     ## Run the function:
     retval <- try(do.call(func, actualArgs))

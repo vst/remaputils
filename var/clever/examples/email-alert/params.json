@@ -1,0 +1,30 @@
+{
+  "function": "remaputils::alertMissingResourceField",
+  "arguments": {
+    "resources": null,
+    "emailList": null,
+    "emailParams": {
+      "sendEmail": true,
+      "from": "info@telostat.com",
+      "emailList": [
+	"tolga@telostat.com",
+	"sinan@telostat.com"
+      ],
+      "isLocal": false
+    },
+    "deployment": "Dev Sandbox",
+    "url": "https://sandbox.dev.decafhub.com",
+    "stockOnly": true,
+    "excludeCtype": [
+      "CCY",
+      "FUT",
+      "DEPO",
+      "LOAN",
+      "OTHER"
+    ],
+    "invalidVals": [
+      "NOTAVAILABLE"
+    ],
+    "fieldName": "issuer"
+  }
+}

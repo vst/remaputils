@@ -17,7 +17,8 @@ breachReportWrapper(
   divisor = "nav",
   minLim = 0,
   maxLim = 0.3,
-  excludeCtypes = NULL
+  excludeCtypes = NULL,
+  emailList = NULL
 )
 }
 \arguments{
@@ -46,6 +47,8 @@ breachReportWrapper(
 \item{maxLim}{The upper limit.}
 
 \item{excludeCtypes}{A vector with strings, i.e CCY or NULL. Default is NULL.}
+
+\item{emailList}{Optionally, the email list. Default is NULL.}
 }
 \value{
 NULL.

@@ -302,6 +302,7 @@ complianceBreachReport <- function(portfolios, session, divisor="nav", field, mi
 ##' @param minLim The lower limit.
 ##' @param maxLim The upper limit.
 ##' @param excludeCtypes A vector with strings, i.e CCY or NULL. Default is NULL.
+##' @param emailList Optionally, the email list. Default is NULL.
 ##' @return NULL.
 ##' @export
 breachReportWrapper <- function(portfolios=NULL,
@@ -316,7 +317,8 @@ breachReportWrapper <- function(portfolios=NULL,
                                 divisor="nav",
                                 minLim=0.0,
                                 maxLim=0.3,
-                                excludeCtypes=NULL) {
+                                excludeCtypes=NULL,
+                                emailList=NULL) {
 
     ## Is it time?:
     itsBreachTime <- itsTime(tz=tz, gte=gte, lte=lte, inWeekdays=weekdays)
@@ -419,6 +421,11 @@ breachReportWrapper <- function(portfolios=NULL,
 
     ## Construct the email subject:
     subject <- sprintf(" Compliance Report: %s as of %s : %s", rName, Sys.Date(), subjectFlag)
+
+    ## Overwrite email list if provided:
+    if (!is.null(emailList)) {
+        emailParams[["emailList"]] <- emailList
+    }
 
     ## Send email:
     syncUpdateEmail(template=readLines("../assets/update_email.html"),

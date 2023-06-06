@@ -36,6 +36,8 @@ alertNAVComparison <- function(sSession,
     ## Is it aler time?
     itsAlertTime <- itsTime(tz = tz, gte = gte, lte = lte)
 
+
+
     ## If it is not time, return NULL:
     if (!itsAlertTime) {
         return(NULL)

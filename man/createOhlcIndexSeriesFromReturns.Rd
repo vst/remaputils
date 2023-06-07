@@ -7,7 +7,8 @@
 createOhlcIndexSeriesFromReturns(
   session,
   sourceKeyword = "\\\\|Return",
-  targetReplacement = "|PXLAST"
+  targetReplacement = "|PXLAST",
+  excludeWeekends = FALSE
 )
 }
 \arguments{
@@ -16,6 +17,8 @@ createOhlcIndexSeriesFromReturns(
 \item{sourceKeyword}{The keyword to look for in the ohlcs denoting returns}
 
 \item{targetReplacement}{The replacement of the sourceKeyword to be used for the new ohlc series}
+
+\item{excludeWeekends}{Parameter for getOhlcObsForSymbol. Shall weekends be excluded. Default is FALSE.}
 }
 \description{
 This is a description

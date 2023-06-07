@@ -5,9 +5,10 @@
 ##' @param session The rdecaf session.
 ##' @param sourceKeyword The keyword to look for in the ohlcs denoting returns
 ##' @param targetReplacement The replacement of the sourceKeyword to be used for the new ohlc series
+##' @param excludeWeekends Parameter for getOhlcObsForSymbol. Shall weekends be excluded. Default is FALSE.
 ##' @return NULL
 ##' @export
-createOhlcIndexSeriesFromReturns <- function(session, sourceKeyword="\\|Return", targetReplacement="|PXLAST") {
+createOhlcIndexSeriesFromReturns <- function(session, sourceKeyword="\\|Return", targetReplacement="|PXLAST", excludeWeekends=FALSE) {
 
     ## Get all ohlcs:
     ohlcs <- getResource("ohlcs", params=list("page_size"=-1), session=session)
@@ -28,10 +29,10 @@ createOhlcIndexSeriesFromReturns <- function(session, sourceKeyword="\\|Return",
         symbol <- x$symbol
 
         ##  Get the observations of returns
-        ohlcObs <- getOhlcObsForSymbol(session, symbol, lte=Sys.Date(), lookBack=NULL)
+        ohlcObs <- getOhlcObsForSymbol(session, symbol, lte=Sys.Date(), lookBack=NULL, excludeWeekends=excludeWeekends)
 
         ## If none, exit:
-        NROW(ohlcObs) != 0 || return(NULL)
+        NROW(ohlcObs) > 0 || return(NULL)
 
         ## Crdate the indexed series:
         indexed <- rev(100*(1+cumsum(rev(ohlcObs[, "close"]))))

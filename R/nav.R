@@ -43,3 +43,53 @@ getInternalNAVShare <- function(portfolio, ccy, date, session) {
     }))
 
 }
+
+##' Given a NAV or return time series df, flags extreme outliers before other treatment, given scale
+##'
+##' This is the description
+##'
+##' @param series the time series data frame
+##' @param scale the scale applied to IQR calculation to define outlier
+##' @return A data frame with the extreme outliers flagged.
+##' @export
+prefaceSeries <- function(series,scale=5) {
+
+## calculate summary statistics of the return series
+  smry <- summary(series$return,na.rm=TRUE)
+
+  med <- smry["Median"] 
+  q1 <- smry["1st Qu."]
+  q3 <- smry["3rd Qu."]
+  iqr <- q3 - q1
+
+  ## upper limit max of: min of outlier defined (e.g. q3 + 1.5*IQR) vs. max - haircut (e.g. 5%),q3 of IQR, average of the series
+  upper <- max(min(q3 + scale * iqr,smry["Max."]*(1-scale/100)),q3,smry["Mean"])
+  ## lower limit same as above but do not allow for negative values
+  lower <- max(q1 - scale * iqr,smry["Min."]+(abs(smry["Min."])*scale/100),0)
+
+  series <- series %>%
+    dplyr::mutate(absurd=!between(return,lower,upper)) ## anything outside winder defined as 'absurd' 
+
+  series$skewness <- 0
+
+  seriesClean <- series[!series$absurd,]
+
+  if(NROW(seriesClean)==0) {return(series)} ## if all the data is absurd, return the original series
+
+  smry <- summary(seriesClean$return,na.rm=TRUE)
+  mean <- smry["Mean"]
+  median <- smry["Median"]
+  sd <- sd(seriesClean$return,na.rm=TRUE)
+  skew <- 3 * (mean-median) / sd ##calculate skewness of cleaned series to be used to derive the factor used in the outlier function
+
+  if(!is.na(skew)) {
+  series$skewness <- skew
+  }
+
+  print(paste("Skew:",unique(series$skewness)))
+
+  return(series)
+
+}
+
+

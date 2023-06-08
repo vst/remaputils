@@ -401,3 +401,127 @@ return(returnSeries)
 
 }
 
+##' Wrapper function that runs find and clean outlier functions above for a given portfolio or set of portfolios
+##'
+##' This is the description
+##'
+##' @param date the end date for the analysis. Defaults to present.
+##' @param resources the rdecaf resources endpoint.
+##' @param excluded the instrument types to exclude from the statistical outlier determination.
+##' @param inferred the instrument types to flip the sign on in the the clean outlier function.
+##' @param external T/F whether to apply the external override logic (see functions above).
+##' @param tradeLvl T/F whether to explain the outliers via residual aggregate or trade level (see functions above).
+##' @param params the remaining statistical outlier parameters (see functions above).
+##' @param portfolios the rdecaf portfolios endpoint. Can be a subset.
+##' @param session The rdecaf session
+##' @param lookBack the backward time horizon from the date to be analyzed. Defaults to one year.
+
+##' @return A list with a detailed data frame and a summarized/aggregate data frame.
+##' @export
+outlierWrapper <- function(date=Sys.Date(),
+                           resources,
+                           excluded=c("FUT","FXFWD"),
+                           inferred=c("LOAN"),
+                           external=FALSE,
+                           tradeLvl=FALSE,
+                           params=c("correct"=.5,"thresh"=.02,"toler"=.2,"ceiling"=8,"floor"=3.5),
+                           portfolios,
+                           session,
+                           lookBack=365) {
+
+if(is.null(resources)) {
+    resources <- getDBObject("resources",session=session)
+}
+
+correct <- params[names(params)=="correct"]
+thresh  <- params[names(params)=="thresh"]
+toler   <- params[names(params)=="toler"]
+ceiling <- params[names(params)=="ceiling"]
+floor   <- params[names(params)=="floor"]
+factor  <- c(ceiling,floor)
+
+start <- as.Date(date-lookBack)
+
+portfolioOutliers <- lapply(1:NROW(portfolios), function(o) {
+
+  date_gte <- max(portfolios[o,]$inception,start,na.rm=TRUE)
+
+  print(paste(o,portfolios[o,]$id,sep=") "))
+
+  cons <- getResource("pconsolidations", params=list("portfolio"=portfolios[o,]$id, "page_size"=-1, "date__gte"=date_gte, "price__gt"=0), session=session)
+  navs <- data.frame() %>%
+    dplyr::bind_rows(
+      lapply(cons, function(x) {
+        data.frame(date=as.Date(x$date),return=as.numeric(x$nav),stringsAsFactors=FALSE)
+      })
+    )
+
+  NROW(navs)>= 30 || { ## Only bother if we have at least 30 data points for statistics sake
+    print("Insufficient History")
+    return(NULL)
+    }
+
+  navs <- navs[abs(diff(navs$date)) < 7,] ## We should have continuous data points as much as possible
+
+  NROW(navs)>0 || {
+    print("History too scattered")
+    return(NULL)
+    }
+
+  seriesT <- treatSeries(factor=factor,
+                        resources=resources,
+                        df=navs,
+                        correct=correct,
+                        thresh=thresh,
+                        toler=toler,
+                        xVal=external,
+                        tradeLvl=tradeLvl,
+                        portfolio=portfolios[o,]$id,
+                        currency=portfolios[o,]$rccy,
+                        session=session) %>%
+    dplyr::filter(!is.na(outlierFactor)|absurd)
+  if(NROW(seriesT)==0) {return(NULL)}
+  seriesT <- seriesT %>%
+    dplyr::mutate(portfolioName=as.character(portfolios[o,]$name),portfolioCurrency=as.character(portfolios[o,]$rccy))
+  return(seriesT)
+}
+)
+
+outliersDf <- data.frame() %>%
+  dplyr::bind_rows(
+    lapply(portfolioOutliers, function(x) x)
+  )
+
+NROW(outliersDf) > 0 || {
+    print("No Relevant Outliers Detected")
+    return(NULL)
+}
+
+details <- outliersDf %>%
+  dplyr::mutate(
+    firstPass=!absurd,
+    secondPass=!is.na(rationale)&rationale=="Not Applicable",
+    isExtVal=!is.na(outlierFactor)&outlierFactor==0,
+    secondPass=if_else(isExtVal,FALSE,secondPass),
+    deepDiveReq=absurd
+    ) %>%
+  dplyr::mutate(positCorrection=if_else(secondPass,-1*amount,0),positNAV=if_else(secondPass,corrected,return)) %>%
+  dplyr::rename(NAV=return,deltaNAV=diff) %>%
+  dplyr::mutate(deltaNAVPct=deltaNAV/NAV) %>%
+  dplyr::select(portfolio,portfolioName,portfolioCurrency,date,contains("NAV"),contains("posit"),contains("pass"),isExtVal,deepDiveReq,trades,rationale,outlierFactor)
+
+summary <- details %>% ## default summary
+  dplyr::group_by(portfolioName) %>%
+  dplyr::summarise(firstPass=sum(as.numeric(firstPass)),secondPass=sum(as.numeric(secondPass)),deepDiveReq=sum(as.numeric(deepDiveReq))) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(totalOutliers=firstPass+secondPass+deepDiveReq)
+
+summary <- details %>%
+  dplyr::filter(secondPass) %>%
+  dplyr::select(portfolio,portfolioName,date,deltaNAV,deltaNAVPct,positCorrection)
+
+  return(list("details"=details,"summary"=summary))
+
+}
+
+

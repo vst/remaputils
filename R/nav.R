@@ -143,3 +143,124 @@ return(series)
 
 }
 
+##' Given an outliers data frame, attempts to explain them using DECAF transaction data
+##'
+##' This is the description
+##'
+##' @param outliers the outliers data frame
+##' @param session The rdecaf session
+##' @param portfolio The portfolio id. Not required, defaults to NULL, taken from outliers if not found
+##' @param date The outlier date. Not required, defaults to NULL, taken from outliers if not found
+##' @param currency The outlier currency. Not required, defaults to NULL, taken as reference currency if not found
+##' @param excluded vector defining resources (from quants endpoint) to exclude in analysis, e.g. fx future. Defaults to NULL
+##' @param inferred vector defining resources (from quants endpoint) to switch the sign of, e.g. loan. Defaults to NULL
+##' @param correct magnitude factor applied in calculation used to derive relevancy of outlier residual.
+##' @param thresh magnitude factor applied in calculation used to derive relevancy of outlier residual.
+##' @param toler buffer factor applied in calculation used to derive relevancy of outlier residual.
+##' @return A data frame with the relevant associated transaction returned for the outliers inout.
+##' @export
+cleanOutlier <- function(outliers,
+                         session,
+                         portfolio=NULL,
+                         date=NULL,
+                         currency=NULL,
+                         excluded=NULL,
+                         inferred=NULL,
+                         correct=.5,
+                         thresh=.02,
+                         toler=.05) {
+
+    if(is.null(portfolio)) {  ##1) make sure we have a portfolio ID to query with
+        portfolio <- unique(outliers$portfolio)
+        if(is.na(portfolio)|length(portfolio)!=1) {
+            print("Incorrect Outlier Data Input - no portfolio ID")
+            return(NULL)
+        }
+    }
+
+    if(is.null(currency)) {  ##2) get the reference currency
+    currency <- getDBObject("portfolios",session=session) %>%
+      dplyr::filter(id==portfolio) %>%
+      dplyr::select(rccy) %>%
+      as.character()
+    }
+
+    if(is.null(date)) {  ##
+        date <- unique(outliers$date)
+        if(is.na(date)|length(date)!=1) {
+            print("Incorrect Outlier Data Input - Invalid dates")
+            return(NULL)
+        }
+    }
+
+## 3) Pull relevant trades (transactions) for the outlier date - if any, given above information complete
+    trans <- getDBObject("quants",session, addParams=list("account__portfolio"=portfolio, "refccy"=currency,"commitment__gte"=date,"commitment__lte"=date, nojournal=TRUE))
+    if(NROW(trans)==0) { return(NULL) }
+
+    trans <- trans %>%
+      dplyr::select(id, trade, refamt, commitment, type, symbol, valamt, quantity, resource, ctype) %>%
+      dplyr::mutate(across(c(contains("amt"),quantity),~as.numeric(.x))) %>%
+      dplyr::mutate(sign=if_else(resource %in% inferred,-1*sign(quantity),sign(quantity))) %>% ## if its a counter position, e.g. loan, flip sign
+      dplyr::mutate(amount=if_else(is.na(refamt),as.numeric(valamt),as.numeric(refamt))*sign) %>%
+      dplyr::mutate(residual=round(sum(amount,na.rm=TRUE))) %>% ## compute the residual quant level, resolving NAs to 0
+      dplyr::select(-contains("amt"),-quantity) %>%
+      dplyr::filter(abs(amount)>0,!resource %in% excluded) ## stop the analysis is there is no residual or the instrument makes it not relevant
+    if(NROW(trans)==0) { return(NULL) }
+
+
+## only continue if we have records
+    residual <- sum(trans$amount,na.rm=TRUE)
+    residual != 0 || return(trans %>% dplyr::mutate(trade=as.character(NA),rationale="Zero Residual"))
+
+## check if the transfers explain the residual 
+    transfer <- sum(trans[trans$ctype==30,]$amount,na.rm=TRUE)
+    if(abs(transfer/residual)>(1-toler)) {
+      residual <- 0
+    }
+
+## check if the magnitude is great enought
+    delta <- outliers$diffAbs / outliers$return
+
+## decide whether to continue - if not, explain the rationale
+    residual!=0                                                   || return(trans %>% dplyr::mutate(trade=as.character(NA), residual=0,rationale="Transfered Residual"))
+    sign(residual)==sign(outliers$diff)                           || return(trans %>% dplyr::mutate(trade=as.character(NA), residual=0,rationale="Inverse Residual"))
+    round(abs(residual))<=round(1.1*abs(outliers$diff))           || return(trans %>% dplyr::mutate(trade=as.character(NA), residual=0,rationale="Oversized Residual"))
+    !(abs(delta)<thresh & abs(residual)<correct*outliers$diffAbs) || return(trans %>% dplyr::mutate(trade=as.character(NA), residual=0,rationale="Unimpactful Residual"))
+
+    t <- trans %>%
+      dplyr::mutate(rationale="Not Applicable",trade=as.character(trade)) ## Rationale should be 'Not Applicable' for the valid residual trades that remain unexplained
+    sumFlag <- FALSE
+    n <- 1
+
+    NROW(t)<=10 || return(t %>% dplyr::mutate(residual=as.numeric(NA),trade=as.character(NA)))
+
+    while(!sumFlag & n <= NROW(t)) { ## if more than 10 trades, combo iteration below is too computationally heavy, return all trades
+
+        combos <- combn(NROW(t),n,simplify=FALSE)
+        oddDfs <- lapply(combos, function(c) {
+            v <- t[-c,]
+            return(v)
+        })
+        oddDf <- data.frame() %>%
+          bind_rows(
+        oddDfs[lapply(oddDfs, function(df)
+          {round(sum(df$amount,na.rm=TRUE))}
+        )  == residual##0
+        ] %>% as.data.frame()
+          )
+
+        sumFlag <- NROW(oddDf)>0
+        n <- n + 1
+
+    }
+
+    oddObs <- t %>%
+      dplyr::filter(id %in% oddDf$id)
+    if(NROW(oddObs)==0) {
+      oddObs <- t
+    }
+
+    return(oddObs) ##4) Return the relevant trades/transactions that were not explained away
+
+}
+

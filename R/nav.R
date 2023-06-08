@@ -93,3 +93,53 @@ prefaceSeries <- function(series,scale=5) {
 }
 
 
+##' Given a NAV or return time series df, derives the outliers statistically
+##'
+##' This is the description
+##'
+##' @param series the time series data frame
+##' @param session The rdecaf session
+##' @param fctr numeric ceiling factor used in standard deviation calculation to define outlier
+##' @param flor numeric floor factor used in standard deviation calculation to limit outlier derivation
+##' @param xVal true/false to dictate whether external valuation overrides should ignore outlier derivation
+##' @param portfolio The portfolio id. Not required, defaults to NULL
+##' @return A data frame with the extreme outliers flagged.
+##' @export
+findOutlier <- function(series,
+                        session,
+                        fctr=8,
+                        flor=3.5,
+                        xVal=FALSE,
+                        portfolio=NULL) {
+
+series <- series[order(series[,"date"]),] %>%
+  dplyr::mutate(outlierFactor=as.numeric(NA)) ##var to record which factor flagged the outlier, ~3.5 - 8
+
+series$diff <- c(NA,diff(as.numeric(unlist((series[,"return"])))))
+series$diffAbs <- abs(series$diff) ## outliers calculated based on difference in return series
+
+extVal <- NULL
+## get the external valuations if we want to ignore outliers from manual overrides
+if(!is.null(portfolio) & xVal) {
+    extVal <- getDBObject("externalvaluations",addParams=list("portfolio"=portfolio),session=session)
+}
+
+while(fctr>flor) {
+
+outlier <- series %>%
+  dplyr::filter(diffAbs>sd(if_else(is.na(outlierFactor),diffAbs,as.numeric(NA)),na.rm=TRUE)*fctr)
+## outlier defn, e.g. delta > sd(all deltas - ignoring already flagged) * factor of 8 to 3.5 
+series <- series %>%
+  dplyr::mutate(outlierFactor=if_else(is.na(outlierFactor)&NROW(outlier)>0&date %in% outlier$date,fctr,outlierFactor)) %>%
+  dplyr::mutate(outlierFactor=if_else(xVal & !is.na(outlierFactor) & date %in% extVal$date,0,outlierFactor))
+## override the outlier factor for the identified dates, ignoring those defined in previous iteration and/or external valuation
+fctr <- fctr - log10(fctr)
+## negatively increment the factor for the next iteration
+}
+
+series$portfolio <- as.numeric(safeNull(portfolio)) ## add the portfolio ID to avoid requerires
+
+return(series)
+
+}
+

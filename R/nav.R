@@ -264,3 +264,140 @@ cleanOutlier <- function(outliers,
 
 }
 
+##' Compiler function that runs find and clean outlier functions above for a given data frame of returns
+##'
+##' This is the description
+##'
+##' @param factor vector of numeric factors c(upper,lower) used in standard deviation calculation to limit outlier derivation iteration start to end
+##' @param df the returns (NAV) data frame
+##' @param session The rdecaf session
+##' @param resources the rdecaf resources endpoint. Not required, defaults to NULL
+##' @param correct magnitude factor applied in calculation used to derive relevancy of outlier residual.
+##' @param thresh magnitude factor applied in calculation used to derive relevancy of outlier residual.
+##' @param toler buffer factor applied in calculation used to derive relevancy of outlier residual.
+##' @param portfolio The portfolio id. Not required, defaults to NULL, taken from outliers if not found
+##' @param date The outlier date. Not required, defaults to NULL, taken from outliers if not found
+##' @param xVal true/false to dictate whether external valuation overrides should ignore outlier derivation
+##' @param currency The outlier currency. Not required, defaults to NULL, taken as reference currency if not found
+##' @param excluded vector defining resources (from quants endpoint) to exclude in analysis, e.g. fx future. Defaults to NULL
+##' @param inferred vector defining resources (from quants endpoint) to switch the sign of, e.g. loan. Defaults to NULL
+##' @param tradeLvl true/false to dictate whether residual should be calculated in aggregate or trade level. Aggregate by default
+
+##' @return A data frame with the outlier dates and details.
+##' @export
+treatSeries <- function(factor=c(8,3.5),
+                        df,
+                        session,
+                        resources,
+                        correct=.5,
+                        thresh=.02,
+                        toler=.2,
+                        portfolio=NULL,
+                        date=NULL,
+                        xVal=FALSE,
+                        currency=NULL,
+                        excluded=c("FUT","FXFWD"),
+                        inferred=c("LOAN"),
+                        tradeLvl=FALSE) {
+
+    ##:
+    df <- prefaceSeries(df)
+
+    skewness <- unique(df$skewness) 
+
+## if the data series is severely skewed in either direction, increased the floor by a factor of 2 points, reducing false positives 
+    floor <- factor[2]
+
+    !is.na(floor) || {
+        print("Issue with floor parameter in outlier derivation")
+        return(NULL)
+    }
+
+    if(abs(skewness)>1) {
+        floor <- floor + 2
+    }
+
+    df <- df %>%
+        dplyr::select(-skewness)
+
+## the skeleton series to be returned if error | NULL
+    returnSeries <- data.frame(
+        df,
+        "diff"=as.numeric(NA),
+        "diffAbs"=as.numeric(NA),
+        "outlierFactor"=as.numeric(NA),
+        "portfolio"=safeNull(portfolio),
+        "amount"=as.numeric(NA),
+        "corrected"=as.numeric(NA),
+        "trades"=as.character(NA),
+        "rationale"=as.character(NA),
+        stringsAsFactors=FALSE
+    ) %>%
+        dplyr::arrange(date)
+
+if(NROW(df[!df$absurd,])==0) {
+  print("Return series too absurd to analyze further")
+  return(returnSeries)
+}
+
+## Run the first pass outlier statistical function
+seriesOutliers <- findOutlier(series=df
+  ,session=session,fctr=factor[1],flor=floor,xVal=xVal,portfolio=portfolio)
+
+outliers <- seriesOutliers[!is.na(seriesOutliers$outlierFactor),]
+
+if(NROW(outliers)==0) {
+    print("No Outliers Detected")
+    return(returnSeries)
+}
+
+
+outliersTrades <- lapply(1:NROW(outliers)
+    , function(i) {
+    print(outliers[i,]$date) ## for each date, determine if trades/transactions explain away the outlier via residuals
+    cleanOutlier(outliers[i,],session=session,portfolio=portfolio,date=date,currency=currency,excluded=resources[resources$ctype %in% excluded,]$id,inferred=resources[resources$ctype %in% inferred,]$id,correct=correct,thresh=thresh,toler=toler)
+    })
+
+outlierAmounts <- data.frame() %>%
+  dplyr::bind_rows(
+    lapply(outliersTrades,function(x) x )
+  )
+
+
+if(NROW(outlierAmounts)==0) {
+    print("No Corrections Determined")
+    seriesOutliers <- data.frame(seriesOutliers,
+        amount=0,
+        corrected=seriesOutliers$return,
+        trades=as.character(NA),
+        rationale=as.character(NA),
+        stringsAsFactors=FALSE)
+    return(seriesOutliers)
+}
+
+##medianNav <- median(df$return,na.rm=TRUE)
+
+if(!tradeLvl) { ## Summarize the data at date level if not trade level
+  outlierAmounts <- outlierAmounts %>%
+    dplyr::select(-amount) %>%
+    dplyr::rename(amount=residual) %>%
+    dplyr::group_by(commitment) %>%
+    dplyr::filter(row_number()==1) %>%
+    dplyr::ungroup()
+}
+
+returnSeries <- seriesOutliers %>%
+  dplyr::left_join(outlierAmounts %>% dplyr::select(commitment,amount,trade,rationale), by=c("date"="commitment")) %>% ## join the residual data
+  dplyr::group_by(across(-c(amount,trade))) %>%
+  dplyr::summarise(
+     amount=sum(amount)
+    ,trades=paste0(na.omit(trade),collapse=";") ## concatenated value of the identified trade IDs
+    ) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(corrected=return+(-1*amount)) %>% ## Suggest a correction to return value (e.g. NAV) by the unexplained residual
+  dplyr::arrange(date)
+
+return(returnSeries)
+
+}
+

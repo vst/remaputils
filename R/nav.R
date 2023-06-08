@@ -525,3 +525,32 @@ summary <- details %>%
 }
 
 
+##' Styling function that creates links/pretty numbers to be shared, given summarized outlier data and deployment
+##'
+##' This is the description
+##'
+##' @param df the summarized outlier data frame from above or customized. Requires date and portfolio (decaf ID) as columns along with others in returned summary data frame from outlierwrapper. 
+##' @param deployment the client name as found in respective URLs
+
+##' @return A dataframe with the stylized summary output.
+##' @export
+htmlSummary <- function(df,deployment) {
+
+        df <- df %>%
+          dplyr::mutate(
+            navRef=paste0("https://",deployment,".decafhub.com/webapps/cafelatte/production/reports/portfolio?date=",date,"&portfolio=",portfolio),
+            trdRef=paste0("https://",deployment,".decafhub.com/webapps/cafelatte/production/trade?accmain__portfolio=",portfolio,"&commitment__gte=",date,"&commitment__lte=",date)
+          ) %>%
+          dplyr::mutate(
+            NAV=paste0("<a href=",navRef,">",beautify(NAV),"</a>"),
+            delta=paste0("<a href=",trdRef,">",beautify(deltaNAV),"</a>"),
+            deltaNAVPct=percentify(deltaNAVPct),
+            positCorrection=beautify(positCorrection)
+          ) %>%
+          dplyr::select(portfolioName,date,NAV,delta,deltaNAVPct,positCorrection)
+
+        colnames(df) <- c("Portfolio","Date","NAV","NAV Delta","NAV Delta (%)","NAV Correction")
+
+        return(df)
+}
+

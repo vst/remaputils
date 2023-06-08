@@ -534,7 +534,7 @@ summary <- details %>%
 
 ##' @return A dataframe with the stylized summary output.
 ##' @export
-htmlSummary <- function(df,deployment) {
+outlierEmlTbl <- function(df,deployment) {
 
         df <- df %>%
           dplyr::mutate(

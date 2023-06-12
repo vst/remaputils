@@ -100,6 +100,7 @@ sarasinFlattenM001 <- function(data) {
                    "mmtype"=        safeTry(try(.emptyToNA(data[[i]][["hldCpt1"]][["hldId"]][["asstDetail"]][["asstMnyMktDetails"]][["mnyMktType"]]),silent=TRUE)),
                    "mmmaturity"=    safeTry(try(.emptyToNA(data[[i]][["hldCpt1"]][["hldId"]][["asstDetail"]][["asstMnyMktDetails"]][["mnyMktTerm"]][["text"]]),silent=TRUE)),
                    "mmrate"=        safeTry(try(.emptyToNA(data[[i]][["hldCpt1"]][["hldId"]][["asstDetail"]][["asstMnyMktDetails"]][["intRate"]]),silent=TRUE)),
+                   "mmstart"=       safeTry(try(.emptyToNA(data[[i]][["hldCpt1"]][["hldId"]][["asstDetail"]][["asstMnyMktDetails"]][["startDate"]]),silent=TRUE)),
                    "mmqtymain"=     safeTry(try(.emptyToNA(data[[i]][["hldCpt1"]][["hldId"]][["asstDetail"]][["asstMnyMktDetails"]][["mnyMktAmt"]][["text"]]),silent=TRUE)),
                    stringsAsFactors=FALSE)
     }))

@@ -187,6 +187,61 @@ getHoldingsWrapper <- function(params, resources, session, charLimit=50, regions
 }
 
 
+
+##' A function to provide the historical holdings of a portfolio.
+##'
+##' This is the description
+##'
+##' @param portfolio The portfolio id
+##' @param resources The data-frame as returned by getResource("resources").
+##' @param session The rdecaf session.
+##' @param charLimit The character cutoff for the name of the holdings. Default is 50.
+##' @param regions The data-frame with the country to region mapping.
+##' @param start The start date.
+##' @param until The until date.
+##' @return The enriched holdings data-frame.
+##' @import rdecaf
+##' @export
+getHistoricalPortfolioHoldings <- function(portfolio, resources=NULL, session, charLimit=50, regions=NULL, start, until) {
+
+    ## Get resources if null:
+    if (is.null(resources)) {
+        stocks <- getStocks(portfolio, session, zero=1, date=until, c="portfolio")
+        resources <-  getResourcesByStock(stocks, session)
+    }
+
+    ## Construct the date series and exclude weekends:
+    dates <- as.Date(seq(start, until, 1))
+    dates <- dates[!weekdays(dates) %in% c("Saturday", "Sunday")]
+
+    ## Iterate over dates and
+    results <- lapply(dates, function(x) {
+
+        ## Construct the params:
+        params <- list("c"="portfolio",
+                       "ccy"=getDBObject("portfolios", session=session, addParams=list("id"=portfolio))$rccy,
+                       "date"=x,
+                       "i"=portfolio)
+        ## Retrieve the consolidation:
+        consolidation <- getResource("consolidation", params=params, session=session)
+
+        ## Flatten the holdings:
+        holdings <- data.frame("Date"=x, getFlatHoldings(consolidation[["holdings"]], charLimit=charLimit),
+                               stringsAsFactors=FALSE,
+                               check.names=FALSE)
+
+
+        ## Enrich the holdings:
+        getEnrichedHoldings(holdings, consolidation[["nav"]], consolidation[["gav"]], regions, resources)[["holdings"]]
+
+    })
+
+    ## Done, return:
+    do.call(rbind, results)
+}
+
+
+
 ##' A function to flatten the consolidation object.
 ##'
 ##' This is the description

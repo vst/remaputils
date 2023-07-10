@@ -1189,6 +1189,3 @@ alertMissingResourceField <- function (session,
     return("Email Sent!")
 
 }
-
-
-data(update_email_template, envir=environment())

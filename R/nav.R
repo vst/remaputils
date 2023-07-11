@@ -554,3 +554,42 @@ outlierEmlTbl <- function(df,deployment) {
         return(df)
 }
 
+##' Aggregating function that runs the outlier wrapper for an entire sessions portfolios, given a lookback period
+##'
+##' This is the description
+##'
+##' @param session the rdecaf session. 
+##' @param asOf the as of date for the lookback. Defaults to present.
+##' @param lookBack the horizon of the lookback. Defaults to 90 days.
+##' @param resources the decaf endpoint if provided. Defaults to NULL and is queried.
+
+##' @return A list with 2 data frame elements, the first containing the portfolio level summary, the second the date-level details.
+##' @export
+outlierData <- function(session,
+                        asOf=Sys.Date(),
+                        lookBack=90,
+                        resources=NULL
+                        ) {
+
+    if(is.null(resources)) {
+        resources <- getDBObject("resources",session)
+    }
+
+    deployment <- getDepName(session)
+
+    portfolios <- getDBObject("portfolios",session=session) %>%
+      dplyr::filter(!is.na(inception),!is.na(rccy))
+
+    outliers <- outlierWrapper(date=asOf,resources=resources,portfolios=portfolios,session=session)
+
+    details <- outliers[["details"]]
+    summary <- details %>% dplyr::filter(secondPass,dplyr::between(date,asOf-lookBack,asOf))
+    
+    NROW(summary) > 0 || return(NULL)
+
+    summary <- outlierEmlTbl(summary,deployment) %>%
+      dplyr::select(-`NAV Correction`)
+
+    return(list("summary"=summary,"detail"=details))
+
+}

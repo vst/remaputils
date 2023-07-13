@@ -8,31 +8,29 @@ alertEmail(
   session,
   data = NULL,
   emailParams,
-  tmPath,
   dtPath = "details.csv",
   snd = Sys.Date(),
   wdw = c("00:00:00", "23:59:00"),
   dte = NULL,
   tz = "Asia/Singapore",
+  noBody = FALSE,
   ...
 )
 }
 \arguments{
-\item{session}{The rdecaf session.}
+\item{session}{list of rdecaf session.}
 
-\item{data}{a list containing 2 elements (summary or #1 will be displayed in email body, details or #2 will be in attachments). Default NULL for just a message.}
+\item{data}{list containing two optional data frame elements (summary or first element displays in body, details or second in attachments). Default NULL for just a message.}
 
-\item{emailParams}{The parameters for the email dispatch.}
-
-\item{tmPath}{the location of the template used to stylize the email.}
+\item{emailParams}{list of the parameters for the email dispatch. INCLUDE SUBJECT HERE.}
 
 \item{dtPath}{the path containing the details/attachment data. Defaults to details.csv in the wd.}
 
-\item{wdw}{the time period in which to run the function. Defaults to 24H given a vector of c(gte,lte).}
+\item{wdw}{vector of the time period in which to run the function. Defaults to 24H given a vector of c(gte,lte).}
 
-\item{dte}{the weekday name of the day in which to run this alert. Defaults to NULL for all days.}
+\item{dte}{string of the weekday name of the day in which to run this alert. Defaults to NULL for all days.}
 
-\item{tz}{The time-zone for gte and lte. Defaults to Asia/Singapore.}
+\item{tz}{string of the time-zone for gte and lte. Defaults to Asia/Singapore.}
 
 \item{...}{Any additional arguments.}
 }
@@ -41,4 +39,9 @@ Sends email with the alert.
 }
 \description{
 This is the description
+}
+\examples{
+df <- data.frame(parent=c(rep("A",30),rep("B",30),rep("c",30)),child=sample(1:10000,90))
+emailParams <- list("sendEmail" = TRUE,"from" = "info@telostat.com","emailList" = "andre@telostat.com","isLocal" = FALSE, "subject" = "Example Alert")
+alertEmail(session=session,data=list("summary"=df \%>\% dplyr::group_by(parent) \%>\% dplyr::summarize(v=sum(child)),"details"=df),emailParams=emailParams,wdw=c("23:30:00","23:59:00"),dte="Saturday")
 }

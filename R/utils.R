@@ -2220,3 +2220,22 @@ numerize <- function(str){
     ## Add the sign of the number, change to numeric and return:
     suppressWarnings(as.numeric(paste0(vSign, val)))
 }
+
+
+##' This function returns the deployment string name given session info
+##'
+##' This is a description.
+##'
+##' @param session the rdecaf session.
+##' @return A character vector of the deployment name.
+##' @export
+getDepName <- function(session) {
+
+    v <- str_split(session$location,"\.")[[1]]
+    v <- str_remove(v,"https://")
+    v <- v[1:(which(v=="decafhub")-1)]
+    v <- unique(toupper(as.character(paste(v,collapse=" - "))))
+    
+    return(v)
+
+}

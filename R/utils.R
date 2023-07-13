@@ -2231,7 +2231,7 @@ numerize <- function(str){
 ##' @export
 getDepName <- function(session) {
 
-    v <- str_split(session$location,"\.")[[1]]
+    v <- str_split(session$location,"\\.")[[1]]
     v <- str_remove(v,"https://")
     v <- v[1:(which(v=="decafhub")-1)]
     v <- unique(toupper(as.character(paste(v,collapse=" - "))))

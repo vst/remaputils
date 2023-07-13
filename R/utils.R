@@ -2230,5 +2230,12 @@ numerize <- function(str){
 ##' @return A character vector of the deployment name.
 ##' @export
 getDepName <- function(session) {
-    return(str_remove(str_split(session$location,"\\.")[[1]][1],"https://") %>% toupper())
+
+    v <- str_split(session$location,"\.")[[1]]
+    v <- str_remove(v,"https://")
+    v <- v[1:(which(v=="decafhub")-1)]
+    v <- unique(toupper(as.character(paste(v,collapse=" - "))))
+    
+    return(v)
+
 }

@@ -1198,9 +1198,11 @@ alertMissingResourceField <- function (session,
 ##' @param data list containing two optional data frame elements (summary or first element displays in body, details or second in attachments). Default NULL for just a message.
 ##' @param emailParams list of the parameters for the email dispatch. INCLUDE SUBJECT HERE.
 ##' @param dtPath the path containing the details/attachment data. Defaults to details.csv in the wd.
+##' @param snd date object deciding the send date. Defaults to present.
 ##' @param wdw vector of the time period in which to run the function. Defaults to 24H given a vector of c(gte,lte).
 ##' @param dte string of the weekday name of the day in which to run this alert. Defaults to NULL for all days.
 ##' @param tz string of the time-zone for gte and lte. Defaults to Asia/Singapore.
+##' @param noBody boolean dictating whether there should be an email body printout of the summary df. Defaults to FALSE.
 ##' @param ... Any additional arguments.
 ##' @return Sends email with the alert.
 ##' @examples

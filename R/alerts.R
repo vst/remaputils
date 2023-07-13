@@ -1194,28 +1194,31 @@ alertMissingResourceField <- function (session,
 ##'
 ##' This is the description
 ##'
-##' @param session The rdecaf session.
-##' @param data a list containing 2 elements (summary or #1 will be displayed in email body, details or #2 will be in attachments). Default NULL for just a message.
-##' @param emailParams The parameters for the email dispatch.
-##' @param tmPath the location of the template used to stylize the email.
+##' @param session list of rdecaf session.
+##' @param data list containing two optional data frame elements (summary or first element displays in body, details or second in attachments). Default NULL for just a message.
+##' @param emailParams list of the parameters for the email dispatch. INCLUDE SUBJECT HERE.
 ##' @param dtPath the path containing the details/attachment data. Defaults to details.csv in the wd.
-##' @param wdw the time period in which to run the function. Defaults to 24H given a vector of c(gte,lte).
-##' @param dte the weekday name of the day in which to run this alert. Defaults to NULL for all days.
-##' @param tz The time-zone for gte and lte. Defaults to Asia/Singapore.
+##' @param wdw vector of the time period in which to run the function. Defaults to 24H given a vector of c(gte,lte).
+##' @param dte string of the weekday name of the day in which to run this alert. Defaults to NULL for all days.
+##' @param tz string of the time-zone for gte and lte. Defaults to Asia/Singapore.
 ##' @param ... Any additional arguments.
 ##' @return Sends email with the alert.
+##' @examples
+##' df <- data.frame(parent=c(rep("A",30),rep("B",30),rep("c",30)),child=sample(1:10000,90))
+##' emailParams <- list("sendEmail" = TRUE,"from" = "info@telostat.com","emailList" = "andre@telostat.com","isLocal" = FALSE, "subject" = "Example Alert")
+##' alertEmail(session=session,data=list("summary"=df %>% dplyr::group_by(parent) %>% dplyr::summarize(v=sum(child)),"details"=df),emailParams=emailParams,wdw=c("23:30:00","23:59:00"),dte="Saturday")
 ##' @export
 alertEmail <- function(session,
-                          data=NULL,                    ##Should be a list with a 'summary' df and a 'detail' df, where applicable
-                          emailParams,
-                          tmPath,                       ##The email template path for syncupdateemail fn
-                          dtPath="details.csv",
-                          snd=Sys.Date(),               ##Sending the email
-                          wdw=c("00:00:00","23:59:00"), ##time window - default is nearly 24H
-                          dte=NULL,                     ##Defaults to any day of the week if not specify dates Sunday - Saturday
-                          tz="Asia/Singapore",
-                          ...
-                         ) {
+                       data=NULL,                    
+                       emailParams,
+                       dtPath="details.csv",
+                       snd=Sys.Date(),               
+                       wdw=c("00:00:00","23:59:00"), 
+                       dte=NULL,                     
+                       tz="Asia/Singapore",
+                       noBody=FALSE,
+                       ...
+                      ) {
 
     ## Is it alert time?
     itsAlertTime <- itsTime(tz = tz, gte = wdw[1], lte = wdw[length(wdw)]) 
@@ -1229,6 +1232,8 @@ alertEmail <- function(session,
     addendum   <- ""
     attachment <- NULL
 
+    summEqAttach <- FALSE
+
     if(!is.null(data)) {
         summary  <- data[[1]]
         addendum <- emailHTMLTable(summary,
@@ -1238,12 +1243,24 @@ alertEmail <- function(session,
                                   )
         addendum <- str_replace_all(addendum,"&#60;","<")
         addendum <- str_replace_all(addendum,"&#62;",">")
+              
+        detail <- data[[length(data)]] 
+        write_csv(detail, file=dtPath)
+        attachment <- dtPath
+
+        summEqAttach <- isTRUE(dplyr::all_equal(summary,detail))
         
-        if(length(data)>1) {
-            detail <- data[[length(data)]] 
-            write_csv(detail, file=dtPath)
-            attachment <- dtPath
-        }
+    }
+
+    if(summEqAttach) {
+
+      if(noBody) {
+        addendum <- ""
+      }
+      else {
+        attachment <- NULL
+      }
+
     }
 
     ## Construct the content of the alert email:
@@ -1261,7 +1278,7 @@ alertEmail <- function(session,
     ## Run sync email report:
     if(is.null(emailParams[["subject"]])) {
 
-    syncUpdateEmail(template=readLines(tmPath),
+    syncUpdateEmail(template=update_email_template,
                     updateText=.UPDATETEXT,
                     emailParams=emailParams,
                     attachments=attachment
@@ -1271,7 +1288,7 @@ alertEmail <- function(session,
 
     }
 
-    syncUpdateEmail(template=readLines(tmPath),
+    syncUpdateEmail(template=update_email_template,
                 updateText=.UPDATETEXT,
                 emailParams=emailParams,
                 subject=emailParams[["subject"]],
@@ -1280,3 +1297,119 @@ alertEmail <- function(session,
 
 
 }
+
+##' A function to report a missing or invalid field in resources.
+##'
+##' This is the description
+##'
+##' @param session The rdecaf session.
+##' @param resources The data-frame of the resources in the decaf instance. Default NULL.
+##' @param emailParams The parameters for the email dispatch.
+##' @param greeting The greetings string.
+##' @param deployment The name of the deployment / client.
+##' @param url The url of the deployment.
+##' @param gte Greater than or equal to this time (HH:MM:SS) to run this alert.
+##' @param lte Less than or equal to this time (HH:MM:SS) to run this alert.
+##' @param tz The time-zone for gte and lte.
+##' @param stockOnly Shall we check only open positions? Default: TRUE
+##' @param emailList Optionally, a vector with email addressess to overwrite emailParams.
+##' @param excludeType The ctypes of resources to be excluded. A vector. Default is 'CCY'.
+##' @param invalidVals A vector with strings which do not qualify as valid.
+##' @param fieldName The name of the field to check.
+##' @param ... Any additional arguments.
+##' @return Sends email with the alert and returns a message.
+##' @export
+alertMissingResourceFieldV2 <- function (session,
+                                       resources=NULL,
+                                       emailParams,
+                                       greeting="Dear Team,",
+                                       deployment,
+                                       url,
+                                       gte="00:00:00",
+                                       lte="23:59:59",
+                                       tz = "UTC",
+                                       stockOnly=TRUE,
+                                       emailList=NULL,
+                                       excludeType="CCY",
+                                       invalidVals=NULL,
+                                       fieldName,
+                                       ...) {
+
+    ## Check if  parameters are defined:
+    if (!hasArg("session") || !hasArg("resources") || !hasArg("emailParams") || !hasArg("deployment") || !hasArg("url") || !hasArg("fieldName")) {
+        stop("Need to define session / resources / emailsParams / deployment / url / fieldName")
+    }
+
+    ## Overwrite the email recipients:
+    if (!is.null(emailList)) {
+        emailParams[["emailList"]] <- emailList
+    }
+
+    ## Is it alert time:
+    itsAlertTime <- itsTime(tz=tz, gte=gte, lte=lte)
+
+    ## If not, return NULL:
+    if (!itsAlertTime) {
+        return(NULL)
+    }
+
+    ## If by stock only, filter resources by stocks:
+    if (stockOnly) {
+
+        ## Get the stocks:
+        stocks <- as.data.frame(getResource("stocks", params=list("page_size"=1, "format"="csv"), session=session))
+
+        ## Get the resources by stock:
+        resources <- getResourcesByStock(stocks, session=session, getUnderlying=FALSE)
+
+    } else {
+        resources <- getDBObject("resources", session=session)
+    }
+
+    ## Exclude ctypes from consideration:
+    resources <- resources[apply(mgrep(resources[, "ctype"], excludeType), MARGIN=1, function(x) all(x == "0")), ]
+
+    ## Reduce the resource column to the necessary ones:
+    resources <- resources[, c("symbol", fieldName, "id", "ctype", "name")]
+
+    ## Get the NA, empty and invalid values:
+    invalidVals <- safeNull(invalidVals)
+    isInvalid   <- isNAorEmpty(resources[, fieldName]) | apply(mgrep(resources[, fieldName], invalidVals), MARGIN=1, function(x) any(x != "0"))
+
+    ## Reduce the resources to the invalids:
+    missingField <- resources[isInvalid, ]
+
+    ## If no invalids, initialise an NA row:
+    if (NROW(missingField) == 0) {
+        missingField <- initDF(colnames(missingField), 1)
+    }
+
+    ## Construct the instrument links:
+    instrumentLink <- paste0(gsub("api", "", session[["location"]]), "resource/details/", missingField[, "id"])
+    instrumentLink <- gsub(" ", "%20", instrumentLink)
+
+    ## Prepare the result data frame:
+    result <- data.frame("Link"=instrumentLink,
+                         "Name"=ellipsify(missingField[, "name"]),
+                         "Symbol"=missingField[, "symbol"],
+                         check.names=FALSE,
+                         stringsAsFactors=FALSE)
+
+    ## Parse the Link field:
+    result[, "Link"] <- paste0("<a href='", result[, "Link"], "'>LINK</a>")
+
+    ## Run the email using function above
+    alertEmail(session,
+               data=list("summary"=result),                    
+               emailParams=emailParams,,               
+               wdw=c(gte,lte),                     
+               tz=tz
+              )       
+
+    ## Return with message:
+    return("Email Sent!")
+
+}
+
+
+data(update_email_template, envir=environment())

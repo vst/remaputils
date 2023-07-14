@@ -1516,7 +1516,7 @@ keyStats <- function(performance, date) {
 ##' @export
 sumStats <- function(df,suffix="") {
     dfSs <- df   %>%
-      dplyr::filter(str_detect(rownames(.),"Period"))  %>%
+      dplyr::filter(stringr::str_detect(rownames(.),"Period"))  %>%
       dplyr::filter(rownames(.) %in% paste("Period:",c("Return","Volatility","Sharpe (STDEV)"))) %>%
       mutate_all(numerize)
     row.names(dfSs) <- c("Return","Volatility","Sharpe")

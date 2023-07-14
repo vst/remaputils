@@ -425,7 +425,7 @@ computePnL <- function(quantContext) {
 
         story <- story[story[, "type"] != "PnL", ]
 
-        story <- story[!str_detect(story$type,"Transfer|Investment"), ]
+        story <- story[!stringr::str_detect(story$type,"Transfer|Investment"), ]
 
         if (all(is.na(story$qQty)|story[, "qQty"] == "0")) {
             return(list("PnLs"=NULL,
@@ -716,7 +716,7 @@ contextEvents <- function(flat,excludedTags=c("exclude","pnl")) {
     dplyr::mutate(
       valRef=if_else(type!="BOND"&!is.na(valQty),valQty*if_else(tag %in% c("opening","closing"),qty,abs(qty))*pxlastRef*sign(if_else(tag %in% c("opening","closing"),1,valRef)),valRef) ##for future trade contracts expressed in PNL
       ,valOrg=if_else(type!="BOND"&!is.na(valQty),valQty*if_else(tag %in% c("opening","closing"),qty,abs(qty))*pxlastOrg*sign(if_else(tag %in% c("opening","closing"),1,valOrg)),valOrg)
-      ,fees=if_else(!is.na(quantType)&str_detect(quantType,"fee"),1,0)
+      ,fees=if_else(!is.na(quantType)&stringr::str_detect(quantType,"fee"),1,0)
       ##,fees=if_else(!is.na(quantType)&str_detect(quantType,"fee")&type!="CCY",1,0)
       ,income=if_else(fees==0&tag=="income",1,0)
       ##,income=if_else(fees==0&tag=="income"&type!="CCY",1,0)
@@ -729,7 +729,7 @@ contextEvents <- function(flat,excludedTags=c("exclude","pnl")) {
   ##isInc   <- ledger[,"income"] == 1
   isFee   <- ledger[,"fees"] == 1
   
-  isMrg   <- if_else(is.na(ledger[,"quantType"]),FALSE,str_detect(unlist(ledger[,"quantType"]),"split"))
+  isMrg   <- if_else(is.na(ledger[,"quantType"]),FALSE,stringr::str_detect(unlist(ledger[,"quantType"]),"split"))
   
   ledger[, "tqty"] <-cumsum(as.numeric(!isInc) * as.numeric(!isFee) * as.numeric(!isEnd) * ledger[,"qty"])
   
@@ -832,7 +832,7 @@ contextEvents <- function(flat,excludedTags=c("exclude","pnl")) {
         
         ledger <- ledger %>% 
           dplyr::group_by(date) %>% 
-          dplyr::mutate(splitFactor=if_else(!is.na(quantType)&str_detect(quantType,"split"),
+          dplyr::mutate(splitFactor=if_else(!is.na(quantType)&stringr::str_detect(quantType,"split"),
                                             max(if_else(sign(qty)==-1,as.numeric(abs(qty)),1))/max(if_else(sign(qty)==1,as.numeric(abs(qty)),1)),
                                             as.numeric(NA)
           ),
@@ -1022,12 +1022,12 @@ dat <- data.frame(
   dat <-dat %>%
     dplyr::mutate(
       assetClass=if_else(is.na(assetClass),"Undefined",as.character(assetClass)),
-      aClass1=str_split(assetClass,"\\|")[[1]][1],
-      aClass2=str_split(assetClass,"\\|")[[1]][2],
-      aClass3=str_split(assetClass,"\\|")[[1]][3],
-      aClass4=str_split(assetClass,"\\|")[[1]][4],
-      aClass5=str_split(assetClass,"\\|")[[1]][5],
-      aClass6=str_split(assetClass,"\\|")[[1]][6]
+      aClass1=stringr::str_split(assetClass,"\\|")[[1]][1],
+      aClass2=stringr::str_split(assetClass,"\\|")[[1]][2],
+      aClass3=stringr::str_split(assetClass,"\\|")[[1]][3],
+      aClass4=stringr::str_split(assetClass,"\\|")[[1]][4],
+      aClass5=stringr::str_split(assetClass,"\\|")[[1]][5],
+      aClass6=stringr::str_split(assetClass,"\\|")[[1]][6]
     ) 
   
   dubious <- unique(ledger$dubious)
@@ -1099,9 +1099,10 @@ wrapEvents <- function(pnlst,res) {
 ##' @param transfS the string(s) to identify transfer trade types.
 ##' @param depoS the string to identify deposit instrument types.
 ##' @param apiURL the npl endpoint API URL string.
+##' @param symbol string of the instrument symbol to debug. Defaults to NULL.
 ##' @return A list containing the the granular ledger info  and a summarized one liner position data frame of pnl agg info corrected.
 ##' @export
-pnlReport <- function(portfolio, since, until, currency, session, res, cashS="CCY", transfS="transfer|investment", depoS="DEPO",apiURL="/apis/function/valuation-reports/eventsreport") {
+pnlReport <- function(portfolio, since, until, currency, session, res, cashS="CCY", transfS="transfer|investment", depoS="DEPO",apiURL="/apis/function/valuation-reports/eventsreport",symbol=NULL) {
     
     ## Get the endpoint data:
     events_report <- bare_get(apiURL,
@@ -1116,6 +1117,14 @@ pnlReport <- function(portfolio, since, until, currency, session, res, cashS="CC
     if(length(events_report[["ledgers"]] )==0) {return(NULL)}
 
     l <- events_report[["ledgers"]]
+
+    if(!is.null(symbol)) {
+      l <- l[lapply(l,function(x) x$artifact$symbol)==symbol]
+      if(length(l)==0) {
+        print("Ledger not found!")
+        return(NULL)
+      }
+    }
 
     pnl <- wrapEvents(pnlst=l,res=res)
     print(min(pnl$granular[[1]]$ledgerOG$date,na.rm=TRUE))

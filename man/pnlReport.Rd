@@ -14,7 +14,8 @@ pnlReport(
   cashS = "CCY",
   transfS = "transfer|investment",
   depoS = "DEPO",
-  apiURL = "/apis/function/valuation-reports/eventsreport"
+  apiURL = "/apis/function/valuation-reports/eventsreport",
+  symbol = NULL
 )
 }
 \arguments{
@@ -37,6 +38,8 @@ pnlReport(
 \item{depoS}{the string to identify deposit instrument types.}
 
 \item{apiURL}{the npl endpoint API URL string.}
+
+\item{symbol}{string of the instrument symbol to debug. Defaults to NULL.}
 }
 \value{
 A list containing the the granular ledger info  and a summarized one liner position data frame of pnl agg info corrected.

@@ -26,11 +26,15 @@ alertEmail(
 
 \item{dtPath}{the path containing the details/attachment data. Defaults to details.csv in the wd.}
 
+\item{snd}{date object deciding the send date. Defaults to present.}
+
 \item{wdw}{vector of the time period in which to run the function. Defaults to 24H given a vector of c(gte,lte).}
 
 \item{dte}{string of the weekday name of the day in which to run this alert. Defaults to NULL for all days.}
 
 \item{tz}{string of the time-zone for gte and lte. Defaults to Asia/Singapore.}
+
+\item{noBody}{boolean dictating whether there should be an email body printout of the summary df. Defaults to FALSE.}
 
 \item{...}{Any additional arguments.}
 }

@@ -41,6 +41,8 @@ figiWrapper <- function(data, idType="ID_ISIN", fld="isin", ccy="ccymain", figiA
         ## Hebele
         figiResult <- figi(data[naResources, ], idType, fld, ccy, figiApi)
 
+        length(figiResult) > 0 || return(NULL) ##Avoid 1 bad apple ruining it
+
         ## Match the figi isin to our data isins:
         figiIdx <- match(paste0(data[, fld], data[, ccy]), paste0(figiResult[,"idValue"], figiResult[,"currency"]))
 

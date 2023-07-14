@@ -1243,8 +1243,8 @@ alertEmail <- function(session,
                                    caption="",
                                    sourceType="API"
                                   )
-        addendum <- str_replace_all(addendum,"&#60;","<")
-        addendum <- str_replace_all(addendum,"&#62;",">")
+        addendum <- stringr::str_replace_all(addendum,"&#60;","<")
+        addendum <- stringr::str_replace_all(addendum,"&#62;",">")
               
         detail <- data[[length(data)]] 
         write_csv(detail, file=dtPath)

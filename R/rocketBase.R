@@ -193,8 +193,8 @@ flattenUni <- function(rb,paths,eDate=Sys.Date()) {
         dplyr::filter(year>=lubridate::year(eDate))
 
       estQ <- est %>%
-        dplyr::filter(str_detect(period,"q")) %>%
-        dplyr::filter(as.numeric(str_remove(period,"q"))>=lubridate::quarter(eDate))
+        dplyr::filter(stringr::str_detect(period,"q")) %>%
+        dplyr::filter(as.numeric(stringr::str_remove(period,"q"))>=lubridate::quarter(eDate))
 
       estY <- est %>%
         dplyr::filter(period=="year",year>lubridate::year(eDate)) %>%

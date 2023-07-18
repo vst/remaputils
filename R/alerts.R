@@ -1247,7 +1247,7 @@ alertEmail <- function(session,
         addendum <- stringr::str_replace_all(addendum,"&#62;",">")
               
         detail <- data[[length(data)]] 
-        write_csv(detail, file=dtPath)
+        readr::write_csv(detail, file=dtPath)
         attachment <- dtPath
 
         summEqAttach <- isTRUE(dplyr::all_equal(summary,detail))

@@ -587,8 +587,8 @@ outlierData <- function(session,
     
     NROW(summary) > 0 || return(NULL)
 
-    summary <- outlierEmlTbl(summary,deployment) %>%
-      dplyr::select(-`NAV Correction`)
+    summary <- outlierEmlTbl(summary,deployment) ## %>%
+      ##dplyr::select(-`NAV Correction`)
 
     return(list("summary"=summary,"detail"=details))
 

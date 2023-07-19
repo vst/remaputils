@@ -18,6 +18,7 @@ apt-get update -qy
 ## dependencies are precompiled. However, we do not want recommended and
 ## suggested packages in favour of installing them explicitly.
 apt-get install -qy --no-install-recommends --no-install-suggests \
+    r-cran-assertthat \
     r-cran-devtools \
     r-cran-httr \
     r-cran-jpeg \

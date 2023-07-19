@@ -32,7 +32,8 @@ jobs:
       DOCKER_REGISTRY_USERNAME: "${{ secrets.DECAF_DOCKER_REGISTRY_USERNAME }}"
       DOCKER_REGISTRY_PASSWORD: "${{ secrets.DECAF_DOCKER_REGISTRY_PASSWORD }}"
       DOCKER_IMAGE_REPOSITORY: "decaf-clever-runtime-remaputils"
-      DOCKER_IMAGE_TAG: "pr-${{ github.event.pull_request.number }}test"
+      #DOCKER_IMAGE_TAG: "pr-${{ github.event.pull_request.number }}test"
+      DOCKER_IMAGE_TAG: "${{ github.ref_name }}"
 
     ## Steps of this job:
     steps:

@@ -23,6 +23,13 @@ jobs:
     ## GitHub-hosted runner that we are we going to run this job on:
     runs-on: ubuntu-22.04
 
+    env:
+      DOCKER_REGISTRY: "${{ secrets.DECAF_DOCKER_REGISTRY }}"
+      DOCKER_REGISTRY_USERNAME: "${{ secrets.DECAF_DOCKER_REGISTRY_USERNAME }}"
+      DOCKER_REGISTRY_PASSWORD: "${{ secrets.DECAF_DOCKER_REGISTRY_PASSWORD }}"
+      DOCKER_IMAGE_REPOSITORY: "decaf-clever-runtime-remaputils"
+      DOCKER_IMAGE_TAG: "pr-${{ github.event.pull_request.number }}test"
+
     ## Steps of this job:
     steps:
       ## Checkout the codebase:
@@ -37,9 +44,9 @@ jobs:
       - name: "Login to Docker Registry"
         uses: docker/login-action@v2
         with:
-          registry: "${{ secrets.DECAF_DOCKER_REGISTRY }}"
-          username: "${{ secrets.DECAF_DOCKER_REGISTRY_USERNAME }}"
-          password: "${{ secrets.DECAF_DOCKER_REGISTRY_PASSWORD }}"
+          registry: "${{ env.DOCKER_REGISTRY }}"
+          username: "${{ env.DOCKER_REGISTRY_USERNAME }}"
+          password: "${{ env.DOCKER_REGISTRY_PASSWORD }}"
 
       ## Build and push the Docker image:
       - name: "Build and Push Docker Image"
@@ -50,10 +57,6 @@ jobs:
           # push: true
           context: .
           build-args: |
-            VERSION=$DOCKER_IMAGE_TAG
+            VERSION=${{ env.DOCKER_IMAGE_TAG }}
           tags: |
-            $DOCKER_REGISTRY/$DOCKER_REPOSITORY:$DOCKER_IMAGE_TAG
-        env:
-          DOCKER_REGISTRY: "${{ secrets.DECAF_DOCKER_REGISTRY }}"
-          DOCKER_REPOSITORY: "decaf-clever-runtime-remaputils"
-          DOCKER_IMAGE_TAG: "pr-${{ github.event.pull_request.number }}test"
+            ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_IMAGE_REPOSITORY }}:${{ env.DOCKER_IMAGE_TAG }}

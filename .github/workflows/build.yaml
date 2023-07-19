@@ -3,11 +3,15 @@ name: "Build DECAF Clever Runtime on Pull Requests"
 
 ## When will this GitHub Action run?
 on:
-  ## This GitHub Action will run for every event on a PR including pushes.
+  ## This GitHub Action will run for every event on a PR including pushes:
   pull_request:
 
-  ## TODO: Remove below after testing.
+  ## TODO: Separate somewhere else below after testing.
+  ## This GitHub Action will run for every tag push:
   push:
+    ## Include all tags including hierarchical tags such as v1.0.0/beta
+    tags:
+      - '**'
 
 ## Which GitHub permissions are required?
 ##

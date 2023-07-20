@@ -68,7 +68,7 @@ jobs:
           message: |
             Hey there!
 
-            I built a new Docker image for your PR:
+            I built a new Docker image for your PR and pushed it to your Docker image registry:
 
             ```txt
             ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_IMAGE_REPOSITORY }}:${{ env.DOCKER_IMAGE_TAG }}
@@ -80,11 +80,16 @@ jobs:
             docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_IMAGE_REPOSITORY }}:${{ env.DOCKER_IMAGE_TAG }}
             ```
 
-            > :warning: Note that I will keep building Docker images as you push more commits to this PR. However, I will keep using the same Docker image tag (`${{ env.DOCKER_IMAGE_TAG }}`) when I push them to the registry.
+            > __Warning__
+            >
+            > I will keep building and pushing Docker images as you push more commits to this PR.
+            >
+            > However, I will keep using the same Docker image tag (`${{ env.DOCKER_IMAGE_TAG }}`) when I push them to the registry.
             >
             > This means that:
             >
             > 1. The Docker image on the registry will be overridden.
             > 2. You have to pull the new build again.
-            > 3. There is nothing preventing you from using these images on production, but I strongly advise against doing that as reproducibility is not guaranteed. Do so with caution, and only if there really is some urgency.
+            >
+            > There is nothing preventing you from using these images on production, but I strongly advise against doing so as reproducibility is not guaranteed. Do so with caution, and only if there really is some urgency.
           reactions: hooray, rocket

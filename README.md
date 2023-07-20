@@ -14,7 +14,7 @@ This repository provides an R library (`remaputils`) and a DECAF Clever runtime
 In addition to the `remaputils` R library, this repository provides a DECAF
 Clever runtime, namely `decaf-clever-runtime-remaputils`, as a Docker image. It
 can be used as a standalone Docker image for both testing and production
-purposes, too.
+purposes.
 
 The Docker image is built and pushed to following Docker repository:
 

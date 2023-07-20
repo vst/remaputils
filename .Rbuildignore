@@ -3,6 +3,9 @@
 
 ^.dockerignore$
 ^.DS_Store$
+^.editorconfig$
+^.github$
+^.vscode$
 ^Dockerfile$
 ^install.sh$
 ^tmp$
